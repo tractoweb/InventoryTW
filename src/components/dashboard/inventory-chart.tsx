@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { inventoryItems } from "@/lib/data";
-import { ChartTooltipContent } from "../ui/chart";
+import { ChartContainer, ChartTooltipContent } from "../ui/chart";
 
 const data = inventoryItems.reduce((acc, item) => {
   const category = acc.find((c) => c.category === item.category);
@@ -33,6 +33,17 @@ const data = inventoryItems.reduce((acc, item) => {
   return acc;
 }, [] as { category: string; inStock: number; lowStock: number }[]);
 
+const chartConfig = {
+  inStock: {
+    label: "In Stock",
+    color: "hsl(var(--chart-1))",
+  },
+  lowStock: {
+    label: "Low Stock",
+    color: "hsl(var(--chart-2))",
+  },
+};
+
 export function InventoryChart({ className }: { className?: string }) {
   return (
     <Card className={className}>
@@ -40,7 +51,7 @@ export function InventoryChart({ className }: { className?: string }) {
         <CardTitle>Items by Category</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
+        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
           <BarChart data={data}>
             <XAxis
               dataKey="category"
@@ -61,10 +72,10 @@ export function InventoryChart({ className }: { className?: string }) {
               content={<ChartTooltipContent />}
             />
             <Legend />
-            <Bar dataKey="inStock" name="In Stock" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="lowStock" name="Low Stock" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="inStock" name="In Stock" fill="var(--color-inStock)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="lowStock" name="Low Stock" fill="var(--color-lowStock)" radius={[4, 4, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
