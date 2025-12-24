@@ -11,8 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Boxes, LayoutDashboard, Package } from "lucide-react";
-import { AwsStatus } from "./aws-status";
+import { Boxes, LayoutDashboard } from "lucide-react";
 import { AppLogo } from "../icons";
 
 const menuItems = [
@@ -58,7 +57,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <AwsStatus />
+        
       </SidebarFooter>
     </Sidebar>
   );
