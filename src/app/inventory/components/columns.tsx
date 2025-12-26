@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import type { ProductInventory } from "@/lib/types";
 import {
@@ -14,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { ViewProductDetails } from "./view-product-details";
+import { EditProductForm } from "./edit-product-form";
 
 export const columns: ColumnDef<ProductInventory>[] = [
   {
@@ -64,30 +67,40 @@ export const columns: ColumnDef<ProductInventory>[] = [
     id: "actions",
     cell: ({ row }) => {
       const item = row.original;
+      const [isViewOpen, setViewOpen] = useState(false);
+      const [isEditOpen, setEditOpen] = useState(false);
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => alert(`Viendo detalles de: ${item.name}`)}
-            >
-              Ver más información
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => alert(`Editando: ${item.name}`)}
-            >
-              Editar producto
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <ViewProductDetails 
+            productId={item.id} 
+            isOpen={isViewOpen} 
+            setOpen={setViewOpen} 
+          />
+          <EditProductForm
+            productId={item.id}
+            isOpen={isEditOpen}
+            setOpen={setEditOpen}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setViewOpen(true)}>
+                Ver más información
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                Editar producto
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
       );
     },
   },
