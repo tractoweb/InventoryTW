@@ -31,9 +31,9 @@ import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type EditProductFormProps = {
-  productId: number;
+  productId: number | null;
   isOpen: boolean;
-  setOpen: (open: boolean) => void;
+  onClose: () => void;
 };
 
 // Simplified schema for display purposes
@@ -49,7 +49,7 @@ const formSchema = z.object({
   isservice: z.boolean(),
 });
 
-export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormProps) {
+export function EditProductForm({ productId, isOpen, onClose }: EditProductFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormP
   });
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && productId) {
       setIsLoading(true);
       setError(null);
       getProductDetails(productId)
@@ -104,11 +104,11 @@ export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormP
       description: "La lógica para guardar los cambios aún no se ha añadido.",
       variant: "destructive"
     });
-    // setOpen(false); // Keep open for demonstration
+    // onClose(); // Keep open for demonstration
   }
   
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Producto</DialogTitle>
@@ -259,7 +259,7 @@ export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormP
                     </div>
                     
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                        <Button type="button" variant="outline" onClick={() => onClose()}>Cancelar</Button>
                         <Button type="submit">Guardar Cambios</Button>
                     </DialogFooter>
                 </form>

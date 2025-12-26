@@ -69,21 +69,17 @@ export function InventoryClient({ items }: { items: ProductInventory[] }) {
       </div>
 
       {/* Dialogs are now here, at the top level of the client component */}
-      {viewedProductId !== null && (
-        <ViewProductDetails
+      <ViewProductDetails
           productId={viewedProductId}
           isOpen={viewedProductId !== null}
-          setOpen={(open) => !open && setViewedProductId(null)}
-        />
-      )}
+          onClose={() => setViewedProductId(null)}
+      />
 
-      {editedProductId !== null && (
-        <EditProductForm
+      <EditProductForm
           productId={editedProductId}
           isOpen={editedProductId !== null}
-          setOpen={(open) => !open && setEditedProductId(null)}
-        />
-      )}
+          onClose={() => setEditedProductId(null)}
+      />
     </>
   );
 }

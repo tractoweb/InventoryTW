@@ -17,18 +17,18 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 type ViewProductDetailsProps = {
-  productId: number;
+  productId: number | null;
   isOpen: boolean;
-  setOpen: (open: boolean) => void;
+  onClose: () => void;
 };
 
-export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDetailsProps) {
+export function ViewProductDetails({ productId, isOpen, onClose }: ViewProductDetailsProps) {
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && productId) {
       const fetchDetails = async () => {
         setIsLoading(true);
         setError(null);
@@ -79,7 +79,7 @@ export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDe
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalles del Producto</DialogTitle>
