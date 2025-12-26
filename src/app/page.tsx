@@ -1,7 +1,6 @@
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { InventoryChart } from "@/components/dashboard/inventory-chart";
 import { RecentItems } from "@/components/dashboard/recent-items";
-import { inventoryItems } from "@/lib/data";
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +17,7 @@ export default function DashboardPage() {
           <InventoryChart className="lg:col-span-2" />
         </Suspense>
         <Suspense fallback={<RecentItemsSkeleton />}>
-          <RecentItems items={inventoryItems.slice(0, 5)} />
+          <RecentItems />
         </Suspense>
       </div>
     </div>
@@ -30,7 +29,7 @@ function StatsSkeleton() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total de Artículos</CardTitle>
+          <CardTitle className="text-sm font-medium">Total de Unidades</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-8 w-24" />
@@ -57,10 +56,10 @@ function StatsSkeleton() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Categorías</CardTitle>
+          <CardTitle className="text-sm font-medium">Valor del Inventario</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-8 w-24" />
           <Skeleton className="h-4 w-24 mt-1" />
         </CardContent>
       </Card>
