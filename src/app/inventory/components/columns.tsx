@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import type { ProductInventory } from "@/lib/types";
 import {
@@ -17,6 +17,22 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
+
+const DateCell = ({ dateString }: { dateString: string }) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    // Renderiza la fecha como string en el servidor y en la primera carga del cliente
+    return <div>{new Date(dateString).toLocaleDateString('es-ES')}</div>;
+  }
+  // Formatea la fecha en el cliente después de montar el componente
+  return <div>{format(new Date(dateString), "d MMM, yyyy HH:mm", { locale: es })}</div>;
+}
+
 
 export const columns: ColumnDef<ProductInventory>[] = [
   {
@@ -60,7 +76,7 @@ export const columns: ColumnDef<ProductInventory>[] = [
     accessorKey: "dateupdated",
     header: "Última Actualización",
     cell: ({ row }) => (
-      <div>{format(new Date(row.original.dateupdated), "d MMM, yyyy HH:mm", { locale: es })}</div>
+      <DateCell dateString={row.original.dateupdated} />
     ),
   },
   {

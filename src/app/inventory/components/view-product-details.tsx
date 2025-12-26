@@ -49,7 +49,7 @@ export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDe
     return (
         <div className="grid grid-cols-2 gap-2 text-sm">
             <p className="font-medium text-muted-foreground">{label}:</p>
-            <p className="break-words">{displayValue}</p>
+            <div className="break-words">{displayValue}</div>
         </div>
     );
   };
@@ -59,9 +59,9 @@ export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDe
     return (
         <div className="grid grid-cols-2 gap-2 text-sm">
             <p className="font-medium text-muted-foreground">{label}:</p>
-            <p className="break-words">
+            <div className="break-words">
                 <Badge variant={value ? 'default' : 'secondary'}>{displayValue}</Badge>
-            </p>
+            </div>
         </div>
     );
   }
