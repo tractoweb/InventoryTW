@@ -38,7 +38,7 @@ export const columns: ColumnDef<ProductInventory>[] = [
     accessorKey: "price",
     header: "Precio",
     cell: ({ row }) => {
-        const amount = parseFloat(String(row.getValue("price")));
+        const amount = parseFloat(String(row.original.price));
         const formatted = new Intl.NumberFormat("es-ES", {
           style: "currency",
           currency: "EUR", // Se podría hacer dinámico con product.currencyid
