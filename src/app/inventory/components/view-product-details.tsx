@@ -96,7 +96,7 @@ export function ViewProductDetails({ productId, isOpen, onClose }: ViewProductDe
                     <Skeleton className="h-4 w-1/2" />
                 </div>
             )}
-            {error && (
+            {error && !isLoading && (
                 <Alert variant="destructive">
                     <Terminal className="h-4 w-4" />
                     <AlertTitle>Error al Cargar Detalles</AlertTitle>
