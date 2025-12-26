@@ -21,6 +21,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type TableData = { [key: string]: any };
 
@@ -76,6 +77,15 @@ export default function TablesPage() {
   const [columns, setColumns] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  
+  const rowsPerPage = 10;
+  const pageCount = Math.ceil(tableData.length / rowsPerPage);
+  const paginatedData = tableData.slice(
+    page * rowsPerPage,
+    (page + 1) * rowsPerPage
+  );
+
 
   useEffect(() => {
     if (!selectedTable) return;
@@ -85,6 +95,7 @@ export default function TablesPage() {
       setError(null);
       setTableData([]);
       setColumns([]);
+      setPage(0);
 
       try {
         const result = await getTableData(selectedTable);
@@ -151,51 +162,75 @@ export default function TablesPage() {
         </Alert>
       )}
 
-      <ScrollArea className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {isLoading ? (
-                <>
-                    {[...Array(5)].map((_, i) => (
-                        <TableHead key={i}><Skeleton className="h-5 w-24" /></TableHead>
-                    ))}
-                </>
-              ) : (
-                columns.map((col) => <TableHead key={col} className="capitalize">{col.replace(/_/g, ' ')}</TableHead>)
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(10)].map((_, rowIndex) => (
-                <TableRow key={rowIndex}>
-                    {[...Array(5)].map((_, cellIndex) => (
-                        <TableCell key={cellIndex}><Skeleton className="h-5 w-full" /></TableCell>
-                    ))}
-                </TableRow>
-              ))
-            ) : tableData.length > 0 ? (
-              tableData.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
-                  {columns.map((col) => (
-                    <TableCell key={col} className="max-w-[200px] truncate">
-                      {formatValue(row[col])}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+      <div className="rounded-md border">
+        <ScrollArea>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={columns.length || 1} className="h-24 text-center">
-                  {selectedTable ? "No hay datos o la tabla está vacía." : "Selecciona una tabla para mostrar los datos."}
-                </TableCell>
+                {isLoading ? (
+                  <>
+                      {[...Array(5)].map((_, i) => (
+                          <TableHead key={i}><Skeleton className="h-5 w-24" /></TableHead>
+                      ))}
+                  </>
+                ) : (
+                  columns.map((col) => <TableHead key={col} className="capitalize">{col.replace(/_/g, ' ')}</TableHead>)
+                )}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                [...Array(10)].map((_, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                      {[...Array(columns.length || 5)].map((_, cellIndex) => (
+                          <TableCell key={cellIndex}><Skeleton className="h-5 w-full" /></TableCell>
+                      ))}
+                  </TableRow>
+                ))
+              ) : paginatedData.length > 0 ? (
+                paginatedData.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {columns.map((col) => (
+                      <TableCell key={col} className="max-w-[200px] truncate">
+                        {formatValue(row[col])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length || 1} className="h-24 text-center">
+                    {selectedTable ? "No hay datos o la tabla está vacía." : "Selecciona una tabla para mostrar los datos."}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+        <div className="flex items-center justify-end space-x-2 py-4 px-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 0}
+          >
+            Anterior
+          </Button>
+          <span className="text-sm">
+            Página {page + 1} de {pageCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page + 1)}
+            disabled={page >= pageCount - 1}
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
+
     </div>
   );
 }

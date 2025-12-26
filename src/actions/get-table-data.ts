@@ -58,7 +58,7 @@ export async function getTableData(tableName: string) {
   }
 
   try {
-    const query = `SELECT * FROM ${tableName} LIMIT 500;`; // Usar nombres de tabla en minúscula
+    const query = `SELECT * FROM ${tableName} LIMIT 100;`; // Usar nombres de tabla en minúscula
     const data = await queryDatabase(query);
     
     if (Array.isArray(data) && data.length > 0) {
