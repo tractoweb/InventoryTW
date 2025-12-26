@@ -20,27 +20,41 @@ const connectionConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
+  // Add a connection timeout to prevent long waits
+  connectTimeout: 5000, 
 };
 
 let connection: mysql.Connection | null = null;
 
 /**
- * Establishes a connection to the database if one doesn't already exist.
+ * Establishes a connection to the database. It does not reuse connections.
  * @returns A promise that resolves to the database connection object.
  */
 export async function getDbConnection() {
-  if (!connection) {
+    if (!process.env.DB_HOST) {
+        throw new Error('Database configuration is missing. Please check your .env.local file.');
+    }
     try {
-      connection = await mysql.createConnection(connectionConfig);
-      console.log('Successfully connected to the database.');
+      const newConnection = await mysql.createConnection(connectionConfig);
+      connection = newConnection;
+      return connection;
     } catch (error) {
       console.error('Error connecting to the database:', error);
-      // In a real application, you should handle this error appropriately.
-      throw new Error('Could not connect to the database.');
+      // Re-throw the error so it can be caught by the caller
+      throw error;
     }
-  }
-  return connection;
 }
+
+/**
+ * Closes the current database connection if it exists.
+ */
+export async function closeDbConnection() {
+    if (connection) {
+        await connection.end();
+        connection = null;
+    }
+}
+
 
 /**
  * Example function to query the database.
@@ -59,6 +73,10 @@ export async function queryDatabase(query: string, params: any[] = []) {
     // In a real application, you might want to throw the error
     // or return a more specific error message.
     throw new Error('Database query failed.');
+  } finally {
+      if (conn) {
+          await conn.end();
+      }
   }
 }
 

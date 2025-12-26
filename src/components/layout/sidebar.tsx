@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Boxes, LayoutDashboard, FileText, Calculator, Warehouse } from "lucide-react";
 import { AppLogo } from "../icons";
+import { DatabaseStatus } from "./database-status";
 
 const menuItems = [
   {
@@ -72,7 +73,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        
+        <DatabaseStatus />
       </SidebarFooter>
     </Sidebar>
   );
