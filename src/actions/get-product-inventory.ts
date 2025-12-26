@@ -25,6 +25,7 @@ export async function getProductInventory() {
     // Asegurarnos que todos los campos tienen un valor, especialmente los que pueden ser null
     const sanitizedData = data.map(item => ({
         ...item,
+        id: Number(item.id),
         code: item.code ?? 'N/A',
         measurementunit: item.measurementunit ?? 'Unidad',
         totalstock: item.totalstock ?? 0,
