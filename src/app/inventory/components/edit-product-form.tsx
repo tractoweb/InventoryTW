@@ -87,8 +87,8 @@ export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormP
                 price: result.data.price || 0,
                 cost: result.data.cost || 0,
                 measurementunit: result.data.measurementunit || "",
-                isenabled: result.data.isenabled,
-                isservice: result.data.isservice,
+                isenabled: !!result.data.isenabled,
+                isservice: !!result.data.isservice,
             });
           }
         })
@@ -214,7 +214,7 @@ export function EditProductForm({ productId, isOpen, setOpen }: EditProductFormP
                             <FormItem>
                             <FormLabel>Descripción</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Describe el producto..." {...field} />
+                                <Textarea placeholder="Describe el producto..." {...field} value={field.value ?? ""} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

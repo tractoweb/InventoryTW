@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 type ViewProductDetailsProps = {
   productId: number;
@@ -62,6 +64,18 @@ export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDe
             </p>
         </div>
     );
+  }
+
+  const renderDate = (label: string, dateString: string | null | undefined) => {
+    let displayValue = 'N/A';
+    if (dateString) {
+        try {
+            displayValue = format(new Date(dateString), "d MMM, yyyy HH:mm:ss", { locale: es });
+        } catch (e) {
+            displayValue = "Fecha inválida";
+        }
+    }
+    return renderDetail(label, displayValue);
   }
 
   return (
@@ -138,8 +152,8 @@ export function ViewProductDetails({ productId, isOpen, setOpen }: ViewProductDe
                     </div>
                      <div className="space-y-3 md:col-span-2">
                         <h3 className="font-semibold text-lg border-b pb-2">Fechas</h3>
-                        {renderDetail("Fecha de Creación", new Date(details.datecreated).toLocaleString('es-ES'))}
-                        {renderDetail("Última Actualización", new Date(details.dateupdated).toLocaleString('es-ES'))}
+                        {renderDate("Fecha de Creación", details.datecreated)}
+                        {renderDate("Última Actualización", details.dateupdated)}
                     </div>
                      <div className="space-y-3 md:col-span-2">
                         <h3 className="font-semibold text-lg border-b pb-2">Datos Binarios</h3>
