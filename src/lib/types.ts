@@ -24,3 +24,14 @@ export type User = {
   email: string;
   avatar: string;
 };
+
+// Tipo para el inventario de productos desde la BD
+export type ProductInventory = {
+  id: number;
+  name: string;
+  code: string | null;
+  measurementunit: string | null;
+  price: number;
+  totalstock: number | null;
+  dateupdated: string; // ISO 8601 string
+};

@@ -1,29 +1,21 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import type { InventoryItem } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
+import type { ProductInventory } from "@/lib/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
-const statusColors: { [key: string]: string } = {
-  "En Stock": "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-  "Stock Bajo": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-  "Agotado": "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
-};
-
-
-export const columns: ColumnDef<InventoryItem>[] = [
+export const columns: ColumnDef<ProductInventory>[] = [
   {
     accessorKey: "name",
     header: "Nombre",
@@ -32,40 +24,40 @@ export const columns: ColumnDef<InventoryItem>[] = [
     ),
   },
   {
-    accessorKey: "status",
-    header: "Estado",
-    cell: ({ row }) => {
-      const status = row.original.status as keyof typeof statusColors;
-      return (
-        <Badge
-          variant="outline"
-          className={cn(statusColors[status] || '')}
-        >
-          {status}
-        </Badge>
-      );
-    },
+    accessorKey: "code",
+    header: "Código/Referencia",
   },
   {
-    accessorKey: "quantity",
-    header: "Cantidad",
+    accessorKey: "measurementunit",
+    header: "Unidad Medida",
     cell: ({ row }) => (
-      <div className="text-center">{row.original.quantity}</div>
+        <div>{row.original.measurementunit || 'N/A'}</div>
     ),
   },
   {
-    accessorKey: "category",
-    header: "Categoría",
+    accessorKey: "price",
+    header: "Precio",
+    cell: ({ row }) => {
+        const amount = parseFloat(String(row.getValue("price")));
+        const formatted = new Intl.NumberFormat("es-ES", {
+          style: "currency",
+          currency: "EUR", // Se podría hacer dinámico con product.currencyid
+        }).format(amount);
+        return <div className="text-right font-medium">{formatted}</div>;
+      },
   },
   {
-    accessorKey: "manufacturer",
-    header: "Fabricante",
-  },
-  {
-    accessorKey: "dateAdded",
-    header: "Fecha de Alta",
+    accessorKey: "totalstock",
+    header: "Stock Total",
     cell: ({ row }) => (
-      <div>{format(new Date(row.original.dateAdded), "d MMM, yyyy", { locale: es })}</div>
+      <div className="text-center">{row.original.totalstock ?? 0}</div>
+    ),
+  },
+  {
+    accessorKey: "dateupdated",
+    header: "Última Actualización",
+    cell: ({ row }) => (
+      <div>{format(new Date(row.original.dateupdated), "d MMM, yyyy HH:mm", { locale: es })}</div>
     ),
   },
   {
@@ -83,14 +75,16 @@ export const columns: ColumnDef<InventoryItem>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(item.id)}
+              onClick={() => alert(`Viendo detalles de: ${item.name}`)}
             >
-              Copiar ID del artículo
+              Ver más información
             </DropdownMenuItem>
-            <DropdownMenuItem>Editar artículo</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
-              Eliminar artículo
+            <DropdownMenuItem
+              onClick={() => alert(`Editando: ${item.name}`)}
+            >
+              Editar producto
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
