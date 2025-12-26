@@ -4,7 +4,51 @@ import { queryDatabase } from '@/lib/db-connection';
 import { unstable_noStore as noStore } from 'next/cache';
 
 // Lista blanca de tablas permitidas para evitar consultas arbitrarias
-const ALLOWED_TABLES = ['product', 'stock', 'currency'];
+const ALLOWED_TABLES = [
+    'applicationproperty',
+    'barcode',
+    'company',
+    'counter',
+    'country',
+    'currency',
+    'customer',
+    'customerdiscount',
+    'document',
+    'documentcategory',
+    'documentitem',
+    'documentitemexpirationdate',
+    'documentitemtax',
+    'documenttype',
+    'fiscalitem',
+    'floorplan',
+    'floorplantable',
+    'loyaltycard',
+    'migration',
+    'payment',
+    'paymenttype',
+    'posorder',
+    'posorderitem',
+    'posprinterselection',
+    'posprinterselectionsettings',
+    'posprintersettings',
+    'posvoid',
+    'product',
+    'productcomment',
+    'productgroup',
+    'producttax',
+    'promotion',
+    'promotionitem',
+    'securitykey',
+    'startingcash',
+    'stock',
+    'stockcontrol',
+    'tax',
+    'template',
+    'user',
+    'voidreason',
+    'warehouse',
+    'zreport',
+  ];
 
 export async function getTableData(tableName: string) {
   noStore();
