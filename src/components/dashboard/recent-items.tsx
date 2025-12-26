@@ -7,15 +7,16 @@ import {
 } from "@/components/ui/card";
 import type { InventoryItem } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import { Package } from "lucide-react";
 
 export function RecentItems({ items }: { items: InventoryItem[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recently Added</CardTitle>
+        <CardTitle>Añadidos Recientemente</CardTitle>
         <CardDescription>
-          A quick look at the newest items in your inventory.
+          Un vistazo rápido a los artículos más nuevos en tu inventario.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -28,12 +29,13 @@ export function RecentItems({ items }: { items: InventoryItem[] }) {
               <div className="flex-1">
                 <p className="text-sm font-medium">{item.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {item.quantity} units added
+                  {item.quantity} unidades añadidas
                 </p>
               </div>
               <p className="text-right text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(item.dateAdded), {
                   addSuffix: true,
+                  locale: es,
                 })}
               </p>
             </div>

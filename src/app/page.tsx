@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
       <Suspense fallback={<StatsSkeleton />}>
         <StatsCards />
       </Suspense>
@@ -30,7 +30,7 @@ function StatsSkeleton() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+          <CardTitle className="text-sm font-medium">Total de Artículos</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-8 w-24" />
@@ -39,7 +39,7 @@ function StatsSkeleton() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+          <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-8 w-16" />
@@ -48,7 +48,7 @@ function StatsSkeleton() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+          <CardTitle className="text-sm font-medium">Agotados</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-8 w-16" />
@@ -57,7 +57,7 @@ function StatsSkeleton() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Categories</CardTitle>
+          <CardTitle className="text-sm font-medium">Categorías</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-8 w-16" />
@@ -72,7 +72,7 @@ function ChartSkeleton() {
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
-        <CardTitle>Items by Category</CardTitle>
+        <CardTitle>Artículos por Categoría</CardTitle>
       </CardHeader>
       <CardContent>
         <Skeleton className="w-full h-[350px]" />
@@ -85,7 +85,7 @@ function RecentItemsSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recently Added</CardTitle>
+        <CardTitle>Añadidos Recientemente</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

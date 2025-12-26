@@ -13,35 +13,33 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+const statusColors: { [key: string]: string } = {
+  "En Stock": "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+  "Stock Bajo": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
+  "Agotado": "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+};
+
 
 export const columns: ColumnDef<InventoryItem>[] = [
   {
     accessorKey: "name",
-    header: "Name",
+    header: "Nombre",
     cell: ({ row }) => (
       <div className="font-medium">{row.original.name}</div>
     ),
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Estado",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const status = row.original.status as keyof typeof statusColors;
       return (
         <Badge
-          variant={
-            status === "In Stock"
-              ? "default"
-              : status === "Low Stock"
-              ? "secondary"
-              : "destructive"
-          }
-          className={cn(
-             status === 'In Stock' && 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-             status === 'Low Stock' && 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-             status === 'Out of Stock' && 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
-          )}
+          variant="outline"
+          className={cn(statusColors[status] || '')}
         >
           {status}
         </Badge>
@@ -50,24 +48,24 @@ export const columns: ColumnDef<InventoryItem>[] = [
   },
   {
     accessorKey: "quantity",
-    header: "Quantity",
+    header: "Cantidad",
     cell: ({ row }) => (
       <div className="text-center">{row.original.quantity}</div>
     ),
   },
   {
     accessorKey: "category",
-    header: "Category",
+    header: "Categoría",
   },
   {
     accessorKey: "manufacturer",
-    header: "Manufacturer",
+    header: "Fabricante",
   },
   {
     accessorKey: "dateAdded",
-    header: "Date Added",
+    header: "Fecha de Alta",
     cell: ({ row }) => (
-      <div>{format(new Date(row.original.dateAdded), "MMM d, yyyy")}</div>
+      <div>{format(new Date(row.original.dateAdded), "d MMM, yyyy", { locale: es })}</div>
     ),
   },
   {
@@ -79,20 +77,20 @@ export const columns: ColumnDef<InventoryItem>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Abrir menú</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(item.id)}
             >
-              Copy item ID
+              Copiar ID del artículo
             </DropdownMenuItem>
-            <DropdownMenuItem>Edit item</DropdownMenuItem>
+            <DropdownMenuItem>Editar artículo</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive">
-              Delete item
+              Eliminar artículo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

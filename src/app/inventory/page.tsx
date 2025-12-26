@@ -7,7 +7,7 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col gap-8">
-       <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
+       <h1 className="text-3xl font-bold tracking-tight">Inventario</h1>
       <InventoryClient items={items} />
     </div>
   );

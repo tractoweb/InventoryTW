@@ -61,7 +61,7 @@ export function DataTable<TData, TValue>({
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
+                No hay resultados.
               </TableCell>
             </TableRow>
           )}
@@ -74,10 +74,10 @@ export function DataTable<TData, TValue>({
           onClick={() => setPage(page - 1)}
           disabled={page === 0}
         >
-          Previous
+          Anterior
         </Button>
         <span className="text-sm">
-          Page {page + 1} of {pageCount}
+          Página {page + 1} de {pageCount}
         </span>
         <Button
           variant="outline"
@@ -85,7 +85,7 @@ export function DataTable<TData, TValue>({
           onClick={() => setPage(page + 1)}
           disabled={page >= pageCount - 1}
         >
-          Next
+          Siguiente
         </Button>
       </div>
     </div>

@@ -35,11 +35,11 @@ const data = inventoryItems.reduce((acc, item) => {
 
 const chartConfig = {
   inStock: {
-    label: "In Stock",
+    label: "En Stock",
     color: "hsl(var(--chart-1))",
   },
   lowStock: {
-    label: "Low Stock",
+    label: "Stock Bajo",
     color: "hsl(var(--chart-2))",
   },
 };
@@ -48,7 +48,7 @@ export function InventoryChart({ className }: { className?: string }) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Items by Category</CardTitle>
+        <CardTitle>Artículos por Categoría</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
@@ -72,8 +72,8 @@ export function InventoryChart({ className }: { className?: string }) {
               content={<ChartTooltipContent />}
             />
             <Legend />
-            <Bar dataKey="inStock" name="In Stock" fill="var(--color-inStock)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="lowStock" name="Low Stock" fill="var(--color-lowStock)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="inStock" name="En Stock" fill="var(--color-inStock)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="lowStock" name="Stock Bajo" fill="var(--color-lowStock)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>
       </CardContent>

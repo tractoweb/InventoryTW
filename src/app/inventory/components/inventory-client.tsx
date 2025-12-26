@@ -29,6 +29,12 @@ const allCategories: Category[] = [
 ];
 const allStatuses: Status[] = ["In Stock", "Low Stock", "Out of Stock"];
 
+const statusTranslations: Record<Status, string> = {
+  "In Stock": "En Stock",
+  "Low Stock": "Stock Bajo",
+  "Out of Stock": "Agotado",
+};
+
 export function InventoryClient({ items }: { items: InventoryItem[] }) {
   const [search, setSearch] = useState("");
   const [categoryFilters, setCategoryFilters] = useState<Set<Category>>(new Set());
@@ -36,18 +42,23 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
   const [isAddOpen, setAddOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    return items.map(item => ({
+        ...item,
+        status: statusTranslations[item.status] as any // Temporarily cast for display
+    })).filter((item) => {
       const searchLower = search.toLowerCase();
+      const originalItem = items.find(i => i.id === item.id)!;
+      
       const matchesSearch =
         item.name.toLowerCase().includes(searchLower) ||
         item.manufacturer.toLowerCase().includes(searchLower) ||
         item.id.toLowerCase().includes(searchLower);
 
       const matchesCategory =
-        categoryFilters.size === 0 || categoryFilters.has(item.category);
+        categoryFilters.size === 0 || categoryFilters.has(originalItem.category);
 
       const matchesStatus =
-        statusFilters.size === 0 || statusFilters.has(item.status);
+        statusFilters.size === 0 || statusFilters.has(originalItem.status);
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -74,7 +85,7 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Input
-          placeholder="Search by name, manufacturer, ID..."
+          placeholder="Buscar por nombre, fabricante, ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
@@ -83,11 +94,11 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
               <ListFilter className="mr-2 h-4 w-4" />
-              Filter
+              Filtrar
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+            <DropdownMenuLabel>Filtrar por Categoría</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {allCategories.map((category) => (
               <DropdownMenuCheckboxItem
@@ -99,7 +110,7 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
               </DropdownMenuCheckboxItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+            <DropdownMenuLabel>Filtrar por Estado</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {allStatuses.map((status) => (
               <DropdownMenuCheckboxItem
@@ -107,7 +118,7 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
                 checked={statusFilters.has(status)}
                 onCheckedChange={() => toggleFilter("status", status)}
               >
-                {status}
+                {statusTranslations[status]}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
@@ -116,12 +127,12 @@ export function InventoryClient({ items }: { items: InventoryItem[] }) {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Add Item
+              Añadir Artículo
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Add New Item</DialogTitle>
+              <DialogTitle>Añadir Nuevo Artículo</DialogTitle>
             </DialogHeader>
             <AddItemForm setOpen={setAddOpen} />
           </DialogContent>

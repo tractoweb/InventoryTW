@@ -18,12 +18,12 @@ import { DatabaseStatus } from "./database-status";
 const menuItems = [
   {
     href: "/",
-    label: "Dashboard",
+    label: "Panel de Control",
     icon: LayoutDashboard,
   },
   {
     href: "/inventory",
-    label: "Inventory",
+    label: "Inventario",
     icon: Boxes,
   },
   {
@@ -33,12 +33,12 @@ const menuItems = [
   },
   {
     href: "/documentation",
-    label: "Documentation",
+    label: "Documentación",
     icon: FileText,
   },
   {
     href: "/financing-calculator",
-    label: "Financing Calculator",
+    label: "Calculadora de Financiación",
     icon: Calculator,
   },
 ];

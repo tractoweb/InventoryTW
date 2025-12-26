@@ -9,21 +9,21 @@ export async function checkDbConnection() {
       // The connection object exists, but let's ping to be sure
       await connection.ping();
       await closeDbConnection();
-      return { status: 'success', message: 'Connection successful' };
+      return { status: 'success', message: 'Conexión exitosa' };
     }
     // This case should ideally not be hit if getDbConnection throws error on failure
-    return { status: 'error', message: 'Failed to get connection object' };
+    return { status: 'error', message: 'No se pudo obtener el objeto de conexión' };
   } catch (error: any) {
     // Check for specific MySQL error codes
     if (error.code === 'ENOTFOUND') {
-        return { status: 'error', message: 'DB host not found. Check address.' };
+        return { status: 'error', message: 'Host de BD no encontrado. Revise la dirección.' };
     }
     if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-        return { status: 'error', message: 'Access denied. Check credentials.' };
+        return { status: 'error', message: 'Acceso denegado. Revise las credenciales.' };
     }
     if (error.code === 'ER_BAD_DB_ERROR') {
-        return { status: 'error', message: 'Database not found.' };
+        return { status: 'error', message: 'Base de datos no encontrada.' };
     }
-    return { status: 'error', message: error.message || 'An unknown error occurred' };
+    return { status: 'error', message: error.message || 'Ocurrió un error desconocido' };
   }
 }

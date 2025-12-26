@@ -24,12 +24,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
   description: z.string().optional(),
-  quantity: z.coerce.number().min(0, "Quantity can't be negative."),
+  quantity: z.coerce.number().min(0, "La cantidad no puede ser negativa."),
   category: z.enum(["Electronics", "Furniture", "Office Supplies", "Software"]),
-  manufacturer: z.string().min(2, "Manufacturer is required."),
-  location: z.string().min(2, "Location is required."),
+  manufacturer: z.string().min(2, "El fabricante es obligatorio."),
+  location: z.string().min(2, "La ubicación es obligatoria."),
 });
 
 type AddItemFormProps = {
@@ -53,8 +53,8 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
     // In a real app, you would send this to your API
     console.log(values);
     toast({
-      title: "Item Added",
-      description: `${values.name} has been successfully added to the inventory.`,
+      title: "Artículo Añadido",
+      description: `${values.name} ha sido añadido al inventario correctamente.`,
     });
     setOpen(false);
   }
@@ -67,9 +67,9 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Item Name</FormLabel>
+              <FormLabel>Nombre del Artículo</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Wireless Keyboard" {...field} />
+                <Input placeholder="Ej: Teclado inalámbrico" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -81,7 +81,7 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantity</FormLabel>
+                <FormLabel>Cantidad</FormLabel>
                 <FormControl>
                   <Input type="number" {...field} />
                 </FormControl>
@@ -94,20 +94,20 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Categoría</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Electronics">Electronics</SelectItem>
-                    <SelectItem value="Furniture">Furniture</SelectItem>
-                    <SelectItem value="Office Supplies">Office Supplies</SelectItem>
+                    <SelectItem value="Electronics">Electrónica</SelectItem>
+                    <SelectItem value="Furniture">Mobiliario</SelectItem>
+                    <SelectItem value="Office Supplies">Material de Oficina</SelectItem>
                     <SelectItem value="Software">Software</SelectItem>
                   </SelectContent>
                 </Select>
@@ -122,9 +122,9 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
             name="manufacturer"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Manufacturer</FormLabel>
+                <FormLabel>Fabricante</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., Logitech" {...field} />
+                    <Input placeholder="Ej: Logitech" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -135,9 +135,9 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
             name="location"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Location</FormLabel>
+                <FormLabel>Ubicación</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., Warehouse A" {...field} />
+                    <Input placeholder="Ej: Almacén A" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -149,10 +149,10 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Descripción</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="A brief description of the item"
+                  placeholder="Una breve descripción del artículo"
                   {...field}
                 />
               </FormControl>
@@ -161,7 +161,7 @@ export function AddItemForm({ setOpen }: AddItemFormProps) {
           )}
         />
         <Button type="submit" className="w-full">
-          Add Item
+          Añadir Artículo
         </Button>
       </form>
     </Form>

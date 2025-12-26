@@ -14,14 +14,14 @@ type ConnectionStatus = {
 export function DatabaseStatus() {
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'loading',
-    message: 'Checking connection...',
+    message: 'Verificando conexión...',
   });
 
   useEffect(() => {
     async function checkConnection() {
       const result = await checkDbConnection();
       if (result.status === 'success') {
-        setConnection({ status: 'success', message: 'Database Connected' });
+        setConnection({ status: 'success', message: 'Base de Datos Conectada' });
       } else {
         setConnection({ status: 'error', message: result.message });
       }

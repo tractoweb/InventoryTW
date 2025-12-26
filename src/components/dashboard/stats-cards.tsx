@@ -21,42 +21,42 @@ export function StatsCards() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+          <CardTitle className="text-sm font-medium">Total de Artículos</CardTitle>
           <PackageCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalItems.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">in {inventoryItems.length} unique products</p>
+          <p className="text-xs text-muted-foreground">en {inventoryItems.length} productos únicos</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+          <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
           <Archive className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{lowStockItems}</div>
-          <p className="text-xs text-muted-foreground">Items needing attention</p>
+          <p className="text-xs text-muted-foreground">Artículos que necesitan atención</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+          <CardTitle className="text-sm font-medium">Agotados</CardTitle>
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{outOfStockItems}</div>
-          <p className="text-xs text-muted-foreground">Items to re-order</p>
+          <p className="text-xs text-muted-foreground">Artículos para reponer</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Categories</CardTitle>
+          <CardTitle className="text-sm font-medium">Categorías</CardTitle>
           <Boxes className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{categories}</div>
-          <p className="text-xs text-muted-foreground">Product categories managed</p>
+          <p className="text-xs text-muted-foreground">Categorías de productos gestionadas</p>
         </CardContent>
       </Card>
     </div>

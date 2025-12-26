@@ -23,11 +23,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { notifications, user } from "@/lib/data";
 import { Badge } from "../ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { es } from 'date-fns/locale';
+
+
+const pageTitles: { [key: string]: string } = {
+  '/': 'Panel de Control',
+  '/inventory': 'Inventario',
+  '/stock': 'Stock',
+  '/documentation': 'Documentación',
+  '/financing-calculator': 'Calculadora de Financiación',
+};
+
 
 export function AppHeader() {
   const pathname = usePathname();
-  const pageTitle =
-    pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
+  const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
@@ -45,7 +55,7 @@ export function AppHeader() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search items..."
+              placeholder="Buscar artículos..."
               className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
             />
           </div>
@@ -60,12 +70,12 @@ export function AppHeader() {
                   {unreadNotifications}
                 </span>
               )}
-              <span className="sr-only">Toggle notifications</span>
+              <span className="sr-only">Ver notificaciones</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-0">
             <div className="p-4">
-              <h4 className="font-medium">Notifications</h4>
+              <h4 className="font-medium">Notificaciones</h4>
             </div>
             <div className="divide-y">
               {notifications.map((notif) => (
@@ -82,7 +92,7 @@ export function AppHeader() {
                       {notif.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: es })}
                     </p>
                   </div>
                 </div>
@@ -90,7 +100,7 @@ export function AppHeader() {
             </div>
             <div className="border-t p-2 text-center">
               <Button variant="link" size="sm" className="w-full">
-                View all notifications
+                Ver todas las notificaciones
               </Button>
             </div>
           </PopoverContent>
@@ -111,20 +121,20 @@ export function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <UserIcon className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>Configuración</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>Cerrar sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
