@@ -1,0 +1,161 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getTableData } from '@/actions/get-table-data';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
+
+type TableData = { [key: string]: any };
+
+const tableOptions = [
+  { value: 'product', label: 'Productos (product)' },
+  { value: 'stock', label: 'Inventario (stock)' },
+  { value: 'currency', label: 'Monedas (currency)' },
+];
+
+export default function TablesPage() {
+  const [selectedTable, setSelectedTable] = useState<string>('');
+  const [tableData, setTableData] = useState<TableData[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedTable) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      setTableData([]);
+      setColumns([]);
+
+      try {
+        const result = await getTableData(selectedTable);
+        if (result.error) {
+          setError(result.error);
+        } else if (result.data && result.columns) {
+          setTableData(result.data);
+          setColumns(result.columns);
+        }
+      } catch (e: any) {
+        setError(e.message || 'Ocurrió un error inesperado.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedTable]);
+  
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined) return 'NULL';
+    if (typeof value === 'object') {
+        if (Buffer.isBuffer(value)) {
+            return '[Buffer]';
+        }
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return '[Object]';
+        }
+    }
+    return String(value);
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Visualizador de Tablas
+        </h1>
+        <div className="w-full md:w-auto">
+          <Select onValueChange={setSelectedTable} value={selectedTable}>
+            <SelectTrigger className="w-full md:w-[280px]">
+              <SelectValue placeholder="Selecciona una tabla" />
+            </SelectTrigger>
+            <SelectContent>
+              {tableOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {error && (
+         <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error de Base de Datos</AlertTitle>
+            <AlertDescription>
+                {error}
+            </AlertDescription>
+        </Alert>
+      )}
+
+      <ScrollArea className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {isLoading ? (
+                <>
+                    {[...Array(5)].map((_, i) => (
+                        <TableHead key={i}><Skeleton className="h-5 w-24" /></TableHead>
+                    ))}
+                </>
+              ) : (
+                columns.map((col) => <TableHead key={col} className="capitalize">{col.replace(/_/g, ' ')}</TableHead>)
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              [...Array(10)].map((_, rowIndex) => (
+                <TableRow key={rowIndex}>
+                    {[...Array(5)].map((_, cellIndex) => (
+                        <TableCell key={cellIndex}><Skeleton className="h-5 w-full" /></TableCell>
+                    ))}
+                </TableRow>
+              ))
+            ) : tableData.length > 0 ? (
+              tableData.map((row, rowIndex) => (
+                <TableRow key={rowIndex}>
+                  {columns.map((col) => (
+                    <TableCell key={col} className="max-w-[200px] truncate">
+                      {formatValue(row[col])}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length || 1} className="h-24 text-center">
+                  {selectedTable ? "No hay datos o la tabla está vacía." : "Selecciona una tabla para mostrar los datos."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </div>
+  );
+}

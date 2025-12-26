@@ -1,0 +1,934 @@
+-----------------------------explicacion de todas las tablas
+
+Table: ApplicationProperty
+Almacena configuraciones generales del sistema en formato Clave-Valor.
+
+Name (VARCHAR(255), PK): Nombre de la propiedad (ej. "Version", "ShopName").
+
+Value (TEXT): Valor de la configuración.
+
+Table: Company
+Información legal y de contacto de la empresa propietaria del sistema.
+
+Id (INT, PK): Identificador único.
+
+Name (VARCHAR(255)): Razón social o nombre comercial.
+
+Address, PostalCode, City, StreetName, BuildingNumber: Datos de dirección física.
+
+CountryId (INT, FK): Referencia a la tabla Country.
+
+TaxNumber (VARCHAR(50)): Número de identificación fiscal (NIT, RUC, CIF).
+
+Email, PhoneNumber: Datos de contacto.
+
+Logo (MEDIUMBLOB): Imagen del logo de la empresa en binario.
+
+BankAccountNumber, BankDetails: Información bancaria para facturas.
+
+Table: Country
+Catálogo de países.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(255)): Nombre del país.
+
+Code (VARCHAR(10)): Código ISO (ej. "US", "CO").
+
+Table: Currency
+Monedas admitidas en el sistema.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(100)): Nombre (ej. "Dólar", "Peso").
+
+Code (VARCHAR(10)): Símbolo o código ISO (ej. "$", "USD").
+
+Table: Tax
+Tipos de impuestos aplicables.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(100)): Nombre (ej. "IVA 19%").
+
+Rate (DECIMAL(10,4)): Porcentaje o valor del impuesto.
+
+IsFixed (TINYINT(1)): Si es un valor fijo monetario (1) o porcentaje (0).
+
+IsTaxOnTotal (TINYINT(1)): Si se calcula sobre el total de la factura.
+
+Table: Warehouse
+Bodegas o almacenes físicos.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(100)): Nombre de la bodega (ej. "Principal", "Tienda 1").
+
+Table: User
+Usuarios del sistema (Cajeros, Administradores).
+
+Id (INT, PK): Identificador.
+
+Username (VARCHAR(50), Unique): Nombre de usuario para login.
+
+Password (VARCHAR(255)): Contraseña (debería estar hasheada).
+
+AccessLevel (INT): Nivel de permisos (ej. 0=Cajero, 1=Admin).
+
+FirstName, LastName, Email: Datos personales.
+
+2. Módulo de Productos e Inventario
+Table: ProductGroup
+Categorías de productos.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(100)): Nombre de la categoría.
+
+ParentGroupId (INT, FK): Referencia a ProductGroup. Permite subcategorías (Recursiva).
+
+Color, Image: Para visualización en el POS.
+
+Table: Product
+Maestro de productos.
+
+Id (INT, PK): Identificador.
+
+Name (VARCHAR(255)): Nombre del producto.
+
+Code (VARCHAR(50)): Código interno.
+
+PLU (INT): Price Look-Up code (común en balanzas).
+
+Price (DECIMAL): Precio de venta.
+
+Cost (DECIMAL): Costo de adquisición.
+
+ProductGroupId (INT, FK): Categoría a la que pertenece.
+
+IsService (TINYINT): Si es 1, no descuenta inventario.
+
+MeasurementUnit: Unidad (kg, un, lt).
+
+Image (MEDIUMBLOB): Foto del producto.
+
+Table: Barcode
+Códigos de barras asociados a productos (1 producto puede tener N códigos).
+
+Id (INT, PK): Identificador.
+
+ProductId (INT, FK): Producto asociado.
+
+Value (VARCHAR(255)): El código escaneable (EAN, UPC).
+
+Table: Stock
+Inventario físico actual.
+
+Id (INT, PK): Identificador.
+
+ProductId (INT, FK): Producto.
+
+WarehouseId (INT, FK): Bodega donde está el producto.
+
+Quantity (DECIMAL(18,4)): Cantidad actual disponible.
+
+Table: StockControl
+Configuración de reabastecimiento.
+
+Id (INT, PK): Identificador.
+
+ProductId (INT, FK): Producto.
+
+ReorderPoint (DECIMAL): Cantidad mínima antes de pedir más.
+
+LowStockWarningQuantity: Cantidad para activar alerta de stock bajo.
+
+Table: ProductTax
+Relación Muchos a Muchos entre Productos e Impuestos.
+
+ProductId (INT, PK Composite): Producto.
+
+TaxId (INT, PK Composite): Impuesto aplicable a ese producto.
+
+3. Módulo de Clientes (CRM)
+Table: Customer
+Clientes y Proveedores.
+
+Id (INT, PK): Identificador.
+
+Name, TaxNumber, Address: Datos fiscales.
+
+IsCustomer, IsSupplier (TINYINT): Banderas para definir el rol.
+
+DueDatePeriod (INT): Días de crédito otorgados.
+
+Table: CustomerDiscount
+Descuentos personalizados por cliente.
+
+Id (INT, PK): Identificador.
+
+CustomerId (INT, FK): Cliente.
+
+Type: Tipo de descuento.
+
+Value: Valor del descuento.
+
+Table: LoyaltyCard
+Tarjetas de fidelización.
+
+Id (INT, PK): Identificador.
+
+CustomerId (INT, FK): Cliente dueño de la tarjeta.
+
+CardNumber: Número físico o lógico de la tarjeta.
+
+4. Módulo de Transacciones (Documentos)
+Table: Document
+Cabecera de facturas, recibos, pedidos, etc.
+
+Id (INT, PK): Identificador.
+
+Number (VARCHAR): Consecutivo visible del documento.
+
+Date, Time: Fecha de emisión.
+
+UserId (INT, FK): Usuario que creó el documento.
+
+CustomerId (INT, FK): Cliente asociado.
+
+DocumentTypeId (INT, FK): Tipo de documento (Factura, Nota Crédito).
+
+WarehouseId (INT, FK): Bodega de origen.
+
+Total, Discount: Valores monetarios totales.
+
+PaidStatus: Estado de pago (Pagado, Pendiente).
+
+Table: DocumentItem
+Detalle de productos dentro de un documento (Líneas de factura).
+
+Id (INT, PK): Identificador.
+
+DocumentId (INT, FK): Documento padre.
+
+ProductId (INT, FK): Producto vendido.
+
+Quantity: Cantidad vendida.
+
+Price: Precio unitario al momento de la venta.
+
+PriceAfterDiscount: Precio final tras descuentos.
+
+Table: DocumentItemTax
+Impuestos calculados por cada línea de producto.
+
+DocumentItemId (INT, FK): Referencia a la línea del ítem.
+
+TaxId (INT, FK): Impuesto aplicado.
+
+Amount: Monto monetario del impuesto.
+
+Table: Payment
+Pagos realizados sobre un documento.
+
+Id (INT, PK): Identificador.
+
+DocumentId (INT, FK): Documento que se paga.
+
+PaymentTypeId (INT, FK): Método de pago (Efectivo, Tarjeta).
+
+Amount: Cantidad pagada.
+
+Table: PaymentType
+Métodos de pago configurados.
+
+Id (INT, PK): Identificador.
+
+Name: Nombre (ej. "Visa", "Efectivo").
+
+IsFiscal: Si cuenta para reportes fiscales.
+
+OpenCashDrawer: Si abre la gaveta de dinero.
+
+5. Módulo de Punto de Venta (POS) Activo
+Table: PosOrder
+"Carrito de compras" actual o pedido en espera.
+
+Id (INT, PK): Identificador.
+
+UserId, CustomerId: Quién atiende y a quién.
+
+Number: Número de orden temporal.
+
+Table: PosOrderItem
+Items dentro del carrito de compras POS.
+
+Id (INT, PK): Identificador.
+
+PosOrderId (INT, FK): Orden padre.
+
+ProductId (INT, FK): Producto.
+
+Quantity, Price: Detalles de venta.
+
+Table: PosVoid
+Registro de auditoría de items eliminados/cancelados.
+
+Id (INT, PK): Identificador.
+
+VoidedBy (INT, FK): Usuario (Gerente) que autorizó la anulación.
+
+Reason: Motivo de la anulación.
+
+Product..., Quantity...: Datos del producto anulado.
+
+Table: ZReport
+Cierre de caja (Corte Z).
+
+Id (INT, PK): Identificador.
+
+Number: Número consecutivo del reporte Z.
+
+FromDocumentId, ToDocumentId: Rango de facturas que cubre este cierre.
+
+DateCreated: Fecha del cierre.
+
+Table: StartingCash
+Fondo de caja (Base) al iniciar turno.
+
+Id (INT, PK): Identificador.
+
+UserId: Usuario que abre caja.
+
+Amount: Cantidad de dinero inicial.
+
+
+-----------------------------------
+codigo: sql
+CREATE TABLE IF NOT EXISTS ApplicationProperty (
+    Name VARCHAR(255) NOT NULL,
+    Value TEXT,
+    PRIMARY KEY (Name)
+);
+CREATE TABLE IF NOT EXISTS Barcode (
+    Id INT NOT NULL AUTO_INCREMENT,
+    ProductId INT NOT NULL,
+    Value VARCHAR(255) NOT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_barcode_product 
+        FOREIGN KEY (ProductId) REFERENCES Product(Id) 
+        ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS Barcode (
+    Id INT NOT NULL AUTO_INCREMENT,
+    ProductId INT NOT NULL,
+    Value VARCHAR(255) NOT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_barcode_product 
+        FOREIGN KEY (ProductId) REFERENCES Product(Id) 
+        ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS Company (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    Name VARCHAR(255) NOT NULL, 
+    Address VARCHAR(255), 
+    PostalCode VARCHAR(20), 
+    City VARCHAR(100), 
+    CountryId INT NOT NULL, 
+    TaxNumber VARCHAR(50), 
+    Email VARCHAR(100), 
+    PhoneNumber VARCHAR(50), 
+    Logo MEDIUMBLOB, 
+    BankAccountNumber VARCHAR(50), 
+    BankDetails TEXT, 
+    StreetName VARCHAR(255), 
+    AdditionalStreetName VARCHAR(255), 
+    BuildingNumber VARCHAR(50), 
+    PlotIdentification VARCHAR(100), 
+    CitySubdivisionName VARCHAR(100), 
+    CountrySubentity VARCHAR(100),
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_company_country 
+        FOREIGN KEY (CountryId) REFERENCES Country (Id)
+);
+CREATE TABLE IF NOT EXISTS Counter (
+    Name VARCHAR(100) NOT NULL,
+    Value INT NOT NULL,
+    PRIMARY KEY (Name)
+);
+CREATE TABLE IF NOT EXISTS Country (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(255) NOT NULL,
+    Code VARCHAR(10),
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS Currency (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Code VARCHAR(10),
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS Customer (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Code VARCHAR(50),
+    Name VARCHAR(255) NOT NULL,
+    TaxNumber VARCHAR(50),
+    Address VARCHAR(255),
+    PostalCode VARCHAR(20),
+    City VARCHAR(100),
+    CountryId INT,
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    DateUpdated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    Email VARCHAR(100),
+    PhoneNumber VARCHAR(50),
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    IsCustomer TINYINT(1) NOT NULL DEFAULT 1,
+    IsSupplier TINYINT(1) NOT NULL DEFAULT 1,
+    DueDatePeriod INT NOT NULL DEFAULT 0,
+    StreetName VARCHAR(255),
+    AdditionalStreetName VARCHAR(255),
+    BuildingNumber VARCHAR(50),
+    PlotIdentification VARCHAR(100),
+    CitySubdivisionName VARCHAR(100),
+    CountrySubentity VARCHAR(100),
+    IsTaxExempt TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_customer_country 
+        FOREIGN KEY (CountryId) REFERENCES Country (Id)
+);
+CREATE TABLE IF NOT EXISTS CustomerDiscount (
+    Id INT NOT NULL AUTO_INCREMENT,
+    CustomerId INT NOT NULL,
+    Type TINYINT(1) NOT NULL DEFAULT 0,
+    Uid INT,
+    Value DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT UK_CustomerDiscount UNIQUE (CustomerId, Type, Uid),
+    CONSTRAINT fk_cust_discount_customer 
+        FOREIGN KEY (CustomerId) REFERENCES Customer (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS Document (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Number VARCHAR(50) NOT NULL,
+    UserId INT NOT NULL,
+    CustomerId INT,
+    OrderNumber VARCHAR(50),
+    Date DATE NOT NULL,
+    StockDate DATETIME NOT NULL,
+    Total DECIMAL(18, 2) NOT NULL,
+    IsClockedOut TINYINT(1) NOT NULL DEFAULT 0,
+    DocumentTypeId INT NOT NULL,
+    WarehouseId INT NOT NULL,
+    ReferenceDocumentNumber VARCHAR(50),
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    DateUpdated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    InternalNote TEXT,
+    Note TEXT,
+    DueDate DATE,
+    Discount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    DiscountType INT NOT NULL DEFAULT 0,
+    PaidStatus INT NOT NULL DEFAULT 0,
+    DiscountApplyRule TINYINT(1) NOT NULL DEFAULT 0,
+    ServiceType INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_doc_user FOREIGN KEY (UserId) REFERENCES User (Id),
+    CONSTRAINT fk_doc_customer FOREIGN KEY (CustomerId) REFERENCES Customer (Id),
+    CONSTRAINT fk_doc_type FOREIGN KEY (DocumentTypeId) REFERENCES DocumentType (Id),
+    CONSTRAINT fk_doc_warehouse FOREIGN KEY (WarehouseId) REFERENCES Warehouse (Id)
+);
+CREATE TABLE IF NOT EXISTS DocumentCategory (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    LanguageKey VARCHAR(50),
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS DocumentItem (
+    Id INT NOT NULL AUTO_INCREMENT,
+    DocumentId INT NOT NULL,
+    ProductId INT NOT NULL,
+    Quantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    ExpectedQuantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PriceBeforeTax DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    Price DECIMAL(18, 2) NOT NULL,
+    Discount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    DiscountType INT NOT NULL DEFAULT 0,
+    ProductCost DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    PriceBeforeTaxAfterDiscount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    PriceAfterDiscount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    Total DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    TotalAfterDocumentDiscount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    DiscountApplyRule TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_docitem_document 
+        FOREIGN KEY (DocumentId) REFERENCES Document (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_docitem_product 
+        FOREIGN KEY (ProductId) REFERENCES Product (Id)
+);
+CREATE TABLE IF NOT EXISTS DocumentItemExpirationDate (
+    DocumentItemId INT NOT NULL,
+    ExpirationDate DATE NOT NULL,
+    PRIMARY KEY (DocumentItemId),
+    CONSTRAINT fk_diexp_docitem 
+        FOREIGN KEY (DocumentItemId) REFERENCES DocumentItem (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS DocumentItemTax (
+    DocumentItemId INT NOT NULL,
+    TaxId INT NOT NULL,
+    Amount DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PRIMARY KEY (DocumentItemId, TaxId),
+    CONSTRAINT fk_ditax_docitem 
+        FOREIGN KEY (DocumentItemId) REFERENCES DocumentItem (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_ditax_tax 
+        FOREIGN KEY (TaxId) REFERENCES Tax (Id)
+);
+
+CREATE TABLE IF NOT EXISTS DocumentType (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Code VARCHAR(50) NOT NULL,
+    DocumentCategoryId INT NOT NULL,
+    WarehouseId INT NOT NULL,
+    StockDirection TINYINT(1) NOT NULL DEFAULT 0,
+    EditorType INT NOT NULL DEFAULT 0,
+    PrintTemplate TEXT,
+    PriceType INT NOT NULL DEFAULT 0,
+    LanguageKey VARCHAR(50),
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_doctype_category 
+        FOREIGN KEY (DocumentCategoryId) REFERENCES DocumentCategory (Id),
+    CONSTRAINT fk_doctype_warehouse 
+        FOREIGN KEY (WarehouseId) REFERENCES Warehouse (Id)
+);
+CREATE TABLE IF NOT EXISTS FiscalItem (
+    PLU INT NOT NULL,
+    Name VARCHAR(255) NOT NULL,
+    VAT VARCHAR(50) NOT NULL,
+    PRIMARY KEY (PLU)
+);
+CREATE TABLE IF NOT EXISTS FloorPlan (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Color VARCHAR(50) NOT NULL DEFAULT 'Transparent',
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS FloorPlanTable (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(50) NOT NULL,
+    FloorPlanId INT NOT NULL,
+    PositionX DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    PositionY DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    Width DECIMAL(10, 2) NOT NULL,
+    Height DECIMAL(10, 2) NOT NULL,
+    IsRound TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_table_floorplan 
+        FOREIGN KEY (FloorPlanId) REFERENCES FloorPlan (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS LoyaltyCard (
+    Id INT NOT NULL AUTO_INCREMENT,
+    CustomerId INT NOT NULL,
+    CardNumber VARCHAR(100),
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_loyalty_customer 
+        FOREIGN KEY (CustomerId) REFERENCES Customer (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS Migration (
+    ID INT NOT NULL AUTO_INCREMENT,
+    Version VARCHAR(50) NOT NULL,
+    Description TEXT,
+    FileName VARCHAR(255) NOT NULL,
+    Module VARCHAR(100),
+    Date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID)
+);
+CREATE TABLE IF NOT EXISTS PaymentType (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Code VARCHAR(50),
+    IsCustomerRequired TINYINT(1) NOT NULL DEFAULT 0,
+    IsFiscal TINYINT(1) NOT NULL DEFAULT 1,
+    IsSlipRequired TINYINT(1) NOT NULL DEFAULT 0,
+    IsChangeAllowed TINYINT(1) NOT NULL DEFAULT 1,
+    Ordinal INT NOT NULL DEFAULT 0,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    IsQuickPayment TINYINT(1) NOT NULL DEFAULT 1,
+    OpenCashDrawer TINYINT(1) NOT NULL DEFAULT 1,
+    ShortcutKey VARCHAR(10),
+    MarkAsPaid TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS Payment (
+    Id INT NOT NULL AUTO_INCREMENT,
+    DocumentId INT NOT NULL,
+    PaymentTypeId INT NOT NULL,
+    Amount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    Date DATE,
+    UserId INT NOT NULL DEFAULT 0,
+    ZReportId INT,
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_payment_document 
+        FOREIGN KEY (DocumentId) REFERENCES Document (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_payment_type 
+        FOREIGN KEY (PaymentTypeId) REFERENCES PaymentType (Id),
+    CONSTRAINT fk_payment_user 
+        FOREIGN KEY (UserId) REFERENCES User (Id),
+    CONSTRAINT fk_payment_zreport 
+        FOREIGN KEY (ZReportId) REFERENCES ZReport (Id)
+);
+CREATE TABLE IF NOT EXISTS PosOrder (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    UserId INT NOT NULL, 
+    Number VARCHAR(50) NOT NULL, 
+    Discount DECIMAL(18, 2) NOT NULL DEFAULT 0, 
+    DiscountType INT NOT NULL DEFAULT 0,
+    Total DECIMAL(18, 2),
+    CustomerId INT,
+    ServiceType INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_posorder_user FOREIGN KEY (UserId) REFERENCES User (Id),
+    CONSTRAINT fk_posorder_customer FOREIGN KEY (CustomerId) REFERENCES Customer (Id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS PosOrderItem (
+    Id INT NOT NULL AUTO_INCREMENT,
+    PosOrderId INT NOT NULL,  
+    ProductId INT NOT NULL, 
+    RoundNumber INT NOT NULL DEFAULT 0, 
+    Quantity DECIMAL(18, 4) NOT NULL, 
+    Price DECIMAL(18, 2) NOT NULL, 
+    IsLocked TINYINT(1) NOT NULL DEFAULT 0,
+    Discount DECIMAL(18, 2) NOT NULL DEFAULT 0, 
+    DiscountType INT NOT NULL DEFAULT 0, 
+    IsFeatured TINYINT(1) NOT NULL DEFAULT 0,  
+    VoidedBy INT, 
+    Comment TEXT, 
+    DateCreated DATE NOT NULL,
+    Bundle TEXT, 
+    DiscountAppliedType INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_positem_order FOREIGN KEY (PosOrderId) REFERENCES PosOrder (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_positem_product FOREIGN KEY (ProductId) REFERENCES Product (Id),
+    CONSTRAINT fk_positem_voidedby FOREIGN KEY (VoidedBy) REFERENCES User (Id)
+);
+CREATE TABLE IF NOT EXISTS PosPrinterSelection (
+    Id INT NOT NULL AUTO_INCREMENT,
+    `Key` VARCHAR(100) NOT NULL,
+    PrinterName VARCHAR(255),
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT UK_PrinterKey UNIQUE (`Key`)
+);
+CREATE TABLE IF NOT EXISTS PosPrinterSelectionSettings (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    PosPrinterSelectionId INT NOT NULL, 
+    PaperWidth INT NOT NULL DEFAULT 32, 
+    Header TEXT, 
+    Footer TEXT, 
+    FeedLines INT NOT NULL DEFAULT 0, 
+    CutPaper TINYINT(1) NOT NULL DEFAULT 1, 
+    PrintBitmap TINYINT(1) NOT NULL DEFAULT 0, 
+    OpenCashDrawer TINYINT(1) NOT NULL DEFAULT 1, 
+    CashDrawerCommand VARCHAR(255), 
+    HeaderAlignment INT NOT NULL DEFAULT 0, 
+    FooterAlignment INT NOT NULL DEFAULT 0, 
+    IsFormattingEnabled TINYINT(1) NOT NULL DEFAULT 1, 
+    PrinterType INT NOT NULL DEFAULT 0, 
+    NumberOfCopies INT NOT NULL DEFAULT 1, 
+    CodePage INT NOT NULL DEFAULT -1, 
+    CharacterSet INT NOT NULL DEFAULT -1,
+    Margin INT NOT NULL DEFAULT 0,
+    LeftMargin DECIMAL(10, 2) NOT NULL DEFAULT 0, 
+    TopMargin DECIMAL(10, 2) NOT NULL DEFAULT 0, 
+    RightMargin DECIMAL(10, 2) NOT NULL DEFAULT 0, 
+    BottomMargin DECIMAL(10, 2) NOT NULL DEFAULT 0, 
+    PrintBarcode TINYINT(1) NOT NULL DEFAULT 1, 
+    FontName VARCHAR(100), 
+    FontSizePercent DECIMAL(10, 2) NOT NULL DEFAULT 100.0, 
+    PrintLogoFullWidth TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_print_sel_settings 
+        FOREIGN KEY (PosPrinterSelectionId) REFERENCES PosPrinterSelection (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS PosPrinterSettings (
+    Id INT NOT NULL AUTO_INCREMENT,
+    PrinterName VARCHAR(255) NOT NULL,
+    PaperWidth INT NOT NULL DEFAULT 32,
+    Header TEXT,
+    Footer TEXT,
+    FeedLines INT NOT NULL DEFAULT 0,
+    CutPaper TINYINT(1) NOT NULL DEFAULT 1,
+    PrintBitmap TINYINT(1) NOT NULL DEFAULT 0,
+    OpenCashDrawer TINYINT(1) NOT NULL DEFAULT 1,
+    CashDrawerCommand VARCHAR(255),
+    HeaderAlignment INT NOT NULL DEFAULT 0,
+    FooterAlignment INT NOT NULL DEFAULT 0,
+    IsFormattingEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    PrinterType INT NOT NULL DEFAULT 0,
+    NumberOfCopies INT NOT NULL DEFAULT 1,
+    CodePage INT NOT NULL DEFAULT -1,
+    CharacterSet INT NOT NULL DEFAULT -1,
+    PRIMARY KEY (Id),
+    CONSTRAINT UK_PrinterName UNIQUE (PrinterName)
+);
+CREATE TABLE IF NOT EXISTS PosVoid (
+    Id INT NOT NULL AUTO_INCREMENT,
+    OrderNumber VARCHAR(50) NOT NULL,
+    UserId INT,
+    UserName VARCHAR(100) NOT NULL,
+    ProductId INT,
+    ProductName VARCHAR(255) NOT NULL,
+    RoundNumber INT NOT NULL,
+    Quantity DECIMAL(18, 4) NOT NULL,
+    Price DECIMAL(18, 2) NOT NULL,
+    Discount DECIMAL(18, 2) NOT NULL,
+    DiscountType INT NOT NULL,
+    Total DECIMAL(18, 2) NOT NULL,
+    IsConfirmed TINYINT(1) NOT NULL,
+    Reason TEXT,
+    VoidedBy INT,
+    VoidedByName VARCHAR(100),
+    Bundle TEXT,
+    DateCreated DATETIME NOT NULL,
+    DateVoided DATETIME NOT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_void_product FOREIGN KEY (ProductId) REFERENCES Product (Id) ON DELETE SET NULL,
+    CONSTRAINT fk_void_user FOREIGN KEY (UserId) REFERENCES User (Id) ON DELETE SET NULL,
+    CONSTRAINT fk_void_admin FOREIGN KEY (VoidedBy) REFERENCES User (Id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS ProductGroup (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    ParentGroupId INT,
+    Color VARCHAR(50) NOT NULL DEFAULT 'Transparent',
+    Image MEDIUMBLOB,
+    `Rank` INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_pgroup_parent FOREIGN KEY (ParentGroupId) REFERENCES ProductGroup (Id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS Product (
+    Id INT NOT NULL AUTO_INCREMENT,
+    ProductGroupId INT,
+    Name VARCHAR(255) NOT NULL,
+    Code VARCHAR(50),
+    PLU INT,
+    MeasurementUnit VARCHAR(20),
+    Price DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    IsTaxInclusivePrice TINYINT(1) DEFAULT 1,
+    CurrencyId INT,
+    IsPriceChangeAllowed TINYINT(1) NOT NULL DEFAULT 0,
+    IsService TINYINT(1) NOT NULL DEFAULT 0,
+    IsUsingDefaultQuantity TINYINT(1) NOT NULL DEFAULT 1,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    Description TEXT,
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    DateUpdated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    Cost DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    Markup DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    Image MEDIUMBLOB,
+    Color VARCHAR(50) NOT NULL DEFAULT 'Transparent',
+    AgeRestriction DECIMAL(5, 2),
+    LastPurchasePrice DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    `Rank` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_product_group FOREIGN KEY (ProductGroupId) REFERENCES ProductGroup (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_product_currency FOREIGN KEY (CurrencyId) REFERENCES Currency (Id)
+);
+-- Comentarios de productos
+CREATE TABLE IF NOT EXISTS ProductComment (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    ProductId INT NOT NULL, 
+    Comment TEXT NOT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_comment_product FOREIGN KEY (ProductId) REFERENCES Product (Id) ON DELETE CASCADE
+);
+
+-- Relación Muchos-a-Muchos entre Productos e Impuestos
+CREATE TABLE IF NOT EXISTS ProductTax (
+    ProductId INT NOT NULL, 
+    TaxId INT NOT NULL, 
+    PRIMARY KEY (ProductId, TaxId),
+    CONSTRAINT fk_ptax_product FOREIGN KEY (ProductId) REFERENCES Product (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_ptax_tax FOREIGN KEY (TaxId) REFERENCES Tax (Id)
+);
+CREATE TABLE IF NOT EXISTS Promotion (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    StartDate DATETIME,
+    StartTime DATETIME,
+    EndDate DATETIME,
+    EndTime DATETIME,
+    DaysOfWeek INT NOT NULL,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS PromotionItem (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    PromotionId INT NOT NULL,
+    Uid INT NOT NULL,
+    DiscountType INT NOT NULL DEFAULT 0,
+    PriceType INT NOT NULL DEFAULT 0,
+    Value DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    IsConditional TINYINT(1) NOT NULL DEFAULT 1,
+    Quantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    ConditionType INT NOT NULL DEFAULT 0,
+    QuantityLimit DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_promoitem_promotion 
+        FOREIGN KEY (PromotionId) REFERENCES Promotion (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS SecurityKey (
+    Name VARCHAR(100) NOT NULL,
+    Level INT,
+    PRIMARY KEY (Name)
+);
+CREATE TABLE IF NOT EXISTS StartingCash (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    UserId INT NOT NULL, 
+    Amount DECIMAL(18, 2) NOT NULL, 
+    Description TEXT, 
+    StartingCashType INT NOT NULL DEFAULT 0, 
+    ZReportNumber INT, 
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (Id),
+    UNIQUE (Id),
+    CONSTRAINT fk_startcash_user 
+        FOREIGN KEY (UserId) REFERENCES User (Id)
+);
+CREATE TABLE IF NOT EXISTS Stock (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    ProductId INT NOT NULL,
+    WarehouseId INT NOT NULL, 
+    Quantity DECIMAL(18, 4) NOT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_stock_product 
+        FOREIGN KEY (ProductId) REFERENCES Product (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_stock_warehouse 
+        FOREIGN KEY (WarehouseId) REFERENCES Warehouse (Id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS User (
+    Id INT NOT NULL AUTO_INCREMENT,
+    FirstName VARCHAR(100),
+    LastName VARCHAR(100),
+    Username VARCHAR(50) UNIQUE,
+    Password VARCHAR(255) NOT NULL,
+    AccessLevel INT NOT NULL DEFAULT 0,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    Email VARCHAR(100),
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS Tax (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Rate DECIMAL(10, 4) NOT NULL,
+    Code VARCHAR(50),
+    IsFixed TINYINT(1) NOT NULL DEFAULT 0,
+    IsTaxOnTotal TINYINT(1) NOT NULL DEFAULT 0,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS StockControl (
+    Id INT NOT NULL AUTO_INCREMENT,
+    ProductId INT NOT NULL,
+    CustomerId INT,
+    ReorderPoint DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PreferredQuantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    IsLowStockWarningEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    LowStockWarningQuantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_stockctl_product FOREIGN KEY (ProductId) REFERENCES Product (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_stockctl_customer FOREIGN KEY (CustomerId) REFERENCES Customer (Id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS Template (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Value LONGTEXT NOT NULL,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS VoidReason (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    `Rank` INT NOT NULL,
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS Warehouse (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    PRIMARY KEY (Id)
+);
+CREATE TABLE IF NOT EXISTS ZReport (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Number INT NOT NULL,
+    FromDocumentId INT NOT NULL,
+    ToDocumentId INT NOT NULL,
+    DateCreated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_zreport_from_doc FOREIGN KEY (FromDocumentId) REFERENCES Document (Id),
+    CONSTRAINT fk_zreport_to_doc FOREIGN KEY (ToDocumentId) REFERENCES Document (Id)
+);
+-- 1. CREAR PRIMERO ESTA
+CREATE TABLE IF NOT EXISTS Promotion (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    StartDate DATETIME,
+    StartTime DATETIME,
+    EndDate DATETIME,
+    EndTime DATETIME,
+    DaysOfWeek INT NOT NULL,
+    IsEnabled TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (Id)
+) ENGINE=InnoDB;
+
+-- 2. CREAR ESTA DESPUÉS
+CREATE TABLE IF NOT EXISTS PromotionItem (
+    Id INT NOT NULL AUTO_INCREMENT, 
+    PromotionId INT NOT NULL,
+    Uid INT NOT NULL,
+    DiscountType INT NOT NULL DEFAULT 0,
+    PriceType INT NOT NULL DEFAULT 0,
+    Value DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    IsConditional TINYINT(1) NOT NULL DEFAULT 1,
+    Quantity DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    ConditionType INT NOT NULL DEFAULT 0,
+    QuantityLimit DECIMAL(18, 4) NOT NULL DEFAULT 0,
+    PRIMARY KEY (Id),
+    CONSTRAINT fk_promoitem_promotion 
+        FOREIGN KEY (PromotionId) REFERENCES Promotion (Id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+-- Vista de Precios de Ítems
+CREATE OR REPLACE VIEW DocumentItemPriceView AS 
+SELECT 
+    DI.Id AS DocumentItemId,
+    CASE 
+        WHEN D.Discount > 0 THEN
+            CASE 
+                WHEN D.DiscountType = 0 THEN
+                    (DI.PriceAfterDiscount / 100.0) * (100.0 - D.Discount)
+                ELSE 
+                    DI.PriceAfterDiscount - (((D.Discount * DI.Total) / (D.Total + D.Discount)) / DI.Quantity)
+            END
+        ELSE 
+            DI.PriceAfterDiscount
+    END AS Price
+FROM DocumentItem DI 
+INNER JOIN Document D ON D.Id = DI.DocumentId;
+
+-- Vista de Métodos de Pago concatenados
+CREATE OR REPLACE VIEW PaymentsView AS 
+SELECT 
+    P.DocumentId, 
+    GROUP_CONCAT(PT.Name SEPARATOR ', ') AS PaymentTypes 
+FROM Payment P 
+INNER JOIN PaymentType PT ON PT.Id = P.PaymentTypeId 
+GROUP BY P.DocumentId;
+-- Índices de Rendimiento
+CREATE INDEX IX_Barcode_Product ON Barcode (ProductId);
+CREATE INDEX IX_CustomerDiscount_CustomerId ON CustomerDiscount (CustomerId);
+CREATE INDEX IX_LoyaltyCard_CustomerId ON LoyaltyCard (CustomerId);
+CREATE INDEX IX_Stock_ProductId ON Stock (ProductId);
+
+-- Índices Únicos (Garantizan integridad)
+CREATE UNIQUE INDEX IX_DocumentItemExpirationdate ON DocumentItemExpirationDate (DocumentItemId);
+CREATE UNIQUE INDEX IX_StockControl_Product ON StockControl (ProductId);
+CREATE UNIQUE INDEX UK_TemplateName ON Template (Name);
+CREATE UNIQUE INDEX UX_UserEmail ON User (Email);

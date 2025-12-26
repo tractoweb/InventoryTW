@@ -32,6 +32,7 @@ const pageTitles: { [key: string]: string } = {
   '/stock': 'Stock',
   '/documentation': 'Documentación',
   '/financing-calculator': 'Calculadora de Financiación',
+  '/tables': 'Tablas',
 };
 
 

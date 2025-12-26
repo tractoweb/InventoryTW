@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Boxes, LayoutDashboard, FileText, Calculator, Warehouse } from "lucide-react";
+import { Boxes, LayoutDashboard, FileText, Calculator, Warehouse, Table } from "lucide-react";
 import { AppLogo } from "../icons";
 import { DatabaseStatus } from "./database-status";
 
@@ -30,6 +30,11 @@ const menuItems = [
     href: "/stock",
     label: "Stock",
     icon: Warehouse,
+  },
+   {
+    href: "/tables",
+    label: "Tablas",
+    icon: Table,
   },
   {
     href: "/documentation",
