@@ -35,3 +35,16 @@ export type ProductInventory = {
   totalstock: number | null;
   dateupdated: string; // ISO 8601 string
 };
+
+// Tipo para la información de stock desde la BD
+export type StockInfo = {
+  id: number;
+  name: string;
+  code: string | null;
+  quantity: number;
+  price: number;
+  cost: number;
+  datecreated: string; // ISO 8601 string
+  dateupdated: string; // ISO 8601 string
+  warehousename: string;
+};
