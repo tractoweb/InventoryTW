@@ -221,9 +221,6 @@ export default function InvoiceCalculator() {
   }
 
   const handlePrintReport = () => {
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) return
-
     const hasDiscounts = discountsEnabled && products.some((p) => p.discountPercentage > 0)
 
     const reportHTML = `
@@ -482,18 +479,34 @@ export default function InvoiceCalculator() {
       </div>
     </div>
   </div>
-
-  <script>
-    window.onload = function() {
-      window.print();
-    }
-  </script>
 </body>
 </html>
-    `
+    `;
 
-    printWindow.document.write(reportHTML)
-    printWindow.document.close()
+    // Create a hidden iframe
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(reportHTML);
+      iframeDoc.close();
+
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }
+
+    // Clean up the iframe after a delay
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 1000);
   }
 
   return (
