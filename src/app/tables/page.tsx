@@ -118,14 +118,14 @@ export default function TablesPage() {
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return 'NULL';
     if (typeof value === 'object') {
-        if (Buffer.isBuffer(value)) {
-            return '[Buffer]';
-        }
         try {
             return JSON.stringify(value);
         } catch {
             return '[Object]';
         }
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
     }
     return String(value);
   }
@@ -191,7 +191,7 @@ export default function TablesPage() {
                 paginatedData.map((row, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {columns.map((col) => (
-                      <TableCell key={col} className="max-w-[200px] truncate">
+                      <TableCell key={col} className="max-w-[200px] truncate" title={formatValue(row[col])}>
                         {formatValue(row[col])}
                       </TableCell>
                     ))}

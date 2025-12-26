@@ -62,16 +62,23 @@ export async function getTableData(tableName: string) {
     const data = await queryDatabase(query);
     
     if (Array.isArray(data) && data.length > 0) {
-        // Asegurarse de que las claves estén en minúscula si la BD las devuelve en mayúscula/mixto
-        const lowercasedData = data.map(row => {
+        // Sanitizar datos para evitar errores de serialización con tipos no compatibles
+        const sanitizedData = data.map(row => {
             const newRow: {[key: string]: any} = {};
             for (const key in row) {
-                newRow[key.toLowerCase()] = (row as any)[key];
+                const value = (row as any)[key];
+                // Convertir buffers (datos binarios como BLOBs) a una cadena de texto
+                if (Buffer.isBuffer(value)) {
+                    newRow[key.toLowerCase()] = '[Binary Data]';
+                } else {
+                    newRow[key.toLowerCase()] = value;
+                }
             }
             return newRow;
         });
-        const columns = Object.keys(lowercasedData[0]);
-        return { data: lowercasedData, columns };
+
+        const columns = Object.keys(sanitizedData[0]);
+        return { data: sanitizedData, columns };
     }
     
     return { data: [], columns: [] };
