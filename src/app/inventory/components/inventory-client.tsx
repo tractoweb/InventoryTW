@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { PlusCircle, Wrench } from "lucide-react";
-import { AddItemForm } from "./add-item-form";
+import { AddProductForm } from "./add-product-form";
 import { AdjustStockForm } from "./adjust-stock-form";
 import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 
 type InventoryClientProps = {
@@ -66,20 +66,20 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
                 ) : (
                   <PlusCircle className="mr-2 h-4 w-4" />
                 )}
-                {isStockPage ? "Ajustar Stock" : "Añadir Artículo"}
+                {isStockPage ? "Ajustar Stock" : "Añadir Producto"}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{isStockPage ? "Ajustar Stock de Producto" : "Añadir Nuevo Artículo"}</DialogTitle>
+                <DialogTitle>{isStockPage ? "Ajustar Stock de Producto" : "Añadir Nuevo Producto"}</DialogTitle>
                 <DialogDescription>
                   {isStockPage 
                     ? "Modifica la cantidad de un producto en un almacén específico." 
-                    : "Completa los detalles para añadir un nuevo producto al inventario."
+                    : "Completa los detalles para añadir un nuevo producto al catálogo."
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddItemForm setOpen={setAddModalOpen} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddProductForm setOpen={setAddModalOpen} />}
             </DialogContent>
           </Dialog>
         </div>
