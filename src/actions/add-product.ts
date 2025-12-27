@@ -38,11 +38,12 @@ export type AddProductInput = z.infer<typeof AddProductSchema>;
 
 /**
  * Crea un nuevo producto en la base de datos dentro de una transacción.
- * 1. Inserta en la tabla `product`.
- * 2. Si se provee, inserta en `barcode`.
- * 3. Si se proveen, inserta en `producttax`.
- * 4. Inserta la configuración de stock en `stockcontrol`.
- * 5. Si se provee, inserta el stock inicial en `stock`.
+ * 1. Valida que el código no exista.
+ * 2. Inserta en la tabla `product`.
+ * 3. Si se provee, inserta en `barcode`.
+ * 4. Si se proveen, inserta en `producttax`.
+ * 5. Inserta la configuración de stock en `stockcontrol`.
+ * 6. Si se provee, inserta el stock inicial en `stock`.
  */
 export async function addProduct(input: AddProductInput) {
   const validation = AddProductSchema.safeParse(input);
@@ -60,23 +61,33 @@ export async function addProduct(input: AddProductInput) {
   let connection: Connection | null = null;
   try {
     connection = await getDbConnection();
+    
+    // 0. Validar que el código no exista antes de la transacción
+    if (code) {
+        const [existingProduct] = await connection.execute('SELECT id FROM product WHERE code = ?', [code]) as any[];
+        if (existingProduct.length > 0) {
+            return {
+                success: false,
+                error: `La referencia "${code}" ya está en uso por otro producto.`,
+            };
+        }
+    }
+    
     await connection.beginTransaction();
 
     // 1. Insertar en la tabla product
     const productQuery = `
       INSERT INTO product (
-        ProductGroupId, Name, Code, PLU, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
+        ProductGroupId, Name, Code, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
         IsPriceChangeAllowed, IsService, IsUsingDefaultQuantity, IsEnabled,
         Description, Cost, Markup, AgeRestriction, LastPurchasePrice, \`Rank\`
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
-    // Nota: Algunos valores son hardcodeados/defaults por ahora.
-    // CurrencyId=1 asumiendo que es la moneda por defecto.
+
     const [productResult] = await connection.execute(productQuery, [
       productGroupId || null,
       name,
       code || null,
-      null, // PLU
       rest.measurementUnit || null,
       rest.price,
       rest.isTaxInclusivePrice,

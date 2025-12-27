@@ -38,11 +38,23 @@ export async function updateProduct(input: UpdateProductInput) {
     };
   }
 
-  const { id, name, taxes, barcode, ...data } = validation.data;
+  const { id, name, code, taxes, barcode, ...data } = validation.data;
 
   let connection: Connection | null = null;
   try {
     connection = await getDbConnection();
+    
+    // 0. Validar que el nuevo código no esté en uso por OTRO producto.
+    if (code) {
+        const [existingProduct] = await connection.execute('SELECT id FROM product WHERE code = ? AND id != ?', [code, id]) as any[];
+        if (existingProduct.length > 0) {
+            return {
+                success: false,
+                error: `La referencia "${code}" ya está en uso por otro producto.`,
+            };
+        }
+    }
+
     await connection.beginTransaction();
 
     // 1. Actualizar la tabla product
@@ -54,7 +66,7 @@ export async function updateProduct(input: UpdateProductInput) {
     `;
     await connection.execute(productQuery, [
       name,
-      data.code || null,
+      code || null,
       data.description || null,
       data.price,
       data.cost || 0,
