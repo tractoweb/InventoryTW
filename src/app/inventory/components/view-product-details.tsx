@@ -117,10 +117,7 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     <h3 className="font-semibold text-lg border-b pb-2">Configuración</h3>
                     {renderDetail("Posición en Almacén", details.measurementunit)}
                     {renderBoolean("Habilitado", details.isenabled)}
-                    {renderBoolean("Es un Servicio", details.isservice)}
                     {renderBoolean("Precio Incluye Impuestos", details.istaxinclusiveprice)}
-                    {renderBoolean("Permitir cambio de precio", details.ispricechangeallowed)}
-                    {renderBoolean("Usa cantidad por defecto", details.isusingdefaultquantity)}
                     {renderDetail("Códigos de Barras", details.barcodes)}
                 </div>
                 <div className="space-y-3">
