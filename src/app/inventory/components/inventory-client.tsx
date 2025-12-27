@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
-import { PlusCircle, Wrench } from "lucide-react";
 import { AddProductForm } from "./add-product-form";
 import { AdjustStockForm } from "./adjust-stock-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
@@ -47,6 +46,8 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
   }), [productGroups, warehouses, taxes]);
 
   const isStockPage = pageType === 'stock';
+  
+  const uniqueProductsForAdjust = Array.from(new Map(items.map(p => [p.id, p])).values());
 
   return (
     <>
@@ -62,11 +63,6 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
           <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
             <DialogTrigger asChild>
               <Button className="ml-auto">
-                {isStockPage ? (
-                  <Wrench className="mr-2 h-4 w-4" />
-                ) : (
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                )}
                 {isStockPage ? "Ajustar Stock" : "Añadir Producto"}
               </Button>
             </DialogTrigger>
@@ -80,7 +76,7 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} taxes={taxes} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={uniqueProductsForAdjust} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} taxes={taxes} />}
             </DialogContent>
           </Dialog>
         </div>
