@@ -22,9 +22,9 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    href: "/stock",
-    label: "Stock",
-    icon: Warehouse,
+    href: "/inventory",
+    label: "Inventario",
+    icon: Boxes,
   },
    {
     href: "/tables",

@@ -5,14 +5,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Boxes, Package, PackageCheck, Archive, Wallet } from "lucide-react";
-import { getProductInventory } from "@/actions/get-product-inventory";
+import { getDashboardStats } from "@/actions/get-dashboard-stats";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Terminal } from "lucide-react";
 
-const LOW_STOCK_THRESHOLD = 10;
-
 export async function StatsCards() {
-  const { data: items, error } = await getProductInventory();
+  const { data, error } = await getDashboardStats();
 
   if (error) {
     return (
@@ -26,7 +24,7 @@ export async function StatsCards() {
     )
   }
 
-  if (!items) {
+  if (!data) {
     return (
         <Alert className="md:col-span-4">
             <Terminal className="h-4 w-4" />
@@ -42,15 +40,13 @@ export async function StatsCards() {
     return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount);
   };
 
-  const totalUnits = items.reduce((acc, item) => acc + (item.totalstock || 0), 0);
-  const lowStockItems = items.filter(
-    (item) => (item.totalstock ?? 0) > 0 && (item.totalstock ?? 0) <= LOW_STOCK_THRESHOLD
-  ).length;
-  const outOfStockItems = items.filter(
-    (item) => (item.totalstock ?? 0) === 0
-  ).length;
-  const inventoryValue = items.reduce((acc, item) => acc + (item.totalstock || 0) * (item.price || 0), 0);
-  const uniqueProducts = items.length;
+  const {
+    totalUnits,
+    inventoryValue,
+    lowStockCount,
+    outOfStockCount,
+    uniqueProductsCount,
+  } = data;
 
 
   return (
@@ -62,7 +58,7 @@ export async function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalUnits.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">en {uniqueProducts} productos únicos</p>
+          <p className="text-xs text-muted-foreground">en {uniqueProductsCount} productos únicos</p>
         </CardContent>
       </Card>
       <Card>
@@ -71,7 +67,7 @@ export async function StatsCards() {
           <Archive className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{lowStockItems}</div>
+          <div className="text-2xl font-bold">{lowStockCount}</div>
           <p className="text-xs text-muted-foreground">Productos que necesitan atención</p>
         </CardContent>
       </Card>
@@ -81,7 +77,7 @@ export async function StatsCards() {
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{outOfStockItems}</div>
+          <div className="text-2xl font-bold">{outOfStockCount}</div>
           <p className="text-xs text-muted-foreground">Productos para reponer</p>
         </CardContent>
       </Card>

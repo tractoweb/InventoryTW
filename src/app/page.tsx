@@ -13,9 +13,8 @@ export default function DashboardPage() {
         <StatsCards />
       </Suspense>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Suspense fallback={<ChartSkeleton />}>
-          <InventoryChart className="lg:col-span-2" />
-        </Suspense>
+        {/* InventoryChart now fetches its own data client-side */}
+        <InventoryChart className="lg:col-span-2" />
         <Suspense fallback={<RecentItemsSkeleton />}>
           <RecentItems />
         </Suspense>

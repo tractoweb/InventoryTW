@@ -21,7 +21,7 @@ export default async function InventoryPage() {
 
   return (
     <div className="flex flex-col gap-8">
-       <h1 className="text-3xl font-bold tracking-tight">Gestión de Stock por Almacén</h1>
+       <h1 className="text-3xl font-bold tracking-tight">Gestión de Inventario</h1>
         {error && (
             <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />

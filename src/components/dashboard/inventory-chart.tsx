@@ -1,5 +1,6 @@
 "use client";
 
+import { use, useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -15,67 +16,127 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { inventoryItems } from "@/lib/data";
 import { ChartContainer, ChartTooltipContent } from "../ui/chart";
+import { getStockData } from "@/actions/get-stock-data";
+import { Skeleton } from "../ui/skeleton";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Terminal } from "lucide-react";
+import type { StockInfo } from "@/lib/types";
 
-const data = inventoryItems.reduce((acc, item) => {
-  const category = acc.find((c) => c.category === item.category);
-  if (category) {
-    category.inStock += item.status === "In Stock" ? item.quantity : 0;
-    category.lowStock += item.status === "Low Stock" ? item.quantity : 0;
-  } else {
-    acc.push({
-      category: item.category,
-      inStock: item.status === "In Stock" ? item.quantity : 0,
-      lowStock: item.status === "Low Stock" ? item.quantity : 0,
-    });
-  }
-  return acc;
-}, [] as { category: string; inStock: number; lowStock: number }[]);
-
-const chartConfig = {
-  inStock: {
-    label: "En Stock",
-    color: "hsl(var(--chart-1))",
-  },
-  lowStock: {
-    label: "Stock Bajo",
-    color: "hsl(var(--chart-2))",
-  },
+type ChartData = {
+  category: string;
+  [key: string]: string | number;
 };
 
+// Se ejecuta del lado del cliente para obtener datos y renderizar
 export function InventoryChart({ className }: { className?: string }) {
+  const [data, setData] = useState<ChartData[]>([]);
+  const [warehouses, setWarehouses] = useState<string[]>([]);
+  const [chartConfig, setChartConfig] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await getStockData();
+        if (result.error) {
+          setError(result.error);
+          setIsLoading(false);
+          return;
+        }
+
+        const items = result.data || [];
+        
+        // Agrupar por nombre de producto y sumar el stock de todos los almacenes
+        const productStock: { [key: string]: number } = {};
+        items.forEach(item => {
+            if (productStock[item.name]) {
+                productStock[item.name] += item.quantity;
+            } else {
+                productStock[item.name] = item.quantity;
+            }
+        });
+
+        // Tomar los 5 productos con más stock
+        const top5Products = Object.entries(productStock)
+            .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
+            .slice(0, 5);
+
+        // Crear los datos para el gráfico
+        const chartData = top5Products.map(([name, quantity]) => ({
+            name: name,
+            quantity: quantity,
+        }));
+        
+        const newChartConfig = {
+            quantity: {
+              label: "Cantidad Total",
+              color: "hsl(var(--chart-1))",
+            },
+          };
+
+        setData(chartData as any);
+        setChartConfig(newChartConfig);
+
+      } catch (err: any) {
+        setError(err.message || "Error desconocido");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Artículos por Categoría</CardTitle>
+        <CardTitle>Top 5 Productos por Stock Total</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-          <BarChart data={data}>
-            <XAxis
-              dataKey="category"
-              stroke="#888888"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              stroke="#888888"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => `${value}`}
-            />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--muted))' }}
-              content={<ChartTooltipContent />}
-            />
-            <Legend />
-            <Bar dataKey="inStock" name="En Stock" fill="var(--color-inStock)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="lowStock" name="Stock Bajo" fill="var(--color-lowStock)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
+        {isLoading ? (
+          <Skeleton className="w-full h-[350px]" />
+        ) : error ? (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-[350px]">
+            <p className="text-muted-foreground">No hay datos suficientes para mostrar el gráfico.</p>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-[350px]">
+            <BarChart data={data} layout="vertical">
+              <YAxis
+                dataKey="name"
+                type="category"
+                stroke="#888888"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                width={120}
+                tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
+              />
+              <XAxis
+                type="number"
+                stroke="#888888"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `${value}`}
+              />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))' }}
+                content={<ChartTooltipContent />}
+              />
+              <Legend />
+              <Bar dataKey="quantity" name="Cantidad Total" fill="var(--color-quantity)" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );

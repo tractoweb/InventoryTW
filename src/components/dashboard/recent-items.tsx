@@ -6,19 +6,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { getProductInventory } from "@/actions/get-product-inventory";
+import { getStockData } from "@/actions/get-stock-data";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Package, Terminal } from "lucide-react";
+import type { StockInfo } from "@/lib/types";
 
 export async function RecentItems() {
-  const { data: items, error } = await getProductInventory();
+  const { data: items, error } = await getStockData();
 
   if (error) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Añadidos Recientemente</CardTitle>
+                <CardTitle>Actualizados Recientemente</CardTitle>
             </CardHeader>
             <CardContent>
                 <Alert variant="destructive">
@@ -31,7 +32,10 @@ export async function RecentItems() {
     );
   }
 
-  const recentItems = items?.slice(0, 5) || [];
+  // Sort by dateupdated and take the top 5
+  const recentItems = items
+    ?.sort((a, b) => new Date(b.dateupdated).getTime() - new Date(a.dateupdated).getTime())
+    .slice(0, 5) || [];
 
   return (
     <Card>
@@ -52,7 +56,7 @@ export async function RecentItems() {
                 <div className="flex-1">
                   <p className="text-sm font-medium">{item.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Stock total: {item.totalstock ?? 0}
+                    Stock: {item.quantity ?? 0} en {item.warehousename}
                   </p>
                 </div>
                 <p className="text-right text-sm text-muted-foreground">
