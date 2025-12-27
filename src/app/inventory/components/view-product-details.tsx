@@ -35,11 +35,11 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
     }
   }, [productId]);
   
-  const formatCurrency = (amount: number | null | undefined, currencyCode: string = 'COP') => {
+  const formatCurrency = (amount: number | null | undefined, currencyCode: string | null | undefined) => {
       if (amount === null || amount === undefined || isNaN(amount)) {
           return "N/A";
       }
-      return new Intl.NumberFormat("es-CO", { style: "currency", currency: currencyCode, minimumFractionDigits: 0 }).format(amount);
+      return new Intl.NumberFormat("es-CO", { style: "currency", currency: currencyCode || 'COP', minimumFractionDigits: 0 }).format(amount);
   }
 
   const renderDetail = (label: string, value: any) => {
@@ -100,12 +100,9 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("ID", details.id)}
                     {renderDetail("Nombre", details.name)}
                     {renderDetail("Código", details.code)}
-                    {renderDetail("PLU", details.plu)}
                     {renderDetail("Descripción", details.description)}
                     {renderDetail("Categoría (Grupo)", details.productgroupname)}
                     {renderDetail("Color", details.color)}
-                    {renderDetail("Restricción de Edad", details.agerestriction)}
-                    {renderDetail("Ranking", details.rank)}
                 </div>
                 <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Precio y Costo</h3>
@@ -113,7 +110,7 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("Costo", formatCurrency(details.cost, details.currencycode))}
                     {renderDetail("Margen (Markup)", `${details.markup}%`)}
                     {renderDetail("Último Precio Compra", formatCurrency(details.lastpurchaseprice, details.currencycode))}
-                    {renderDetail("Moneda", `${details.currencyname} (${details.currencycode})`)}
+                    {renderDetail("Moneda", `${details.currencyname || 'N/A'} (${details.currencycode || 'N/A'})`)}
                     {renderDetail("Impuestos Aplicados", details.taxes)}
                 </div>
                     <div className="space-y-3">

@@ -32,7 +32,6 @@ type EditProductFormProps = {
 const formSchema = z.object({
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
-  plu: z.coerce.number().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo."),
@@ -51,7 +50,6 @@ export function EditProductForm({ productId, onClose }: EditProductFormProps) {
     defaultValues: {
         name: "",
         code: "",
-        plu: 0,
         description: "",
         price: 0,
         cost: 0,
@@ -74,7 +72,6 @@ export function EditProductForm({ productId, onClose }: EditProductFormProps) {
             form.reset({
                 name: result.data.name || "",
                 code: result.data.code || "",
-                plu: result.data.plu || 0,
                 description: result.data.description || "",
                 price: result.data.price || 0,
                 cost: result.data.cost || 0,
