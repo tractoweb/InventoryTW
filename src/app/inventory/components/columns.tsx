@@ -20,8 +20,8 @@ export const columns: ColumnDef<StockInfo>[] = [
     header: "Código/Referencia",
   },
   {
-    accessorKey: "warehousename",
-    header: "Almacén",
+    accessorKey: "measurementunit",
+    header: "Posición en Almacén",
   },
   {
     accessorKey: "quantity",

@@ -41,6 +41,7 @@ export type StockInfo = {
   id: number;
   name: string;
   code: string | null;
+  measurementunit: string | null;
   quantity: number;
   price: number;
   cost: number;
