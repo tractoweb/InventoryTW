@@ -51,6 +51,7 @@ const sanitizeRow = (row: any) => {
 };
 
 export async function getDocumentDetails(documentId: number) {
+  // Details page should always fetch fresh data
   noStore();
   
   if (!documentId) {

@@ -6,43 +6,50 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { getStockData } from "@/actions/get-stock-data";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Package, Terminal } from "lucide-react";
 import type { StockInfo } from "@/lib/types";
 
-export async function RecentItems() {
-  const { data: items, error } = await getStockData();
+type RecentItemsProps = {
+  items: StockInfo[] | null;
+  error: string | null;
+};
 
+export function RecentItems({ items, error }: RecentItemsProps) {
   if (error) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Actualizados Recientemente</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Alert variant="destructive">
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Actualizados Recientemente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
   // Sort by dateupdated and take the top 5
-  const recentItems = items
-    ?.sort((a, b) => new Date(b.dateupdated).getTime() - new Date(a.dateupdated).getTime())
-    .slice(0, 5) || [];
+  const recentItems =
+    items
+      ?.sort(
+        (a, b) =>
+          new Date(b.dateupdated).getTime() - new Date(a.dateupdated).getTime()
+      )
+      .slice(0, 5) || [];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Actualizados Recientemente</CardTitle>
         <CardDescription>
-          Un vistazo rápido a los últimos productos actualizados en tu inventario.
+          Un vistazo rápido a los últimos productos actualizados en tu
+          inventario.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -69,7 +76,9 @@ export async function RecentItems() {
             ))}
           </div>
         ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay productos para mostrar.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No hay productos para mostrar.
+          </p>
         )}
       </CardContent>
     </Card>

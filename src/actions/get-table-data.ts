@@ -51,6 +51,7 @@ const ALLOWED_TABLES = [
   ];
 
 export async function getTableData(tableName: string) {
+  // This page is for live exploration, so it should not be cached.
   noStore();
   if (!ALLOWED_TABLES.includes(tableName)) {
     console.error(`Acceso denegado: La tabla '${tableName}' no está permitida.`);

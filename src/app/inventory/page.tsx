@@ -4,20 +4,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { StockInfo } from "@/lib/types";
 
-export default async function InventoryPage() {
-  let items: StockInfo[] = [];
-  let error: string | null = null;
+// Revalidate the data for this page every hour.
+export const revalidate = 3600;
 
-  try {
-    const result = await getStockData();
-    if (result.error) {
-      error = result.error;
-    } else {
-      items = result.data || [];
-    }
-  } catch (e: any) {
-    error = e.message || 'Error al cargar el inventario.';
-  }
+export default async function InventoryPage() {
+  const { data: items, error } = await getStockData();
 
   return (
     <div className="flex flex-col gap-8">
@@ -31,7 +22,7 @@ export default async function InventoryPage() {
                 </AlertDescription>
             </Alert>
         )}
-      <InventoryClient items={items} />
+      <InventoryClient items={items || []} />
     </div>
   );
 }

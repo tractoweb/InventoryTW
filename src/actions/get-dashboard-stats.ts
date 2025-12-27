@@ -1,7 +1,6 @@
 'use server';
 
 import { queryDatabase } from '@/lib/db-connection';
-import { unstable_noStore as noStore } from 'next/cache';
 
 export type DashboardStats = {
   totalUnits: number;
@@ -12,8 +11,6 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats() {
-  noStore();
-  
   try {
     // Definimos el umbral de stock bajo. Usaremos la tabla stockcontrol si existe, si no, un valor fijo.
     // Esta consulta es más compleja, la haremos por separado.

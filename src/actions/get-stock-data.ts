@@ -2,11 +2,8 @@
 
 import { queryDatabase } from '@/lib/db-connection';
 import { StockInfo } from '@/lib/types';
-import { unstable_noStore as noStore } from 'next/cache';
 
 export async function getStockData() {
-  noStore();
-  
   try {
     const query = `
       SELECT 

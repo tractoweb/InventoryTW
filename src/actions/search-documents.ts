@@ -10,6 +10,7 @@ export type DocumentSearchResult = {
 };
 
 export async function searchDocuments(searchTerm: string) {
+  // Search should always be live
   noStore();
   
   if (!searchTerm) {

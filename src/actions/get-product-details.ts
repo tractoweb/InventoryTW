@@ -22,6 +22,7 @@ const sanitizeRow = (row: any) => {
 
 
 export async function getProductDetails(productId: number) {
+  // Details page should always fetch fresh data
   noStore();
   
   if (!productId) {

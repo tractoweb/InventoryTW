@@ -4,24 +4,39 @@ import { RecentItems } from "@/components/dashboard/recent-items";
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getDashboardStats } from "@/actions/get-dashboard-stats";
+import { getStockData } from "@/actions/get-stock-data";
+
+export const revalidate = 3600; // Revalida la página cada hora
 
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
       <Suspense fallback={<StatsSkeleton />}>
-        <StatsCards />
+        <StatsCardsWrapper />
       </Suspense>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* InventoryChart now fetches its own data client-side */}
+        {/* InventoryChart fetches its own data client-side, that is fine */}
         <InventoryChart className="lg:col-span-2" />
         <Suspense fallback={<RecentItemsSkeleton />}>
-          <RecentItems />
+          <RecentItemsWrapper />
         </Suspense>
       </div>
     </div>
   );
 }
+
+async function StatsCardsWrapper() {
+  const { data, error } = await getDashboardStats();
+  return <StatsCards data={data} error={error} />;
+}
+
+async function RecentItemsWrapper() {
+    const { data, error } = await getStockData();
+    return <RecentItems items={data} error={error} />;
+}
+
 
 function StatsSkeleton() {
   return (
@@ -64,19 +79,6 @@ function StatsSkeleton() {
       </Card>
     </div>
   );
-}
-
-function ChartSkeleton() {
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Artículos por Categoría</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="w-full h-[350px]" />
-      </CardContent>
-    </Card>
-  )
 }
 
 function RecentItemsSkeleton() {
