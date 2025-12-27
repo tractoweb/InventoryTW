@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -41,12 +42,12 @@ const formSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
+  barcode: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
   measurementunit: z.string().optional(),
   isenabled: z.boolean(),
-  isservice: z.boolean(),
   productgroupid: z.coerce.number().optional(),
   taxes: z.array(z.coerce.number()).optional(),
   reorderpoint: z.coerce.number().min(0).optional(),
@@ -66,12 +67,12 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
     defaultValues: {
       name: "",
       code: "",
+      barcode: "",
       description: "",
       price: 0,
       cost: 0,
       measurementunit: "",
       isenabled: true,
-      isservice: false,
       islowstockwarningenabled: true,
       taxes: [],
     },
@@ -95,12 +96,12 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                 id: result.data.id,
                 name: result.data.name || "",
                 code: result.data.code || "",
+                barcode: result.data.barcodes || "", // Assuming single barcode for now
                 description: result.data.description || "",
                 price: result.data.price || 0,
                 cost: result.data.cost || 0,
                 measurementunit: result.data.measurementunit || "",
                 isenabled: !!result.data.isenabled,
-                isservice: !!result.data.isservice,
                 productgroupid: result.data.productgroupid || undefined,
                 taxes: taxIds,
                 reorderpoint: result.data.reorderpoint ?? 0,
@@ -193,27 +194,40 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                         />
                          <FormField
                             control={form.control}
-                            name="productgroupid"
+                            name="barcode"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Categoría (Grupo)</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona una categoría" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {productGroups.map(group => (
-                                            <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
+                                <FormLabel>Código de Barras</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Escanee o ingrese el código" {...field} />
+                                </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
+                     <FormField
+                        control={form.control}
+                        name="productgroupid"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Categoría (Grupo)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona una categoría" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {productGroups.map(group => (
+                                        <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                      <FormField
                         control={form.control}
                         name="description"
@@ -234,18 +248,6 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                             render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <FormLabel className="pr-4">Habilitado</FormLabel>
-                                    <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="isservice"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <FormLabel className="pr-4">Es un Servicio</FormLabel>
                                     <FormControl>
                                         <Switch checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
