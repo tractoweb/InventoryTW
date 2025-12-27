@@ -25,6 +25,8 @@ import { EditProductForm } from './edit-product-form';
 import { ViewProductDetails } from './view-product-details';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import React from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -159,13 +161,14 @@ export function DataTable<TData extends { id: number }, TValue>({
 
 // A new sub-component for the expanded content
 function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Row<TData>, table: TanstackTable<TData> }) {
-    const { closeRow, productGroups, taxes } = (table.options.meta || {}) as any;
+    const { closeRow, productGroups, taxes, handleDeleteProduct } = (table.options.meta || {}) as any;
 
     return (
         <Tabs defaultValue="details" className="w-full py-4">
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 grid w-full grid-cols-3">
                 <TabsTrigger value="details">Ver Detalles</TabsTrigger>
                 <TabsTrigger value="edit">Editar</TabsTrigger>
+                <TabsTrigger value="delete" className="text-destructive">Eliminar</TabsTrigger>
             </TabsList>
             <TabsContent value="details">
                 <ViewProductDetails productId={(row.original as any).id} />
@@ -177,6 +180,38 @@ function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Ro
                     taxes={taxes}
                     onClose={() => closeRow(row.id)}
                 />
+            </TabsContent>
+            <TabsContent value="delete">
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6">
+                    <h3 className="text-lg font-semibold text-destructive">Eliminar Producto</h3>
+                    <p className="mt-2 text-sm text-destructive/80">
+                        Esta acción es irreversible. El producto se eliminará permanentemente de la base de datos.
+                        Si el producto ya ha sido usado en documentos (facturas, pedidos, etc.), no podrá ser eliminado.
+                        En ese caso, considere deshabilitarlo desde la pestaña de "Editar".
+                    </p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="mt-4">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Solicitar Eliminación
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se intentará eliminar el producto `{(row.original as any).name}` permanentemente.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteProduct((row.original as any).id)}>
+                            Sí, eliminar producto
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </TabsContent>
         </Tabs>
     )

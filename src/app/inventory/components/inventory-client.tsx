@@ -1,17 +1,21 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
-import { AddProductForm } from "./add-product-form";
-import { AdjustStockForm } from "./adjust-stock-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Warehouse } from "@/actions/get-warehouses";
 import type { Tax } from "@/actions/get-taxes";
+import { AddProductForm } from "./add-product-form";
+import { AdjustStockForm } from "./adjust-stock-form";
+import { useToast } from "@/hooks/use-toast";
+import { deleteProduct } from "@/actions/delete-product";
+
 
 type InventoryClientProps = {
   items: StockInfo[];
@@ -21,9 +25,11 @@ type InventoryClientProps = {
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items, productGroups, warehouses, taxes, pageType }: InventoryClientProps) {
+export function InventoryClient({ items: initialItems, productGroups, warehouses, taxes, pageType }: InventoryClientProps) {
+  const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const { toast } = useToast();
   
   const filteredItems = useMemo(() => {
     if (!items) return [];
@@ -39,11 +45,30 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
     });
   }, [items, search]);
 
+  const handleDeleteProduct = useCallback(async (productId: number) => {
+    const result = await deleteProduct(productId);
+    if (result.success) {
+        toast({
+            title: "Producto Eliminado",
+            description: result.message,
+        });
+        setItems(prevItems => prevItems.filter(item => item.id !== productId));
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error al eliminar",
+            description: result.error,
+        });
+    }
+  }, [toast]);
+
+
   const tableMeta = useMemo(() => ({
     productGroups,
     warehouses,
     taxes,
-  }), [productGroups, warehouses, taxes]);
+    handleDeleteProduct,
+  }), [productGroups, warehouses, taxes, handleDeleteProduct]);
 
   const isStockPage = pageType === 'stock';
   
