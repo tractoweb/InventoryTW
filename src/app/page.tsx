@@ -7,8 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardStats } from "@/actions/get-dashboard-stats";
 import { getStockData } from "@/actions/get-stock-data";
 
-export const revalidate = 3600; // Revalida la página cada hora
-
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">

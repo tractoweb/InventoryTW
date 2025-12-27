@@ -26,6 +26,11 @@ const menuItems = [
     label: "Inventario",
     icon: Boxes,
   },
+  {
+    href: "/stock",
+    label: "Stock",
+    icon: Warehouse,
+  },
    {
     href: "/tables",
     label: "Tablas",
