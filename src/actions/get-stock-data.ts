@@ -2,24 +2,29 @@
 
 import { queryDatabase } from '@/lib/db-connection';
 import { StockInfo } from '@/lib/types';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export async function getStockData() {
+  noStore();
   try {
+    // Cambiamos a LEFT JOIN desde product para asegurar que todos los productos se listen,
+    // incluso si no tienen una entrada en la tabla stock (stock 0).
     const query = `
       SELECT 
         p.id,
         p.name,
         p.code,
-        s.quantity,
+        COALESCE(s.quantity, 0) as quantity,
         p.price,
         p.cost,
         p.datecreated,
         p.dateupdated,
         w.name as warehousename
-      FROM stock s
-      JOIN product p ON s.productid = p.id
-      JOIN warehouse w ON s.warehouseid = w.id
-      ORDER BY p.dateupdated DESC;
+      FROM product p
+      LEFT JOIN stock s ON p.id = s.productid
+      LEFT JOIN warehouse w ON s.warehouseid = w.id
+      WHERE p.isenabled = 1
+      ORDER BY p.name, w.name;
     `;
     const data = await queryDatabase(query) as any[];
     
