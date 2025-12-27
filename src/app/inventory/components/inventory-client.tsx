@@ -10,7 +10,7 @@ import { AddProductForm } from "./add-product-form";
 import { AdjustStockForm } from "./adjust-stock-form";
 import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 
 type InventoryClientProps = {
