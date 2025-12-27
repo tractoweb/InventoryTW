@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -56,6 +57,7 @@ export function DataTable<TData extends { id: number }, TValue>({
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
+        getRowId: (row) => String(row.id),
         initialState: {
             pagination: {
                 pageSize: 10,
@@ -102,44 +104,23 @@ export function DataTable<TData extends { id: number }, TValue>({
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
                 <Collapsible asChild key={row.id} open={row.getIsExpanded()}>
-                    <>
-                    <CollapsibleTrigger asChild>
-                        <TableRow
-                            data-state={row.getIsSelected() && "selected"}
-                            onClick={() => row.toggleExpanded()}
-                            className="cursor-pointer"
-                        >
-                            {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id}>
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent asChild>
-                         <TableRow>
-                            <TableCell colSpan={columns.length}>
-                                <Tabs defaultValue="details" className="w-full py-4">
-                                    <TabsList className="mb-4">
-                                        <TabsTrigger value="details">Ver Detalles</TabsTrigger>
-                                        <TabsTrigger value="edit">Editar</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="details">
-                                        <ViewProductDetails productId={(row.original as any).id} />
-                                    </TabsContent>
-                                    <TabsContent value="edit">
-                                        <EditProductForm 
-                                            productId={(row.original as any).id}
-                                            productGroups={meta.productGroups}
-                                            taxes={meta.taxes}
-                                            onClose={() => closeRow(row.original.id)}
-                                        />
-                                    </TabsContent>
-                                </Tabs>
+                    <TableRow
+                        data-state={row.getIsExpanded() ? "open" : "closed"}
+                        className="data-[state=open]:bg-muted/50"
+                    >
+                         {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} onClick={() => {
+                                // Solo expandir si no es la celda de acciones
+                                if (cell.column.id !== 'actions') {
+                                    row.toggleExpanded();
+                                }
+                            }}
+                                className={cell.column.id !== 'actions' ? 'cursor-pointer' : ''}
+                            >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
-                        </TableRow>
-                    </CollapsibleContent>
-                    </>
+                        ))}
+                    </TableRow>
                 </Collapsible>
             ))
           ) : (
@@ -177,4 +158,31 @@ export function DataTable<TData extends { id: number }, TValue>({
       </div>
     </div>
   );
+}
+
+// A new sub-component for the expanded content
+function ExpandedContent<TData extends { id: number }>({ row, meta, closeRow, columns }: { row: any, meta: any, closeRow: (id: number) => void, columns: any[] }) {
+    return (
+        <TableRow>
+            <TableCell colSpan={columns.length}>
+                <Tabs defaultValue="details" className="w-full py-4">
+                    <TabsList className="mb-4">
+                        <TabsTrigger value="details">Ver Detalles</TabsTrigger>
+                        <TabsTrigger value="edit">Editar</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="details">
+                        <ViewProductDetails productId={(row.original as any).id} />
+                    </TabsContent>
+                    <TabsContent value="edit">
+                        <EditProductForm 
+                            productId={(row.original as any).id}
+                            productGroups={meta.productGroups}
+                            taxes={meta.taxes}
+                            onClose={() => closeRow(row.original.id)}
+                        />
+                    </TabsContent>
+                </Tabs>
+            </TableCell>
+        </TableRow>
+    )
 }
