@@ -1,0 +1,46 @@
+name: Deploy NextJS Standalone
+
+on:
+  push:
+    branches: [ main ] # Se activa cuando subes cambios a la rama main
+
+jobs:
+  deploy:
+    runs-on: self-hosted # Usa tu AWS-Tracto-Runner
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Project
+        run: |
+          npm install
+          npm run build # Genera la carpeta standalone optimizada
+
+      - name: Sync Files and Fix Permissions
+        shell: powershell
+        run: |
+          iisreset /stop
+          
+          # Limpia y mueve los archivos a la carpeta pública del servidor
+          robocopy ".next\standalone" "C:\inetpub\wwwroot" /mir
+          robocopy ".next\static" "C:\inetpub\wwwroot\.next\static" /e
+          robocopy "public" "C:\inetpub\wwwroot\public" /e
+          
+          # Crea el web.config con la conexión a la base de datos amongus
+          $config = @"
+          <configuration>
+            <system.webServer>
+              <iisnode nodeProcessCommandLine="node.exe" />
+              <handlers><add name="iisnode" path="server.js" verb="*" modules="iisnode" /></handlers>
+              <rewrite><rules><rule name="NextJs"><match url="/*" /><action type="Rewrite" url="server.js" /></rule></rules></rewrite>
+              <environmentVariables>
+                <environmentVariable name="DATABASE_URL" value="${{ secrets.DATABASE_URL }}" />
+              </environmentVariables>
+            </system.webServer>
+          </configuration>
+          "@
+          $config | Out-File -FilePath "C:\inetpub\wwwroot\web.config" -Encoding utf8
+          
+          # SOLUCIÓN AL ERROR 0x2: Otorga permisos totales al IIS
+          icacls "C:\inetpub\wwwroot" /grant "IIS_IUSRS:(OI)(CI)M" /t
+          
+          iisreset /start
