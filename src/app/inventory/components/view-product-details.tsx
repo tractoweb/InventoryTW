@@ -95,7 +95,7 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("Código", details.code)}
                     {renderDetail("PLU", details.plu)}
                     {renderDetail("Descripción", details.description)}
-                    {renderDetail("Grupo (Categoría)", details.productgroupname)}
+                    {renderDetail("Categoría (Grupo)", details.productgroupname)}
                     {renderDetail("Color", details.color)}
                     {renderDetail("Restricción de Edad", details.agerestriction)}
                     {renderDetail("Ranking", details.rank)}

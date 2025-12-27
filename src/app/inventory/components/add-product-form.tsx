@@ -185,7 +185,7 @@ export function AddProductForm({ setOpen }: AddProductFormProps) {
                     name="productGroupId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Grupo</FormLabel>
+                            <FormLabel>Categoría (Grupo)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                             <FormControl>
                                 <SelectTrigger>
