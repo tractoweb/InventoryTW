@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,8 @@ import type { Tax } from "@/actions/get-taxes";
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
-  measurementUnit: z.string().optional(),
-  productGroupId: z.coerce.number().optional(),
+  measurementUnit: z.string().min(1, "La posición es obligatoria."),
+  productGroupId: z.coerce.number().min(1, "Debe seleccionar una categoría."),
   description: z.string().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
@@ -92,11 +92,6 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     },
   });
 
-  const watchedFields = useWatch({
-    control: form.control,
-    name: ["cost", "price", "taxes", "isTaxInclusivePrice"],
-  });
-
   const getSelectedTaxRate = useCallback(() => {
     const selectedTaxIds = form.getValues('taxes') || [];
     const totalRate = selectedTaxIds.reduce((acc, taxId) => {
@@ -108,7 +103,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
 
   const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
     if (cost <= 0) return 0;
-    const newPrice = isTaxInclusive ? cost * (1 + taxRate) : cost;
+    const newPrice = cost * (1 + taxRate);
     return parseFloat(newPrice.toFixed(2));
   }, []);
   
@@ -120,28 +115,30 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
-      if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice') {
-        const cost = form.getValues('cost') || 0;
-        const taxRate = getSelectedTaxRate();
-        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
-        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
-        form.setValue('price', newPrice, { shouldValidate: true });
-      }
+      // Evitar la recursión
+      if (type !== 'change') return;
 
-      if (name === 'cost') {
-        const cost = value.cost || 0;
-        const taxRate = getSelectedTaxRate();
-        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+      const taxRate = getSelectedTaxRate();
+      const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+      
+      if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice' || name === 'cost') {
+        const cost = form.getValues('cost') || 0;
+        const currentPrice = form.getValues('price') || 0;
         const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
-        form.setValue('price', newPrice, { shouldValidate: true });
+        
+        if (newPrice.toFixed(2) !== currentPrice.toFixed(2)) {
+          form.setValue('price', newPrice, { shouldValidate: true });
+        }
       }
 
       if (name === 'price') {
         const price = value.price || 0;
-        const taxRate = getSelectedTaxRate();
-        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+        const currentCost = form.getValues('cost') || 0;
         const newCost = calculateCost(price, taxRate, isTaxInclusive);
-        form.setValue('cost', newCost, { shouldValidate: true });
+
+        if (newCost.toFixed(2) !== currentCost.toFixed(2)) {
+          form.setValue('cost', newCost, { shouldValidate: true });
+        }
       }
     });
     return () => subscription.unsubscribe();

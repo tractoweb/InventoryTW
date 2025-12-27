@@ -45,9 +45,9 @@ const formSchema = z.object({
   description: z.string().optional(),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
-  measurementunit: z.string().optional(),
+  measurementunit: z.string().min(1, "La posición es obligatoria."),
   isenabled: z.boolean(),
-  productgroupid: z.coerce.number().optional(),
+  productgroupid: z.coerce.number().min(1, "Debe seleccionar una categoría."),
   taxes: z.array(z.coerce.number()).optional(),
   reorderpoint: z.coerce.number().min(0).optional(),
   lowstockwarningquantity: z.coerce.number().min(0).optional(),
@@ -197,7 +197,7 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Categoría (Grupo)</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                <Select onValueChange={field.onChange} value={String(field.value)}>
                                 <FormControl>
                                     <SelectTrigger>
                                     <SelectValue placeholder="Selecciona una categoría" />
