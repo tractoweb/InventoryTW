@@ -42,7 +42,6 @@ const formSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
-  barcode: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
@@ -67,7 +66,6 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
     defaultValues: {
       name: "",
       code: "",
-      barcode: "",
       description: "",
       price: 0,
       cost: 0,
@@ -96,7 +94,6 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                 id: result.data.id,
                 name: result.data.name || "",
                 code: result.data.code || "",
-                barcode: result.data.barcodes || "", // Assuming single barcode for now
                 description: result.data.description || "",
                 price: result.data.price || 0,
                 cost: result.data.cost || 0,
@@ -178,7 +175,7 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                          <FormField
                             control={form.control}
                             name="code"
@@ -188,19 +185,7 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                                 <FormControl>
                                     <Input placeholder="Ej: SKU-12345" {...field} />
                                 </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="barcode"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Código de Barras</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Escanee o ingrese el código" {...field} />
-                                </FormControl>
+                                <FormDescription>Este valor también se usará como código de barras.</FormDescription>
                                 <FormMessage />
                                 </FormItem>
                             )}

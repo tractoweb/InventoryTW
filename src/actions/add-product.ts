@@ -8,7 +8,6 @@ import type { Connection } from 'mysql2/promise';
 const AddProductSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
-  barcode: z.string().optional(),
   measurementUnit: z.string().optional(),
   productGroupId: z.coerce.number().optional(),
   description: z.string().optional(),
@@ -40,7 +39,7 @@ export type AddProductInput = z.infer<typeof AddProductSchema>;
  * Crea un nuevo producto en la base de datos dentro de una transacción.
  * 1. Valida que el código no exista.
  * 2. Inserta en la tabla `product`.
- * 3. Si se provee, inserta en `barcode`.
+ * 3. Si se provee, inserta el código como `barcode`.
  * 4. Si se proveen, inserta en `producttax`.
  * 5. Inserta la configuración de stock en `stockcontrol`.
  * 6. Si se provee, inserta el stock inicial en `stock`.
@@ -56,7 +55,7 @@ export async function addProduct(input: AddProductInput) {
     };
   }
 
-  const { name, code, barcode, productGroupId, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, initialQuantity, warehouseId, ...rest } = validation.data;
+  const { name, code, productGroupId, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, initialQuantity, warehouseId, ...rest } = validation.data;
 
   let connection: Connection | null = null;
   try {
@@ -81,7 +80,7 @@ export async function addProduct(input: AddProductInput) {
         ProductGroupId, Name, Code, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
         IsPriceChangeAllowed, IsService, IsUsingDefaultQuantity, IsEnabled,
         Description, Cost, Markup, AgeRestriction, LastPurchasePrice, \`Rank\`
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
 
     const [productResult] = await connection.execute(productQuery, [
@@ -106,9 +105,9 @@ export async function addProduct(input: AddProductInput) {
 
     const newProductId = productResult.insertId;
 
-    // 2. Insertar en barcode si existe
-    if (barcode) {
-      await connection.execute('INSERT INTO barcode (ProductId, Value) VALUES (?, ?)', [newProductId, barcode]);
+    // 2. Insertar en barcode si existe un código
+    if (code) {
+      await connection.execute('INSERT INTO barcode (ProductId, Value) VALUES (?, ?)', [newProductId, code]);
     }
 
     // 3. Insertar en producttax si hay impuestos

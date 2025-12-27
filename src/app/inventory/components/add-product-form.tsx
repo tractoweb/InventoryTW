@@ -37,7 +37,6 @@ import type { Tax } from "@/actions/get-taxes";
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
-  barcode: z.string().optional(),
   measurementUnit: z.string().optional(),
   productGroupId: z.coerce.number().optional(),
   description: z.string().optional(),
@@ -78,7 +77,6 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     defaultValues: {
       name: "",
       code: "",
-      barcode: "",
       measurementUnit: "",
       description: "",
       isEnabled: true,
@@ -100,41 +98,54 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
   });
 
   const getSelectedTaxRate = useCallback(() => {
-    const selectedTaxIds = watchedFields[2] || [];
+    const selectedTaxIds = form.getValues('taxes') || [];
     const totalRate = selectedTaxIds.reduce((acc, taxId) => {
       const tax = taxes.find(t => t.id === taxId);
       return acc + (tax ? tax.rate / 100 : 0);
     }, 0);
     return totalRate;
-  }, [watchedFields, taxes]);
+  }, [form, taxes]);
 
-  const calculatePrice = useCallback((cost: number, taxRate: number) => {
+  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
     if (cost <= 0) return 0;
-    return parseFloat((cost * (1 + taxRate)).toFixed(2));
+    const newPrice = isTaxInclusive ? cost * (1 + taxRate) : cost;
+    return parseFloat(newPrice.toFixed(2));
   }, []);
-
-  const calculateCost = useCallback((price: number, taxRate: number) => {
+  
+  const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
     if (price <= 0) return 0;
-    return parseFloat((price / (1 + taxRate)).toFixed(2));
+    const newCost = isTaxInclusive ? price / (1 + taxRate) : price;
+    return parseFloat(newCost.toFixed(2));
   }, []);
 
   useEffect(() => {
-    const [cost, price] = watchedFields;
-    const taxRate = getSelectedTaxRate();
-    const lastChanged = form.formState.dirtyFields.price ? 'price' : form.formState.dirtyFields.cost ? 'cost' : undefined;
-
-    if (lastChanged === 'cost' && cost && cost > 0) {
-      const newPrice = calculatePrice(cost, taxRate);
-      if (newPrice !== price) {
+    const subscription = form.watch((value, { name, type }) => {
+      if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice') {
+        const cost = form.getValues('cost') || 0;
+        const taxRate = getSelectedTaxRate();
+        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
         form.setValue('price', newPrice, { shouldValidate: true });
       }
-    } else if (lastChanged === 'price' && price && price > 0) {
-      const newCost = calculateCost(price, taxRate);
-      if (newCost !== cost) {
+
+      if (name === 'cost') {
+        const cost = value.cost || 0;
+        const taxRate = getSelectedTaxRate();
+        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
+        form.setValue('price', newPrice, { shouldValidate: true });
+      }
+
+      if (name === 'price') {
+        const price = value.price || 0;
+        const taxRate = getSelectedTaxRate();
+        const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+        const newCost = calculateCost(price, taxRate, isTaxInclusive);
         form.setValue('cost', newCost, { shouldValidate: true });
       }
-    }
-  }, [watchedFields, form, getSelectedTaxRate, calculatePrice, calculateCost]);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, getSelectedTaxRate, calculatePrice, calculateCost]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -181,29 +192,17 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                     </FormItem>
                 )}
                 />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <FormField
                     control={form.control}
                     name="code"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Código</FormLabel>
+                        <FormLabel>Código / Referencia</FormLabel>
                         <FormControl>
                             <Input {...field} />
                         </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="barcode"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Código de Barras</FormLabel>
-                        <FormControl>
-                            <Input {...field} />
-                        </FormControl>
+                        <FormDescription>Este valor también se usará como código de barras.</FormDescription>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -264,7 +263,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                     name="isUsingDefaultQuantity"
                     render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <FormLabel>Cantidad por defecto</FormLabel>
+                        <FormLabel>Cantidad por defecto (1)</FormLabel>
                         <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
@@ -325,7 +324,10 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                             <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                            <FormLabel>El precio incluye impuestos</FormLabel>
+                            <FormLabel>El precio de venta incluye los impuestos</FormLabel>
+                            <FormDescription>
+                                Si se marca, el costo se calculará restando los impuestos al precio.
+                            </FormDescription>
                         </div>
                         </FormItem>
                     )}
@@ -363,7 +365,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                                         />
                                         </FormControl>
                                         <FormLabel className="font-normal">
-                                        {item.name}
+                                        {item.name} ({item.rate}%)
                                         </FormLabel>
                                     </FormItem>
                                     );

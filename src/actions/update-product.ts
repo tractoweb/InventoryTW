@@ -9,7 +9,6 @@ const UpdateProductSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
-  barcode: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
@@ -38,7 +37,7 @@ export async function updateProduct(input: UpdateProductInput) {
     };
   }
 
-  const { id, name, code, taxes, barcode, ...data } = validation.data;
+  const { id, name, code, taxes, ...data } = validation.data;
 
   let connection: Connection | null = null;
   try {
@@ -76,12 +75,12 @@ export async function updateProduct(input: UpdateProductInput) {
       id
     ]);
     
-    // 2. Gestionar el código de barras (asumiendo uno por producto para simplicidad)
+    // 2. Gestionar el código de barras
     // Primero, intentar eliminar el código de barras existente
     await connection.execute('DELETE FROM barcode WHERE ProductId = ?', [id]);
-    // Luego, si se proporciona uno nuevo, insertarlo
-    if (barcode) {
-        await connection.execute('INSERT INTO barcode (ProductId, Value) VALUES (?, ?)', [id, barcode]);
+    // Luego, si se proporciona un nuevo código, insertarlo como barcode
+    if (code) {
+        await connection.execute('INSERT INTO barcode (ProductId, Value) VALUES (?, ?)', [id, code]);
     }
 
 
