@@ -54,8 +54,8 @@ const formSchema = z.object({
   initialQuantity: z.coerce.number().min(0).optional(),
   warehouseId: z.coerce.number().optional(),
 }).refine(data => {
-    if ((data.initialQuantity && data.initialQuantity > 0) && !data.warehouseId) {
-        return false;
+    if (data.initialQuantity && data.initialQuantity > 0) {
+        return !!data.warehouseId;
     }
     return true;
 }, {
@@ -128,14 +128,13 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     }, 0);
     return totalRate;
   }, [form, taxes]);
-
-  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
+  
+  const calculatePrice = useCallback((cost: number, taxRate: number) => {
     if (cost <= 0) return 0;
-    // Price always includes tax for this calculation logic
     const newPrice = cost * (1 + taxRate);
     return parseFloat(newPrice.toFixed(2));
   }, []);
-  
+
   const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
     if (price <= 0) return 0;
     const newCost = isTaxInclusive ? price / (1 + taxRate) : price;
@@ -143,26 +142,26 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
   }, []);
 
   useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
-      if (type !== 'change') return;
-
+    const subscription = form.watch((value, { name }) => {
       const taxRate = getSelectedTaxRate();
       const isTaxInclusive = form.getValues('isTaxInclusivePrice');
-      
-      if (name?.startsWith('taxes') || name === 'cost') {
+
+      if (name === 'cost' || name?.startsWith('taxes')) {
         const cost = Number(form.getValues('cost')) || 0;
-        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
-        
-        if (newPrice.toFixed(2) !== (Number(form.getValues('price')) || 0).toFixed(2)) {
+        const newPrice = calculatePrice(cost, taxRate);
+        const currentPrice = Number(form.getValues('price')) || 0;
+
+        if (newPrice.toFixed(2) !== currentPrice.toFixed(2)) {
           form.setValue('price', newPrice, { shouldValidate: true });
         }
       }
 
       if (name === 'price' || name === 'isTaxInclusivePrice') {
-        const price = Number(value.price) || 0;
+        const price = Number(form.getValues('price')) || 0;
         const newCost = calculateCost(price, taxRate, isTaxInclusive);
-
-        if (newCost.toFixed(2) !== (Number(form.getValues('cost')) || 0).toFixed(2)) {
+        const currentCost = Number(form.getValues('cost')) || 0;
+        
+        if (newCost.toFixed(2) !== currentCost.toFixed(2)) {
           form.setValue('cost', newCost, { shouldValidate: true });
         }
       }
@@ -497,5 +496,3 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     </Form>
   );
 }
-
-    

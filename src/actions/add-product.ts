@@ -8,8 +8,8 @@ import type { Connection } from 'mysql2/promise';
 const AddProductSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
-  measurementUnit: z.string().optional(),
-  productGroupId: z.coerce.number().optional(),
+  measurementUnit: z.string().min(1, "La posición es obligatoria."),
+  productGroupId: z.coerce.number().min(1, "Debe seleccionar una categoría."),
   description: z.string().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
@@ -23,8 +23,8 @@ const AddProductSchema = z.object({
   initialQuantity: z.coerce.number().min(0).optional(),
   warehouseId: z.coerce.number().optional(),
 }).refine(data => {
-    if ((data.initialQuantity && data.initialQuantity > 0) && !data.warehouseId) {
-        return false;
+    if (data.initialQuantity && data.initialQuantity > 0) {
+        return !!data.warehouseId;
     }
     return true;
 }, {
