@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { DateCell } from "./date-cell";
 
 
@@ -59,32 +59,25 @@ export const columns: ColumnDef<StockInfo>[] = [
   },
   {
     id: "actions",
-    cell: ({ row, table }) => {
-      const item = row.original;
-      const { onView, onEdit } = table.options.meta as {
-        onView: (id: number) => void;
-        onEdit: (id: number) => void;
-      };
-
+    cell: ({ row }) => {
+      const { onToggle } = row.original as any;
+      const isExpanded = row.getIsExpanded();
+      
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onView(item.id)}>
-              Ver más información
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(item.id)}>
-              Editar producto
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="h-8 w-8 p-0"
+        >
+          <span className="sr-only">Abrir menú</span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          />
+        </Button>
       );
     },
   },

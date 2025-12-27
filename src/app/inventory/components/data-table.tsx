@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -10,36 +11,69 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
     ColumnDef,
     flexRender,
     getCoreRowModel,
     getPaginationRowModel,
     useReactTable,
+    getExpandedRowModel,
 } from "@tanstack/react-table";
+import { EditProductForm } from './edit-product-form';
+import { ViewProductDetails } from './view-product-details';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  meta?: any;
+  meta: any;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends { id: number }, TValue>({
   columns,
-  data,
+  data: initialData,
   meta,
 }: DataTableProps<TData, TValue>) {
+    const [expandedRows, setExpandedRows] = useState({});
+
+    const data = initialData.map(item => ({
+        ...item,
+        onToggle: () => handleRowToggle(item.id),
+      }));
+
     const table = useReactTable({
         data,
         columns,
+        state: {
+            expanded: expandedRows,
+        },
+        onExpandedChange: setExpandedRows,
         meta,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
+        getExpandedRowModel: getExpandedRowModel(),
         initialState: {
             pagination: {
                 pageSize: 10,
             }
         }
-      });
+    });
+
+    const handleRowToggle = (rowId: number) => {
+        setExpandedRows(prev => ({
+          ...prev,
+          [rowId]: !(prev as any)[rowId],
+        }));
+    };
+    
+    const closeRow = (rowId: number) => {
+        setExpandedRows(prev => ({ ...prev, [rowId]: false }));
+    }
+
       const pageCount = table.getPageCount();
       const currentPage = table.getState().pagination.pageIndex + 1;
 
@@ -67,16 +101,46 @@ export function DataTable<TData, TValue>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
+                <Collapsible asChild key={row.id} open={row.getIsExpanded()}>
+                    <>
+                    <CollapsibleTrigger asChild>
+                        <TableRow
+                            data-state={row.getIsSelected() && "selected"}
+                            onClick={() => row.toggleExpanded()}
+                            className="cursor-pointer"
+                        >
+                            {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}>
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </TableCell>
+                            ))}
+                        </TableRow>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent asChild>
+                         <TableRow>
+                            <TableCell colSpan={columns.length}>
+                                <Tabs defaultValue="details" className="w-full py-4">
+                                    <TabsList className="mb-4">
+                                        <TabsTrigger value="details">Ver Detalles</TabsTrigger>
+                                        <TabsTrigger value="edit">Editar</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="details">
+                                        <ViewProductDetails productId={(row.original as any).id} />
+                                    </TabsContent>
+                                    <TabsContent value="edit">
+                                        <EditProductForm 
+                                            productId={(row.original as any).id}
+                                            productGroups={meta.productGroups}
+                                            taxes={meta.taxes}
+                                            onClose={() => closeRow(row.original.id)}
+                                        />
+                                    </TabsContent>
+                                </Tabs>
+                            </TableCell>
+                        </TableRow>
+                    </CollapsibleContent>
+                    </>
+                </Collapsible>
             ))
           ) : (
             <TableRow>

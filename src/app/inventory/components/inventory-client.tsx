@@ -8,8 +8,6 @@ import { columns } from "./columns";
 import { PlusCircle, Wrench } from "lucide-react";
 import { AddProductForm } from "./add-product-form";
 import { AdjustStockForm } from "./adjust-stock-form";
-import { ViewProductDetails } from "./view-product-details";
-import { EditProductForm } from "./edit-product-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 import type { ProductGroup } from "@/actions/get-product-groups";
@@ -28,9 +26,6 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   
-  const [viewedProductId, setViewedProductId] = useState<number | null>(null);
-  const [editedProductId, setEditedProductId] = useState<number | null>(null);
-
   const filteredItems = useMemo(() => {
     if (!items) return [];
     return items.filter((item) => {
@@ -46,8 +41,9 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
   }, [items, search]);
 
   const tableMeta = {
-    onView: (id: number) => setViewedProductId(id),
-    onEdit: (id: number) => setEditedProductId(id),
+    productGroups,
+    warehouses,
+    taxes,
   };
 
   const isStockPage = pageType === 'stock';
@@ -90,35 +86,6 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
         </div>
         <DataTable columns={columns} data={filteredItems} meta={tableMeta} />
       </div>
-
-      <Dialog open={viewedProductId !== null} onOpenChange={() => setViewedProductId(null)}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalles del Producto</DialogTitle>
-            <DialogDescription>
-              Información completa del producto seleccionado.
-            </DialogDescription>
-          </DialogHeader>
-          <ViewProductDetails productId={viewedProductId} />
-        </DialogContent>
-      </Dialog>
-      
-       <Dialog open={editedProductId !== null} onOpenChange={() => setEditedProductId(null)}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Producto</DialogTitle>
-            <DialogDescription>
-              Modifica la información del producto. Haz clic en Guardar para aplicar los cambios.
-            </DialogDescription>
-          </DialogHeader>
-          <EditProductForm 
-            productId={editedProductId} 
-            productGroups={productGroups}
-            taxes={taxes}
-            onClose={() => setEditedProductId(null)} 
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
