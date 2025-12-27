@@ -12,10 +12,8 @@ const AddProductSchema = z.object({
   measurementUnit: z.string().optional(),
   productGroupId: z.coerce.number().optional(),
   description: z.string().optional(),
-  ageRestriction: z.coerce.number().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
-  isService: z.boolean().default(false),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
   isTaxInclusivePrice: z.boolean().default(true),
@@ -57,7 +55,7 @@ export async function addProduct(input: AddProductInput) {
     };
   }
 
-  const { name, code, barcode, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, initialQuantity, warehouseId, ...rest } = validation.data;
+  const { name, code, barcode, productGroupId, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, initialQuantity, warehouseId, ...rest } = validation.data;
 
   let connection: Connection | null = null;
   try {
@@ -75,7 +73,7 @@ export async function addProduct(input: AddProductInput) {
     // Nota: Algunos valores son hardcodeados/defaults por ahora.
     // CurrencyId=1 asumiendo que es la moneda por defecto (Peso Colombiano).
     const [productResult] = await connection.execute(productQuery, [
-      validation.data.productGroupId || null, // Asegurar que el groupId se pasa correctamente
+      productGroupId || null, // Asegurar que el groupId se pasa correctamente
       name,
       code || null,
       null, // PLU
@@ -84,13 +82,13 @@ export async function addProduct(input: AddProductInput) {
       rest.isTaxInclusivePrice,
       1, // CurrencyId (Asumiendo 1 para COP)
       false, // IsPriceChangeAllowed
-      rest.isService,
+      false, // IsService
       rest.isUsingDefaultQuantity,
       rest.isEnabled,
       rest.description || null,
       rest.cost || 0,
       0, // Markup
-      rest.ageRestriction || null,
+      null, // AgeRestriction
       0, // LastPurchasePrice
       0  // Rank
     ]) as any[];

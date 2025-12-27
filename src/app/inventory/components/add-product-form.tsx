@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -40,10 +41,8 @@ const formSchema = z.object({
   measurementUnit: z.string().optional(),
   productGroupId: z.coerce.number().optional(),
   description: z.string().optional(),
-  ageRestriction: z.coerce.number().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
-  isService: z.boolean().default(false),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
   isTaxInclusivePrice: z.boolean().default(true),
@@ -84,7 +83,6 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       description: "",
       isEnabled: true,
       isUsingDefaultQuantity: true,
-      isService: false,
       price: 0,
       cost: 0,
       isTaxInclusivePrice: true,
@@ -230,32 +228,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                         </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="isService"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <FormLabel>Servicio (no usa stock)</FormLabel>
-                        <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        </FormItem>
-                    )}
-                />
             </div>
-             <FormField
-                control={form.control}
-                name="ageRestriction"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Restricción de Edad</FormLabel>
-                    <FormControl>
-                        <Input type="number" placeholder="Ej: 18" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
             <FormField
                 control={form.control}
                 name="description"
