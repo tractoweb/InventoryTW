@@ -71,16 +71,16 @@ export async function addProduct(input: AddProductInput) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
     // Nota: Algunos valores son hardcodeados/defaults por ahora.
-    // CurrencyId=1 asumiendo que es la moneda por defecto (Peso Colombiano).
+    // CurrencyId=1 asumiendo que es la moneda por defecto.
     const [productResult] = await connection.execute(productQuery, [
-      productGroupId || null, // Asegurar que el groupId se pasa correctamente
+      productGroupId || null,
       name,
       code || null,
       null, // PLU
       rest.measurementUnit || null,
       rest.price,
       rest.isTaxInclusivePrice,
-      1, // CurrencyId (Asumiendo 1 para COP)
+      1, // CurrencyId (Asumiendo 1)
       false, // IsPriceChangeAllowed
       false, // IsService
       rest.isUsingDefaultQuantity,
@@ -89,7 +89,7 @@ export async function addProduct(input: AddProductInput) {
       rest.cost || 0,
       0, // Markup
       null, // AgeRestriction
-      0, // LastPurchasePrice
+      rest.cost || 0, // LastPurchasePrice se setea con el costo inicial
       0  // Rank
     ]) as any[];
 

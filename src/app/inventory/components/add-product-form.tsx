@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect, useCallback } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,57 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       initialQuantity: 0,
     },
   });
+
+  const watchedFields = useWatch({
+    control: form.control,
+    name: ["cost", "price", "taxes", "isTaxInclusivePrice"],
+  });
+
+  const getSelectedTaxRate = useCallback(() => {
+    const selectedTaxIds = watchedFields[2] || [];
+    const totalRate = selectedTaxIds.reduce((acc, taxId) => {
+      const tax = taxes.find(t => t.id === taxId);
+      return acc + (tax ? tax.rate / 100 : 0);
+    }, 0);
+    return totalRate;
+  }, [watchedFields, taxes]);
+
+  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
+    if (cost <= 0) return 0;
+    if (isTaxInclusive) {
+        // Price is not calculated from cost if it's inclusive, user should set it.
+        return form.getValues('price');
+    }
+    return parseFloat((cost * (1 + taxRate)).toFixed(2));
+  }, [form]);
+
+  const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
+    if (price <= 0) return 0;
+    if (isTaxInclusive) {
+      return parseFloat((price / (1 + taxRate)).toFixed(2));
+    }
+    // Cost is not calculated from price if it's exclusive, user should set it.
+    return form.getValues('cost');
+  }, [form]);
+
+  useEffect(() => {
+    const [cost, price, , isTaxInclusive] = watchedFields;
+    const taxRate = getSelectedTaxRate();
+    const lastChanged = form.formState.dirtyFields.price ? 'price' : 'cost';
+
+    if (lastChanged === 'cost' && cost && cost > 0) {
+      const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
+      if (newPrice !== price) {
+        form.setValue('price', newPrice, { shouldValidate: true });
+      }
+    } else if (lastChanged === 'price' && price && price > 0) {
+      const newCost = calculateCost(price, taxRate, isTaxInclusive);
+      if (newCost !== cost) {
+        form.setValue('cost', newCost, { shouldValidate: true });
+      }
+    }
+  }, [watchedFields, form, getSelectedTaxRate, calculatePrice, calculateCost]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
