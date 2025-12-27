@@ -32,6 +32,8 @@ import { addProduct } from "@/actions/add-product";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Warehouse } from "@/actions/get-warehouses";
 import type { Tax } from "@/actions/get-taxes";
+import { useDebounce } from "@/hooks/use-debounce";
+import { checkReferenceExistence } from "@/actions/check-reference-existence";
 
 
 const formSchema = z.object({
@@ -72,6 +74,8 @@ type AddProductFormProps = {
 export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: AddProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -91,6 +95,29 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       initialQuantity: 0,
     },
   });
+
+  const codeValue = form.watch("code");
+  const debouncedCode = useDebounce(codeValue, 500);
+
+  useEffect(() => {
+    if (debouncedCode && debouncedCode.length > 0) {
+      setIsCheckingCode(true);
+      checkReferenceExistence(debouncedCode).then(result => {
+        setIsCheckingCode(false);
+        if (result.exists) {
+          form.setError("code", {
+            type: "manual",
+            message: "Esta referencia ya está en uso.",
+          });
+        } else {
+          form.clearErrors("code");
+        }
+      });
+    } else {
+        form.clearErrors("code");
+    }
+  }, [debouncedCode, form]);
+
 
   const getSelectedTaxRate = useCallback(() => {
     const selectedTaxIds = form.getValues('taxes') || [];
@@ -115,7 +142,6 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
-      // Evitar la recursión
       if (type !== 'change') return;
 
       const taxRate = getSelectedTaxRate();
@@ -123,20 +149,18 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       
       if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice' || name === 'cost') {
         const cost = form.getValues('cost') || 0;
-        const currentPrice = form.getValues('price') || 0;
         const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
         
-        if (newPrice.toFixed(2) !== currentPrice.toFixed(2)) {
+        if (newPrice.toFixed(2) !== (form.getValues('price') || 0).toFixed(2)) {
           form.setValue('price', newPrice, { shouldValidate: true });
         }
       }
 
       if (name === 'price') {
         const price = value.price || 0;
-        const currentCost = form.getValues('cost') || 0;
         const newCost = calculateCost(price, taxRate, isTaxInclusive);
 
-        if (newCost.toFixed(2) !== currentCost.toFixed(2)) {
+        if (newCost.toFixed(2) !== (form.getValues('cost') || 0).toFixed(2)) {
           form.setValue('cost', newCost, { shouldValidate: true });
         }
       }
@@ -199,7 +223,9 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                         <FormControl>
                             <Input {...field} />
                         </FormControl>
-                        <FormDescription>Este valor también se usará como código de barras.</FormDescription>
+                         <FormDescription>
+                            {isCheckingCode ? "Verificando..." : "Este valor también se usará como código de barras."}
+                         </FormDescription>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -461,7 +487,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
         </Tabs>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || form.formState.isSubmitting || isCheckingCode || !!form.formState.errors.code}>
               {isSubmitting ? "Guardando..." : "Guardar Producto"}
             </Button>
         </div>
@@ -469,3 +495,5 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     </Form>
   );
 }
+
+    
