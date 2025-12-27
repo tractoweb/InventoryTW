@@ -35,9 +35,11 @@ export const columns: ColumnDef<StockInfo>[] = [
     header: "Precio",
     cell: ({ row }) => {
         const amount = parseFloat(String(row.original.price));
-        const formatted = new Intl.NumberFormat("es-ES", {
+        const formatted = new Intl.NumberFormat("es-CO", {
           style: "currency",
-          currency: "EUR", // Se podría hacer dinámico
+          currency: "COP",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
         }).format(amount);
         return <div className="text-right font-medium">{formatted}</div>;
       },
@@ -61,7 +63,7 @@ export const columns: ColumnDef<StockInfo>[] = [
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            toggleRow(row.id);
+            row.toggleExpanded();
           }}
           className="h-8 w-8 p-0"
         >
