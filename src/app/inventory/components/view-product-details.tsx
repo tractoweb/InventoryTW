@@ -34,6 +34,13 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
       fetchDetails();
     }
   }, [productId]);
+  
+  const formatCurrency = (amount: number | null | undefined, currencyCode: string = 'COP') => {
+      if (amount === null || amount === undefined || isNaN(amount)) {
+          return "N/A";
+      }
+      return new Intl.NumberFormat("es-CO", { style: "currency", currency: currencyCode, minimumFractionDigits: 0 }).format(amount);
+  }
 
   const renderDetail = (label: string, value: any) => {
     const displayValue = value === null || value === undefined || value === '' ? 'N/A' : String(value);
@@ -102,10 +109,10 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                 </div>
                 <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Precio y Costo</h3>
-                    {renderDetail("Precio", new Intl.NumberFormat("es-ES", { style: "currency", currency: details.currencycode || 'EUR' }).format(details.price))}
-                    {renderDetail("Costo", new Intl.NumberFormat("es-ES", { style: "currency", currency: details.currencycode || 'EUR' }).format(details.cost))}
+                    {renderDetail("Precio", formatCurrency(details.price, details.currencycode))}
+                    {renderDetail("Costo", formatCurrency(details.cost, details.currencycode))}
                     {renderDetail("Margen (Markup)", `${details.markup}%`)}
-                    {renderDetail("Último Precio Compra", new Intl.NumberFormat("es-ES", { style: "currency", currency: details.currencycode || 'EUR' }).format(details.lastpurchaseprice))}
+                    {renderDetail("Último Precio Compra", formatCurrency(details.lastpurchaseprice, details.currencycode))}
                     {renderDetail("Moneda", `${details.currencyname} (${details.currencycode})`)}
                     {renderDetail("Impuestos Aplicados", details.taxes)}
                 </div>

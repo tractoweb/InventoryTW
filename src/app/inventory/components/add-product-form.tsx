@@ -32,8 +32,7 @@ import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Warehouse } from "@/actions/get-warehouses";
 
 const taxes = [
-    { id: 1, name: 'IVA 19%', rate: 19 },
-    { id: 2, name: 'Impoconsumo 8%', rate: 8 },
+    { id: 2, name: 'IVA 19%', rate: 19 },
 ]
 
 const formSchema = z.object({

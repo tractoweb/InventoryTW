@@ -4,18 +4,20 @@
 import { queryDatabase } from '@/lib/db-connection';
 import { unstable_noStore as noStore } from 'next/cache';
 
-// Helper function to convert Buffer to string for serialization
+// Helper function to convert Buffer to string and keys to lowercase for serialization
 const sanitizeRow = (row: any) => {
+    if (!row) return null;
     const newRow: {[key: string]: any} = {};
     for (const key in row) {
         const value = row[key];
+        const lowerKey = key.toLowerCase();
         if (Buffer.isBuffer(value)) {
-            newRow[key] = '[Binary Data]'; // Placeholder for images/blobs
+            newRow[lowerKey] = '[Binary Data]'; // Placeholder for images/blobs
         } else if (value instanceof Date) {
-            newRow[key] = value.toISOString();
+            newRow[lowerKey] = value.toISOString();
         } 
         else {
-            newRow[key] = value;
+            newRow[lowerKey] = value;
         }
     }
     return newRow;
@@ -33,7 +35,29 @@ export async function getProductDetails(productId: number) {
   try {
     const productQuery = `
       SELECT 
-        p.*,
+        p.id,
+        p.productgroupid,
+        p.name,
+        p.code,
+        p.plu,
+        p.measurementunit,
+        p.price,
+        p.istaxinclusiveprice,
+        p.currencyid,
+        p.ispricechangeallowed,
+        p.isservice,
+        p.isusingdefaultquantity,
+        p.isenabled,
+        p.description,
+        p.datecreated,
+        p.dateupdated,
+        p.cost,
+        p.markup,
+        p.image,
+        p.color,
+        p.agerestriction,
+        p.lastpurchaseprice,
+        p.rank,
         pg.name as productgroupname,
         c.name as currencyname,
         c.code as currencycode,
@@ -59,10 +83,12 @@ export async function getProductDetails(productId: number) {
         WHERE s.productid = ?;
     `;
     const stockData = await queryDatabase(stockQuery, [productId]) as any[];
+    
+    const sanitizedProductData = sanitizeRow(productData);
 
     return { 
         data: {
-            ...sanitizeRow(productData),
+            ...sanitizedProductData,
             stocklocations: stockData.map(sanitizeRow)
         }
     };
@@ -72,3 +98,4 @@ export async function getProductDetails(productId: number) {
     return { error: error.message || 'Error fetching product details from the database.' };
   }
 }
+
