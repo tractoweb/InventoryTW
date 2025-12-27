@@ -67,14 +67,15 @@ export async function addProduct(input: AddProductInput) {
     // 1. Insertar en la tabla product
     const productQuery = `
       INSERT INTO product (
-        Name, Code, PLU, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
+        ProductGroupId, Name, Code, PLU, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
         IsPriceChangeAllowed, IsService, IsUsingDefaultQuantity, IsEnabled,
         Description, Cost, Markup, AgeRestriction, LastPurchasePrice, \`Rank\`
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
     // Nota: Algunos valores son hardcodeados/defaults por ahora.
     // CurrencyId=1 asumiendo que es la moneda por defecto (Peso Colombiano).
     const [productResult] = await connection.execute(productQuery, [
+      validation.data.productGroupId || null, // Asegurar que el groupId se pasa correctamente
       name,
       code || null,
       null, // PLU
