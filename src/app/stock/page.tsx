@@ -8,7 +8,7 @@ export default async function StockPage() {
 
   return (
     <div className="flex flex-col gap-8">
-       <h1 className="text-3xl font-bold tracking-tight">Stock por Almacén</h1>
+       <h1 className="text-3xl font-bold tracking-tight">Gestión de Stock por Almacén</h1>
         {error && (
             <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />
@@ -18,7 +18,7 @@ export default async function StockPage() {
                 </AlertDescription>
             </Alert>
         )}
-      <InventoryClient items={items || []} />
+      <InventoryClient items={items || []} pageType="stock" />
     </div>
   );
 }

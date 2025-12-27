@@ -5,17 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Wrench } from "lucide-react";
 import { AddItemForm } from "./add-item-form";
+import { AdjustStockForm } from "./adjust-stock-form";
 import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 
+type InventoryClientProps = {
+  items: StockInfo[];
+  pageType: "inventory" | "stock";
+};
 
-export function InventoryClient({ items }: { items: StockInfo[] }) {
+export function InventoryClient({ items, pageType }: InventoryClientProps) {
   const [search, setSearch] = useState("");
-  const [isAddOpen, setAddOpen] = useState(false);
+  const [isModalOpen, setModalOpen] = useState(false);
   
   // State for modals
   const [viewedProductId, setViewedProductId] = useState<number | null>(null);
@@ -40,6 +45,7 @@ export function InventoryClient({ items }: { items: StockInfo[] }) {
     onEdit: (id: number) => setEditedProductId(id),
   };
 
+  const isStockPage = pageType === 'stock';
 
   return (
     <>
@@ -52,18 +58,28 @@ export function InventoryClient({ items }: { items: StockInfo[] }) {
             className="max-w-sm"
           />
           
-          <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
+          <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
             <DialogTrigger asChild>
               <Button className="ml-auto">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Añadir Artículo
+                {isStockPage ? (
+                  <Wrench className="mr-2 h-4 w-4" />
+                ) : (
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                )}
+                {isStockPage ? "Ajustar Stock" : "Añadir Artículo"}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Añadir Nuevo Artículo</DialogTitle>
+                <DialogTitle>{isStockPage ? "Ajustar Stock de Producto" : "Añadir Nuevo Artículo"}</DialogTitle>
+                <DialogDescription>
+                  {isStockPage 
+                    ? "Modifica la cantidad de un producto en un almacén específico." 
+                    : "Completa los detalles para añadir un nuevo producto al inventario."
+                  }
+                </DialogDescription>
               </DialogHeader>
-              <AddItemForm setOpen={setAddOpen} />
+              {isStockPage ? <AdjustStockForm setOpen={setModalOpen} products={items} /> : <AddItemForm setOpen={setModalOpen} />}
             </DialogContent>
           </Dialog>
         </div>
