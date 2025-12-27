@@ -76,7 +76,7 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={uniqueProductsForAdjust} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} taxes={taxes} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={uniqueProductsForAdjust} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups || []} warehouses={warehouses} taxes={taxes} />}
             </DialogContent>
           </Dialog>
         </div>
