@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import type { ProductInventory } from "@/lib/types";
+import type { StockInfo } from "@/lib/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import { MoreHorizontal } from "lucide-react";
 import { DateCell } from "./date-cell";
 
 
-export const columns: ColumnDef<ProductInventory>[] = [
+export const columns: ColumnDef<StockInfo>[] = [
   {
     accessorKey: "name",
     header: "Nombre",
@@ -28,10 +28,14 @@ export const columns: ColumnDef<ProductInventory>[] = [
     header: "Código/Referencia",
   },
   {
-    accessorKey: "measurementunit",
-    header: "Unidad Medida",
+    accessorKey: "warehousename",
+    header: "Almacén",
+  },
+  {
+    accessorKey: "quantity",
+    header: "Stock",
     cell: ({ row }) => (
-        <div>{row.original.measurementunit || 'N/A'}</div>
+      <div className="text-center">{row.original.quantity ?? 0}</div>
     ),
   },
   {
@@ -41,17 +45,10 @@ export const columns: ColumnDef<ProductInventory>[] = [
         const amount = parseFloat(String(row.original.price));
         const formatted = new Intl.NumberFormat("es-ES", {
           style: "currency",
-          currency: "EUR", // Se podría hacer dinámico con product.currencyid
+          currency: "EUR", // Se podría hacer dinámico
         }).format(amount);
         return <div className="text-right font-medium">{formatted}</div>;
       },
-  },
-  {
-    accessorKey: "totalstock",
-    header: "Stock Total",
-    cell: ({ row }) => (
-      <div className="text-center">{row.original.totalstock ?? 0}</div>
-    ),
   },
   {
     accessorKey: "dateupdated",

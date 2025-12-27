@@ -10,10 +10,10 @@ import { AddItemForm } from "./add-item-form";
 import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { ProductInventory } from "@/lib/types";
+import type { StockInfo } from "@/lib/types";
 
 
-export function InventoryClient({ items }: { items: ProductInventory[] }) {
+export function InventoryClient({ items }: { items: StockInfo[] }) {
   const [search, setSearch] = useState("");
   const [isAddOpen, setAddOpen] = useState(false);
   
@@ -27,9 +27,11 @@ export function InventoryClient({ items }: { items: ProductInventory[] }) {
       const searchLower = search.toLowerCase();
       const name = item.name || '';
       const code = item.code || '';
+      const warehouse = item.warehousename || '';
       
       return name.toLowerCase().includes(searchLower) ||
-             code.toLowerCase().includes(searchLower);
+             code.toLowerCase().includes(searchLower) ||
+             warehouse.toLowerCase().includes(searchLower);
     });
   }, [items, search]);
 
@@ -44,7 +46,7 @@ export function InventoryClient({ items }: { items: ProductInventory[] }) {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Buscar por nombre, código..."
+            placeholder="Buscar por nombre, código, almacén..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"

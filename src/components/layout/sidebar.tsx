@@ -22,11 +22,6 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    href: "/inventory",
-    label: "Inventario",
-    icon: Boxes,
-  },
-  {
     href: "/stock",
     label: "Stock",
     icon: Warehouse,
