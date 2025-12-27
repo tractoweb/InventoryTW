@@ -1,10 +1,11 @@
+
 'use server';
 
 import { z } from 'zod';
+import { getDbConnection } from '@/lib/db-connection';
+import type { Connection } from 'mysql2/promise';
 
-// Basado en la estructura de la BD, este schema es más complejo
 const AddProductSchema = z.object({
-  // Details Tab
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
   barcode: z.string().optional(),
@@ -15,28 +16,23 @@ const AddProductSchema = z.object({
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
   isService: z.boolean().default(false),
-
-  // Price & Tax Tab
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
-  cost: z.coerce.number().min(0, "El costo no puede ser negativo."),
+  cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
   isTaxInclusivePrice: z.boolean().default(true),
-  taxes: z.array(z.coerce.number()).optional(), // Array de Tax IDs
-
-  // Stock Control Tab
-  reorderPoint: z.coerce.number().optional(),
-  lowStockWarningQuantity: z.coerce.number().optional(),
+  taxes: z.array(z.coerce.number()).optional(),
+  reorderPoint: z.coerce.number().min(0).optional(),
+  lowStockWarningQuantity: z.coerce.number().min(0).optional(),
   isLowStockWarningEnabled: z.boolean().default(true),
 });
 
 export type AddProductInput = z.infer<typeof AddProductSchema>;
 
 /**
- * Simula la creación de un nuevo producto en la base de datos.
- * En una implementación real, esto ejecutaría múltiples consultas SQL dentro de una transacción:
- * 1. INSERT INTO product (...) VALUES (...) -> obtener el nuevo productId
- * 2. Si hay barcode: INSERT INTO barcode (productid, value) VALUES (productId, ?)
- * 3. Si hay taxes: INSERT INTO producttax (productid, taxid) VALUES (productId, ?), (productId, ?)...
- * 4. INSERT INTO stockcontrol (...) VALUES (productId, ...)
+ * Crea un nuevo producto en la base de datos dentro de una transacción.
+ * 1. Inserta en la tabla `product`.
+ * 2. Si se provee, inserta en `barcode`.
+ * 3. Si se proveen, inserta en `producttax`.
+ * 4. Inserta la configuración de stock en `stockcontrol`.
  */
 export async function addProduct(input: AddProductInput) {
   const validation = AddProductSchema.safeParse(input);
@@ -49,28 +45,83 @@ export async function addProduct(input: AddProductInput) {
     };
   }
 
-  const { name, code, barcode, taxes, ...rest } = validation.data;
+  const { name, code, barcode, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, ...rest } = validation.data;
 
-  console.log(`Simulando creación de producto: ${name}`);
-  console.log('Valores recibidos:', validation.data);
-
-  // Aquí iría la lógica para interactuar con la base de datos.
-  // Por ahora, siempre devolvemos éxito para la demo.
+  let connection: Connection | null = null;
   try {
-    // EJEMPLO DE TRANSACCIÓN (pseudo-código):
-    // const connection = await getDbConnection();
-    // await connection.beginTransaction();
-    // const [productResult] = await connection.execute('INSERT INTO product ...', [rest.fields]);
-    // const newProductId = productResult.insertId;
-    // if (barcode) await connection.execute('INSERT INTO barcode ...', [newProductId, barcode]);
-    // if (taxes && taxes.length > 0) { ... }
-    // await connection.execute('INSERT INTO stockcontrol ...', [newProductId, ...]);
-    // await connection.commit();
+    connection = await getDbConnection();
+    await connection.beginTransaction();
 
-    return { success: true, message: `Producto "${name}" creado correctamente (simulado).` };
+    // 1. Insertar en la tabla Product
+    const productQuery = `
+      INSERT INTO Product (
+        Name, Code, PLU, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
+        IsPriceChangeAllowed, IsService, IsUsingDefaultQuantity, IsEnabled,
+        Description, Cost, Markup, AgeRestriction, LastPurchasePrice, \`Rank\`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `;
+    // Nota: Algunos valores son hardcodeados/defaults por ahora.
+    // CurrencyId=1 asumiendo que es la moneda por defecto (Peso Colombiano).
+    const [productResult] = await connection.execute(productQuery, [
+      name,
+      code || null,
+      null, // PLU
+      rest.measurementUnit || null,
+      rest.price,
+      rest.isTaxInclusivePrice,
+      1, // CurrencyId (Asumiendo 1 para COP)
+      false, // IsPriceChangeAllowed
+      rest.isService,
+      rest.isUsingDefaultQuantity,
+      rest.isEnabled,
+      rest.description || null,
+      rest.cost || 0,
+      0, // Markup
+      rest.ageRestriction || null,
+      0, // LastPurchasePrice
+      0  // Rank
+    ]) as any[];
+
+    const newProductId = productResult.insertId;
+
+    // 2. Insertar en Barcode si existe
+    if (barcode) {
+      await connection.execute('INSERT INTO Barcode (ProductId, Value) VALUES (?, ?)', [newProductId, barcode]);
+    }
+
+    // 3. Insertar en ProductTax si hay impuestos
+    if (taxes && taxes.length > 0) {
+      const taxValues = taxes.map(taxId => [newProductId, taxId]);
+      await connection.query('INSERT INTO ProductTax (ProductId, TaxId) VALUES ?', [taxValues]);
+    }
+
+    // 4. Insertar en StockControl
+    const stockControlQuery = `
+      INSERT INTO StockControl (
+        ProductId, ReorderPoint, IsLowStockWarningEnabled, LowStockWarningQuantity
+      ) VALUES (?, ?, ?, ?);
+    `;
+    await connection.execute(stockControlQuery, [
+      newProductId,
+      reorderPoint || 0,
+      isLowStockWarningEnabled,
+      lowStockWarningQuantity || 0
+    ]);
+
+    // Si todo fue bien, confirmar la transacción
+    await connection.commit();
+
+    return { success: true, message: `Producto "${name}" creado correctamente con ID: ${newProductId}.` };
   } catch (error: any) {
+    // Si algo falló, revertir todos los cambios
+    if (connection) {
+      await connection.rollback();
+    }
     console.error("Error al crear el producto:", error);
-    // await connection.rollback();
-    return { success: false, error: error.message || "Error al conectar con la base de datos." };
+    return { success: false, error: error.message || "Error al conectar o ejecutar la consulta en la base de datos." };
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 }
