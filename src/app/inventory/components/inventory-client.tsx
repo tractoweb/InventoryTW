@@ -40,11 +40,11 @@ export function InventoryClient({ items, productGroups, warehouses, taxes, pageT
     });
   }, [items, search]);
 
-  const tableMeta = {
+  const tableMeta = useMemo(() => ({
     productGroups,
     warehouses,
     taxes,
-  };
+  }), [productGroups, warehouses, taxes]);
 
   const isStockPage = pageType === 'stock';
 

@@ -2,14 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import type { StockInfo } from "@/lib/types";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { DateCell } from "./date-cell";
@@ -59,8 +51,8 @@ export const columns: ColumnDef<StockInfo>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const { onToggle } = row.original as any;
+    cell: ({ row, table }) => {
+      const { toggleRow } = (table.options.meta || {}) as any;
       const isExpanded = row.getIsExpanded();
       
       return (
@@ -69,7 +61,7 @@ export const columns: ColumnDef<StockInfo>[] = [
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            onToggle();
+            toggleRow(row.id);
           }}
           className="h-8 w-8 p-0"
         >
