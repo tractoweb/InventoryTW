@@ -82,6 +82,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       name: "",
       code: "",
       measurementUnit: "",
+      productGroupId: undefined,
       description: "",
       isEnabled: true,
       isUsingDefaultQuantity: true,
@@ -128,8 +129,9 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     return totalRate;
   }, [form, taxes]);
 
-  const calculatePrice = useCallback((cost: number, taxRate: number) => {
+  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
     if (cost <= 0) return 0;
+    // Price always includes tax for this calculation logic
     const newPrice = cost * (1 + taxRate);
     return parseFloat(newPrice.toFixed(2));
   }, []);
@@ -147,17 +149,17 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       const taxRate = getSelectedTaxRate();
       const isTaxInclusive = form.getValues('isTaxInclusivePrice');
       
-      if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice' || name === 'cost') {
-        const cost = form.getValues('cost') || 0;
-        const newPrice = calculatePrice(cost, taxRate);
+      if (name?.startsWith('taxes') || name === 'cost') {
+        const cost = Number(form.getValues('cost')) || 0;
+        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
         
         if (newPrice.toFixed(2) !== (Number(form.getValues('price')) || 0).toFixed(2)) {
           form.setValue('price', newPrice, { shouldValidate: true });
         }
       }
 
-      if (name === 'price') {
-        const price = value.price || 0;
+      if (name === 'price' || name === 'isTaxInclusivePrice') {
+        const price = Number(value.price) || 0;
         const newCost = calculateCost(price, taxRate, isTaxInclusive);
 
         if (newCost.toFixed(2) !== (Number(form.getValues('cost')) || 0).toFixed(2)) {
@@ -495,3 +497,5 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     </Form>
   );
 }
+
+    
