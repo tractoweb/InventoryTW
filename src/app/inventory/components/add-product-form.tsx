@@ -108,36 +108,28 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     return totalRate;
   }, [watchedFields, taxes]);
 
-  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
+  const calculatePrice = useCallback((cost: number, taxRate: number) => {
     if (cost <= 0) return 0;
-    if (isTaxInclusive) {
-        // Price is not calculated from cost if it's inclusive, user should set it.
-        return form.getValues('price');
-    }
     return parseFloat((cost * (1 + taxRate)).toFixed(2));
-  }, [form]);
+  }, []);
 
-  const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
+  const calculateCost = useCallback((price: number, taxRate: number) => {
     if (price <= 0) return 0;
-    if (isTaxInclusive) {
-      return parseFloat((price / (1 + taxRate)).toFixed(2));
-    }
-    // Cost is not calculated from price if it's exclusive, user should set it.
-    return form.getValues('cost');
-  }, [form]);
+    return parseFloat((price / (1 + taxRate)).toFixed(2));
+  }, []);
 
   useEffect(() => {
-    const [cost, price, , isTaxInclusive] = watchedFields;
+    const [cost, price] = watchedFields;
     const taxRate = getSelectedTaxRate();
-    const lastChanged = form.formState.dirtyFields.price ? 'price' : 'cost';
+    const lastChanged = form.formState.dirtyFields.price ? 'price' : form.formState.dirtyFields.cost ? 'cost' : undefined;
 
     if (lastChanged === 'cost' && cost && cost > 0) {
-      const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
+      const newPrice = calculatePrice(cost, taxRate);
       if (newPrice !== price) {
         form.setValue('price', newPrice, { shouldValidate: true });
       }
     } else if (lastChanged === 'price' && price && price > 0) {
-      const newCost = calculateCost(price, taxRate, isTaxInclusive);
+      const newCost = calculateCost(price, taxRate);
       if (newCost !== cost) {
         form.setValue('cost', newCost, { shouldValidate: true });
       }
