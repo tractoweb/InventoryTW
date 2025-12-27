@@ -183,9 +183,9 @@ export function EditProductForm({ productId, onClose }: EditProductFormProps) {
                     name="measurementunit"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Unidad de Medida</FormLabel>
+                        <FormLabel>Posición en Almacén</FormLabel>
                         <FormControl>
-                            <Input placeholder="Ej: unidad, kg, lt" {...field} />
+                            <Input placeholder="Ej: Pasillo A, Estante 3" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

@@ -46,7 +46,7 @@
     "genkit": "1.1.0",
     "lucide-react": "^0.475.0",
     "mysql2": "^3.10.1",
-    "next": "14.2.5",
+    "next": "14.2.35",
     "patch-package": "^8.0.0",
     "react": "18.3.1",
     "react-day-picker": "^9.11.3",

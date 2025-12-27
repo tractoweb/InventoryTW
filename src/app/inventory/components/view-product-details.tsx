@@ -111,7 +111,7 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                 </div>
                     <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Configuración</h3>
-                    {renderDetail("Unidad de Medida", details.measurementunit)}
+                    {renderDetail("Posición en Almacén", details.measurementunit)}
                     {renderBoolean("Habilitado", details.isenabled)}
                     {renderBoolean("Es un Servicio", details.isservice)}
                     {renderBoolean("Precio Incluye Impuestos", details.istaxinclusiveprice)}

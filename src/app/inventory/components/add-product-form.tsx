@@ -172,9 +172,9 @@ export function AddProductForm({ setOpen }: AddProductFormProps) {
                     name="measurementUnit"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Unidad de Medida</FormLabel>
+                        <FormLabel>Posición en Almacén</FormLabel>
                         <FormControl>
-                            <Input placeholder="un, kg, lt..." {...field} />
+                            <Input placeholder="Ej: Pasillo A, Estante 3" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
