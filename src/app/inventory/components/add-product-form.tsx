@@ -128,7 +128,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     return totalRate;
   }, [form, taxes]);
 
-  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
+  const calculatePrice = useCallback((cost: number, taxRate: number) => {
     if (cost <= 0) return 0;
     const newPrice = cost * (1 + taxRate);
     return parseFloat(newPrice.toFixed(2));
@@ -149,9 +149,9 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       
       if (name?.startsWith('taxes') || name === 'isTaxInclusivePrice' || name === 'cost') {
         const cost = form.getValues('cost') || 0;
-        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
+        const newPrice = calculatePrice(cost, taxRate);
         
-        if (newPrice.toFixed(2) !== (form.getValues('price') || 0).toFixed(2)) {
+        if (newPrice.toFixed(2) !== (Number(form.getValues('price')) || 0).toFixed(2)) {
           form.setValue('price', newPrice, { shouldValidate: true });
         }
       }
@@ -160,7 +160,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
         const price = value.price || 0;
         const newCost = calculateCost(price, taxRate, isTaxInclusive);
 
-        if (newCost.toFixed(2) !== (form.getValues('cost') || 0).toFixed(2)) {
+        if (newCost.toFixed(2) !== (Number(form.getValues('cost')) || 0).toFixed(2)) {
           form.setValue('cost', newCost, { shouldValidate: true });
         }
       }
@@ -495,5 +495,3 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     </Form>
   );
 }
-
-    

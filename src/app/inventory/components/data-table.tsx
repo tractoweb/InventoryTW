@@ -24,6 +24,7 @@ import {
 import { EditProductForm } from './edit-product-form';
 import { ViewProductDetails } from './view-product-details';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from 'react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -92,9 +93,8 @@ export function DataTable<TData extends { id: number }, TValue>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-                <>
+                <React.Fragment key={row.id}>
                     <TableRow
-                        key={row.id}
                         data-state={row.getIsExpanded() ? "open" : "closed"}
                         className="data-[state=open]:bg-muted/50"
                     >
@@ -118,7 +118,7 @@ export function DataTable<TData extends { id: number }, TValue>({
                             </TableCell>
                         </TableRow>
                     )}
-                </>
+                </React.Fragment>
             ))
           ) : (
             <TableRow>
@@ -158,7 +158,7 @@ export function DataTable<TData extends { id: number }, TValue>({
 }
 
 // A new sub-component for the expanded content
-function ExpandedContent<TData extends { id: number }>({ row, meta }: { row: Row<TData>, meta: any }) {
+function ExpandedContent<TData extends { id: number }>({ row, meta, columns }: { row: Row<TData>, meta: any, columns: any[] }) {
     const { closeRow } = (row.getContext().table.options.meta || {}) as any;
 
     return (
