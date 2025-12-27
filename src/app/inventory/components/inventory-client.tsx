@@ -20,7 +20,7 @@ type InventoryClientProps = {
 
 export function InventoryClient({ items, pageType }: InventoryClientProps) {
   const [search, setSearch] = useState("");
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [isAddModalOpen, setAddModalOpen] = useState(false);
   
   // State for modals
   const [viewedProductId, setViewedProductId] = useState<number | null>(null);
@@ -58,7 +58,7 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
             className="max-w-sm"
           />
           
-          <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
+          <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
             <DialogTrigger asChild>
               <Button className="ml-auto">
                 {isStockPage ? (
@@ -79,25 +79,38 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setModalOpen} products={items} /> : <AddItemForm setOpen={setModalOpen} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddItemForm setOpen={setAddModalOpen} />}
             </DialogContent>
           </Dialog>
         </div>
         <DataTable columns={columns} data={filteredItems} meta={tableMeta} />
       </div>
 
-      {/* Dialogs are now here, at the top level of the client component */}
-      <ViewProductDetails
-          productId={viewedProductId}
-          isOpen={viewedProductId !== null}
-          onClose={() => setViewedProductId(null)}
-      />
-
-      <EditProductForm
-          productId={editedProductId}
-          isOpen={editedProductId !== null}
-          onClose={() => setEditedProductId(null)}
-      />
+      {/* View Details Dialog */}
+      <Dialog open={viewedProductId !== null} onOpenChange={(open) => !open && setViewedProductId(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalles del Producto</DialogTitle>
+            <DialogDescription>
+              Información completa del producto seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+          <ViewProductDetails productId={viewedProductId} />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Product Dialog */}
+       <Dialog open={editedProductId !== null} onOpenChange={(open) => !open && setEditedProductId(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Producto</DialogTitle>
+            <DialogDescription>
+              Modifica la información del producto. Haz clic en Guardar para aplicar los cambios.
+            </DialogDescription>
+          </DialogHeader>
+          <EditProductForm productId={editedProductId} onClose={() => setEditedProductId(null)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

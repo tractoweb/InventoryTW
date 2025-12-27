@@ -6,14 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getProductDetails } from "@/actions/get-product-details";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import {
   Form,
   FormControl,
   FormField,
@@ -29,10 +21,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DialogFooter } from "@/components/ui/dialog";
 
 type EditProductFormProps = {
   productId: number | null;
-  isOpen: boolean;
   onClose: () => void;
 };
 
@@ -49,7 +41,7 @@ const formSchema = z.object({
   isservice: z.boolean(),
 });
 
-export function EditProductForm({ productId, isOpen, onClose }: EditProductFormProps) {
+export function EditProductForm({ productId, onClose }: EditProductFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +62,7 @@ export function EditProductForm({ productId, isOpen, onClose }: EditProductFormP
   });
 
   useEffect(() => {
-    if (isOpen && productId) {
+    if (productId) {
       setIsLoading(true);
       setError(null);
       getProductDetails(productId)
@@ -94,7 +86,7 @@ export function EditProductForm({ productId, isOpen, onClose }: EditProductFormP
         })
         .finally(() => setIsLoading(false));
     }
-  }, [isOpen, productId, form]);
+  }, [productId, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log("Form values to be submitted:", values);
@@ -107,165 +99,156 @@ export function EditProductForm({ productId, isOpen, onClose }: EditProductFormP
     // onClose(); // Keep open for demonstration
   }
   
+  if (isLoading) {
+    return (
+        <div className="space-y-4 py-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+        </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error al Cargar Datos</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
+    );
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Editar Producto</DialogTitle>
-          <DialogDescription>
-            Modifica la información del producto. Haz clic en Guardar para aplicar los cambios.
-          </DialogDescription>
-        </DialogHeader>
-        
-        {isLoading && (
-            <div className="space-y-4 py-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-20 w-full" />
-            </div>
-        )}
-
-        {error && !isLoading && (
-            <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error al Cargar Datos</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-        )}
-
-        {!isLoading && !error && (
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Nombre del Producto</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ej: Teclado Inalámbrico" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="code"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Código / Referencia</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ej: SKU-12345" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="price"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Precio</FormLabel>
-                                <FormControl>
-                                    <Input type="number" step="0.01" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="cost"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Costo</FormLabel>
-                                <FormControl>
-                                    <Input type="number" step="0.01" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="measurementunit"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Unidad de Medida</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ej: unidad, kg, lt" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
+    <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Nombre del Producto</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: Teclado Inalámbrico" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
                     <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Descripción</FormLabel>
+                    control={form.control}
+                    name="code"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Código / Referencia</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: SKU-12345" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Precio</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                    <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Costo</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="measurementunit"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Unidad de Medida</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: unidad, kg, lt" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                        <Textarea placeholder="Describe el producto..." {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            
+            <div className="flex items-center space-x-8">
+                <FormField
+                    control={form.control}
+                    name="isenabled"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5 mr-4">
+                                <FormLabel>Habilitado</FormLabel>
+                            </div>
                             <FormControl>
-                                <Textarea placeholder="Describe el producto..." {...field} value={field.value ?? ""} />
+                                <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                />
                             </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    
-                    <div className="flex items-center space-x-8">
-                        <FormField
-                            control={form.control}
-                            name="isenabled"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <div className="space-y-0.5 mr-4">
-                                        <FormLabel>Habilitado</FormLabel>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="isservice"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <div className="space-y-0.5 mr-4">
-                                        <FormLabel>Es un Servicio</FormLabel>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onClose()}>Cancelar</Button>
-                        <Button type="submit">Guardar Cambios</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        )}
-      </DialogContent>
-    </Dialog>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="isservice"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5 mr-4">
+                                <FormLabel>Es un Servicio</FormLabel>
+                            </div>
+                            <FormControl>
+                                <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </div>
+            
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onClose()}>Cancelar</Button>
+                <Button type="submit">Guardar Cambios</Button>
+            </DialogFooter>
+        </form>
+    </Form>
   );
 }
