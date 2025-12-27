@@ -13,14 +13,16 @@ import { EditProductForm } from "./edit-product-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
 import type { ProductGroup } from "@/actions/get-product-groups";
+import type { Warehouse } from "@/actions/get-warehouses";
 
 type InventoryClientProps = {
   items: StockInfo[];
   productGroups: ProductGroup[];
+  warehouses: Warehouse[];
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items, productGroups, pageType }: InventoryClientProps) {
+export function InventoryClient({ items, productGroups, warehouses, pageType }: InventoryClientProps) {
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   
@@ -80,7 +82,7 @@ export function InventoryClient({ items, productGroups, pageType }: InventoryCli
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} />}
             </DialogContent>
           </Dialog>
         </div>

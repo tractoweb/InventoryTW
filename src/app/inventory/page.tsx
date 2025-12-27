@@ -3,12 +3,14 @@ import { getProductGroups, ProductGroup } from "@/actions/get-product-groups";
 import { InventoryClient } from "./components/inventory-client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { getWarehouses, Warehouse } from "@/actions/get-warehouses";
 
 export default async function InventoryPage() {
   const { data: items, error: itemsError } = await getStockData();
   const { data: productGroups, error: groupsError } = await getProductGroups();
+  const { data: warehouses, error: warehousesError } = await getWarehouses();
   
-  const error = itemsError || groupsError;
+  const error = itemsError || groupsError || warehousesError;
 
   return (
     <div className="flex flex-col gap-8">
@@ -22,7 +24,12 @@ export default async function InventoryPage() {
                 </AlertDescription>
             </Alert>
         )}
-      <InventoryClient items={items || []} productGroups={productGroups || []} pageType="inventory" />
+      <InventoryClient 
+        items={items || []} 
+        productGroups={productGroups || []} 
+        warehouses={warehouses || []}
+        pageType="inventory" 
+      />
     </div>
   );
 }

@@ -29,18 +29,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { addProduct } from "@/actions/add-product";
 import type { ProductGroup } from "@/actions/get-product-groups";
+import type { Warehouse } from "@/actions/get-warehouses";
 
 const taxes = [
     { id: 1, name: 'IVA 19%', rate: 19 },
     { id: 2, name: 'Impoconsumo 8%', rate: 8 },
 ]
-
-// Mock data, en una app real vendría de la DB
-const warehouses = [
-    { id: 1, name: 'Principal' },
-    { id: 2, name: 'Tienda 1' },
-    { id: 3, name: 'Almacén B' },
-];
 
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
@@ -76,9 +70,10 @@ const formSchema = z.object({
 type AddProductFormProps = {
   setOpen: (open: boolean) => void;
   productGroups: ProductGroup[];
+  warehouses: Warehouse[];
 };
 
-export function AddProductForm({ setOpen, productGroups }: AddProductFormProps) {
+export function AddProductForm({ setOpen, productGroups, warehouses }: AddProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({

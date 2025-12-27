@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { adjustStock } from "@/actions/adjust-stock";
 import { StockInfo } from "@/lib/types";
+import { Warehouse } from "@/actions/get-warehouses";
 
 const formSchema = z.object({
   productId: z.coerce.number().min(1, "Debes seleccionar un producto."),
@@ -31,19 +32,14 @@ const formSchema = z.object({
   quantity: z.coerce.number().min(0, "La cantidad no puede ser negativa."),
 });
 
-// Mock data, en una app real vendría de la DB
-const warehouses = [
-    { id: 1, name: 'Principal' },
-    { id: 2, name: 'Tienda 1' },
-    { id: 3, name: 'Almacén B' },
-];
 
 type AdjustStockFormProps = {
   setOpen: (open: boolean) => void;
   products: StockInfo[];
+  warehouses: Warehouse[];
 };
 
-export function AdjustStockForm({ setOpen, products }: AdjustStockFormProps) {
+export function AdjustStockForm({ setOpen, products, warehouses }: AdjustStockFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
