@@ -87,7 +87,7 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
       </div>
 
       {/* View Details Dialog */}
-      <Dialog open={viewedProductId !== null} onOpenChange={(open) => !open && setViewedProductId(null)}>
+      <Dialog open={viewedProductId !== null} onOpenChange={() => setViewedProductId(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalles del Producto</DialogTitle>
@@ -100,7 +100,7 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
       </Dialog>
       
       {/* Edit Product Dialog */}
-       <Dialog open={editedProductId !== null} onOpenChange={(open) => !open && setEditedProductId(null)}>
+       <Dialog open={editedProductId !== null} onOpenChange={() => setEditedProductId(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Producto</DialogTitle>
