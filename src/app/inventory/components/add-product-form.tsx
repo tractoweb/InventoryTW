@@ -35,6 +35,13 @@ const taxes = [
     { id: 2, name: 'Impoconsumo 8%', rate: 8 },
 ]
 
+// Mock data, en una app real vendría de la DB
+const warehouses = [
+    { id: 1, name: 'Principal' },
+    { id: 2, name: 'Tienda 1' },
+    { id: 3, name: 'Almacén B' },
+];
+
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
@@ -53,7 +60,18 @@ const formSchema = z.object({
   reorderPoint: z.coerce.number().min(0).optional(),
   lowStockWarningQuantity: z.coerce.number().min(0).optional(),
   isLowStockWarningEnabled: z.boolean().default(true),
+  initialQuantity: z.coerce.number().min(0).optional(),
+  warehouseId: z.coerce.number().optional(),
+}).refine(data => {
+    if ((data.initialQuantity && data.initialQuantity > 0) && !data.warehouseId) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Debe seleccionar un almacén si ingresa una cantidad inicial.",
+    path: ["warehouseId"],
 });
+
 
 type AddProductFormProps = {
   setOpen: (open: boolean) => void;
@@ -81,6 +99,7 @@ export function AddProductForm({ setOpen, productGroups }: AddProductFormProps) 
       reorderPoint: 0,
       lowStockWarningQuantity: 0,
       isLowStockWarningEnabled: true,
+      initialQuantity: 0,
     },
   });
 
@@ -350,46 +369,86 @@ export function AddProductForm({ setOpen, productGroups }: AddProductFormProps) 
           </TabsContent>
 
           <TabsContent value="stock" className="space-y-4 pt-4">
-             <FormField
-                control={form.control}
-                name="isLowStockWarningEnabled"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <FormLabel>Habilitar alerta de stock bajo</FormLabel>
-                    <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="reorderPoint"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Punto de Reorden</FormLabel>
-                    <FormControl>
-                        <Input type="number" {...field} />
-                    </FormControl>
-                    <FormDescription>Cantidad mínima antes de necesitar reabastecimiento.</FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="lowStockWarningQuantity"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Cantidad para Alerta de Stock Bajo</FormLabel>
-                    <FormControl>
-                        <Input type="number" {...field} />
-                    </FormControl>
-                     <FormDescription>Se activará una alerta cuando el stock llegue a esta cantidad.</FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="initialQuantity"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Cantidad Inicial</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>Cantidad con la que ingresa el producto.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="warehouseId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Almacén de Ingreso</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un almacén" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {warehouses.map(wh => (
+                                    <SelectItem key={wh.id} value={String(wh.id)}>{wh.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <div className="pt-4 space-y-4">
+                <FormField
+                    control={form.control}
+                    name="isLowStockWarningEnabled"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <FormLabel>Habilitar alerta de stock bajo</FormLabel>
+                        <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="reorderPoint"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Punto de Reorden</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>Cantidad mínima antes de necesitar reabastecimiento.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="lowStockWarningQuantity"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Cantidad para Alerta de Stock Bajo</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>Se activará una alerta cuando el stock llegue a esta cantidad.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
           </TabsContent>
         </Tabs>
         <div className="flex justify-end gap-2 pt-4">

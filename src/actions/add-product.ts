@@ -23,7 +23,18 @@ const AddProductSchema = z.object({
   reorderPoint: z.coerce.number().min(0).optional(),
   lowStockWarningQuantity: z.coerce.number().min(0).optional(),
   isLowStockWarningEnabled: z.boolean().default(true),
+  initialQuantity: z.coerce.number().min(0).optional(),
+  warehouseId: z.coerce.number().optional(),
+}).refine(data => {
+    if ((data.initialQuantity && data.initialQuantity > 0) && !data.warehouseId) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Debe seleccionar un almacén si ingresa una cantidad inicial.",
+    path: ["warehouseId"],
 });
+
 
 export type AddProductInput = z.infer<typeof AddProductSchema>;
 
@@ -33,6 +44,7 @@ export type AddProductInput = z.infer<typeof AddProductSchema>;
  * 2. Si se provee, inserta en `barcode`.
  * 3. Si se proveen, inserta en `producttax`.
  * 4. Inserta la configuración de stock en `stockcontrol`.
+ * 5. Si se provee, inserta el stock inicial en `stock`.
  */
 export async function addProduct(input: AddProductInput) {
   const validation = AddProductSchema.safeParse(input);
@@ -45,7 +57,7 @@ export async function addProduct(input: AddProductInput) {
     };
   }
 
-  const { name, code, barcode, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, ...rest } = validation.data;
+  const { name, code, barcode, taxes, reorderPoint, lowStockWarningQuantity, isLowStockWarningEnabled, initialQuantity, warehouseId, ...rest } = validation.data;
 
   let connection: Connection | null = null;
   try {
@@ -107,6 +119,15 @@ export async function addProduct(input: AddProductInput) {
       isLowStockWarningEnabled,
       lowStockWarningQuantity || 0
     ]);
+    
+    // 5. Insertar stock inicial si se proporcionó
+    if (initialQuantity && initialQuantity > 0 && warehouseId) {
+        const stockQuery = `
+            INSERT INTO Stock (ProductId, WarehouseId, Quantity) VALUES (?, ?, ?);
+        `;
+        await connection.execute(stockQuery, [newProductId, warehouseId, initialQuantity]);
+    }
+
 
     // Si todo fue bien, confirmar la transacción
     await connection.commit();
