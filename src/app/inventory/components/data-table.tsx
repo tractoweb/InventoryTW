@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CollapsibleContent } from "@/components/ui/collapsible";
 import {
     ColumnDef,
     flexRender,
@@ -20,6 +19,7 @@ import {
     useReactTable,
     getExpandedRowModel,
     Row,
+    Table as TanstackTable,
 } from "@tanstack/react-table";
 import { EditProductForm } from './edit-product-form';
 import { ViewProductDetails } from './view-product-details';
@@ -114,7 +114,7 @@ export function DataTable<TData extends { id: number }, TValue>({
                     {row.getIsExpanded() && (
                         <TableRow key={`${row.id}-expanded`} className="bg-muted/20 hover:bg-muted/20">
                             <TableCell colSpan={columns.length}>
-                                <ExpandedContent row={row} meta={meta} columns={columns} />
+                                <ExpandedContent row={row} table={table} />
                             </TableCell>
                         </TableRow>
                     )}
@@ -158,8 +158,8 @@ export function DataTable<TData extends { id: number }, TValue>({
 }
 
 // A new sub-component for the expanded content
-function ExpandedContent<TData extends { id: number }>({ row, meta, columns }: { row: Row<TData>, meta: any, columns: any[] }) {
-    const { closeRow } = (row.getContext().table.options.meta || {}) as any;
+function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Row<TData>, table: TanstackTable<TData> }) {
+    const { closeRow, productGroups, taxes } = (table.options.meta || {}) as any;
 
     return (
         <Tabs defaultValue="details" className="w-full py-4">
@@ -173,8 +173,8 @@ function ExpandedContent<TData extends { id: number }>({ row, meta, columns }: {
             <TabsContent value="edit">
                 <EditProductForm 
                     productId={(row.original as any).id}
-                    productGroups={meta.productGroups}
-                    taxes={meta.taxes}
+                    productGroups={productGroups}
+                    taxes={taxes}
                     onClose={() => closeRow(row.id)}
                 />
             </TabsContent>
