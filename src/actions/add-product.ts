@@ -64,9 +64,9 @@ export async function addProduct(input: AddProductInput) {
     connection = await getDbConnection();
     await connection.beginTransaction();
 
-    // 1. Insertar en la tabla Product
+    // 1. Insertar en la tabla product
     const productQuery = `
-      INSERT INTO Product (
+      INSERT INTO product (
         Name, Code, PLU, MeasurementUnit, Price, IsTaxInclusivePrice, CurrencyId,
         IsPriceChangeAllowed, IsService, IsUsingDefaultQuantity, IsEnabled,
         Description, Cost, Markup, AgeRestriction, LastPurchasePrice, \`Rank\`
@@ -96,20 +96,20 @@ export async function addProduct(input: AddProductInput) {
 
     const newProductId = productResult.insertId;
 
-    // 2. Insertar en Barcode si existe
+    // 2. Insertar en barcode si existe
     if (barcode) {
-      await connection.execute('INSERT INTO Barcode (ProductId, Value) VALUES (?, ?)', [newProductId, barcode]);
+      await connection.execute('INSERT INTO barcode (ProductId, Value) VALUES (?, ?)', [newProductId, barcode]);
     }
 
-    // 3. Insertar en ProductTax si hay impuestos
+    // 3. Insertar en producttax si hay impuestos
     if (taxes && taxes.length > 0) {
       const taxValues = taxes.map(taxId => [newProductId, taxId]);
-      await connection.query('INSERT INTO ProductTax (ProductId, TaxId) VALUES ?', [taxValues]);
+      await connection.query('INSERT INTO producttax (ProductId, TaxId) VALUES ?', [taxValues]);
     }
 
-    // 4. Insertar en StockControl
+    // 4. Insertar en stockcontrol
     const stockControlQuery = `
-      INSERT INTO StockControl (
+      INSERT INTO stockcontrol (
         ProductId, ReorderPoint, IsLowStockWarningEnabled, LowStockWarningQuantity
       ) VALUES (?, ?, ?, ?);
     `;
@@ -123,7 +123,7 @@ export async function addProduct(input: AddProductInput) {
     // 5. Insertar stock inicial si se proporcionó
     if (initialQuantity && initialQuantity > 0 && warehouseId) {
         const stockQuery = `
-            INSERT INTO Stock (ProductId, WarehouseId, Quantity) VALUES (?, ?, ?);
+            INSERT INTO stock (ProductId, WarehouseId, Quantity) VALUES (?, ?, ?);
         `;
         await connection.execute(stockQuery, [newProductId, warehouseId, initialQuantity]);
     }
