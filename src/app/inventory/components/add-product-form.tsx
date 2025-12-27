@@ -28,13 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { addProduct } from "@/actions/add-product";
-
-// Mock data, en una app real vendría de la DB
-const productGroups = [
-    { id: 1, name: 'Productos' },
-    { id: 2, name: 'Electrónica' },
-    { id: 3, name: 'Bebidas' },
-];
+import type { ProductGroup } from "@/actions/get-product-groups";
 
 const taxes = [
     { id: 1, name: 'IVA 19%', rate: 19 },
@@ -42,7 +36,6 @@ const taxes = [
 ]
 
 const formSchema = z.object({
-  // Details Tab
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
   barcode: z.string().optional(),
@@ -53,14 +46,10 @@ const formSchema = z.object({
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
   isService: z.boolean().default(false),
-
-  // Price & Tax Tab
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
   isTaxInclusivePrice: z.boolean().default(true),
-  taxes: z.array(z.coerce.number()).optional(), // Array de Tax IDs
-
-  // Stock Control Tab
+  taxes: z.array(z.coerce.number()).optional(),
   reorderPoint: z.coerce.number().min(0).optional(),
   lowStockWarningQuantity: z.coerce.number().min(0).optional(),
   isLowStockWarningEnabled: z.boolean().default(true),
@@ -68,9 +57,10 @@ const formSchema = z.object({
 
 type AddProductFormProps = {
   setOpen: (open: boolean) => void;
+  productGroups: ProductGroup[];
 };
 
-export function AddProductForm({ setOpen }: AddProductFormProps) {
+export function AddProductForm({ setOpen, productGroups }: AddProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -189,7 +179,7 @@ export function AddProductForm({ setOpen }: AddProductFormProps) {
                             <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                             <FormControl>
                                 <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un grupo" />
+                                <SelectValue placeholder="Selecciona una categoría" />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>

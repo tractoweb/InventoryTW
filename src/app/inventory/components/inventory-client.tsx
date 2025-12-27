@@ -12,17 +12,18 @@ import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import type { StockInfo } from "@/lib/types";
+import type { ProductGroup } from "@/actions/get-product-groups";
 
 type InventoryClientProps = {
   items: StockInfo[];
+  productGroups: ProductGroup[];
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items, pageType }: InventoryClientProps) {
+export function InventoryClient({ items, productGroups, pageType }: InventoryClientProps) {
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   
-  // State for modals
   const [viewedProductId, setViewedProductId] = useState<number | null>(null);
   const [editedProductId, setEditedProductId] = useState<number | null>(null);
 
@@ -79,14 +80,13 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddProductForm setOpen={setAddModalOpen} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} />}
             </DialogContent>
           </Dialog>
         </div>
         <DataTable columns={columns} data={filteredItems} meta={tableMeta} />
       </div>
 
-      {/* View Details Dialog */}
       <Dialog open={viewedProductId !== null} onOpenChange={() => setViewedProductId(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -99,7 +99,6 @@ export function InventoryClient({ items, pageType }: InventoryClientProps) {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Product Dialog */}
        <Dialog open={editedProductId !== null} onOpenChange={() => setEditedProductId(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
