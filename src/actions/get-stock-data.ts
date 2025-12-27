@@ -8,8 +8,8 @@ import { unstable_noStore as noStore } from 'next/cache';
 export async function getStockData() {
   noStore();
   try {
-    // Cambiamos a LEFT JOIN desde product para asegurar que todos los productos se listen,
-    // incluso si no tienen una entrada en la tabla stock (stock 0).
+    // Usamos LEFT JOIN desde product para incluir todos los productos.
+    // El JOIN a warehouse también debe ser LEFT JOIN para manejar productos sin stock.
     const query = `
       SELECT 
         p.id,
@@ -41,7 +41,7 @@ export async function getStockData() {
         cost: Number(item.cost) || 0,
         datecreated: item.datecreated ? new Date(item.datecreated).toISOString() : new Date().toISOString(),
         dateupdated: item.dateupdated ? new Date(item.dateupdated).toISOString() : new Date().toISOString(),
-        warehousename: item.warehousename ?? 'N/A'
+        warehousename: item.warehousename ?? 'Sin Asignar'
     }));
 
     return { data: sanitizedData };
