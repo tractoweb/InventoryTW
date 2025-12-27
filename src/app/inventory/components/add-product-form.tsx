@@ -30,10 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import { addProduct } from "@/actions/add-product";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Warehouse } from "@/actions/get-warehouses";
+import type { Tax } from "@/actions/get-taxes";
 
-const taxes = [
-    { id: 2, name: 'IVA 19%', rate: 19 },
-]
 
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
@@ -70,9 +68,10 @@ type AddProductFormProps = {
   setOpen: (open: boolean) => void;
   productGroups: ProductGroup[];
   warehouses: Warehouse[];
+  taxes: Tax[];
 };
 
-export function AddProductForm({ setOpen, productGroups, warehouses }: AddProductFormProps) {
+export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: AddProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({

@@ -14,15 +14,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import type { StockInfo } from "@/lib/types";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Warehouse } from "@/actions/get-warehouses";
+import type { Tax } from "@/actions/get-taxes";
 
 type InventoryClientProps = {
   items: StockInfo[];
   productGroups: ProductGroup[];
   warehouses: Warehouse[];
+  taxes: Tax[];
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items, productGroups, warehouses, pageType }: InventoryClientProps) {
+export function InventoryClient({ items, productGroups, warehouses, taxes, pageType }: InventoryClientProps) {
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   
@@ -82,7 +84,7 @@ export function InventoryClient({ items, productGroups, warehouses, pageType }: 
                   }
                 </DialogDescription>
               </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} />}
+              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={items} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups} warehouses={warehouses} taxes={taxes} />}
             </DialogContent>
           </Dialog>
         </div>
@@ -109,7 +111,12 @@ export function InventoryClient({ items, productGroups, warehouses, pageType }: 
               Modifica la información del producto. Haz clic en Guardar para aplicar los cambios.
             </DialogDescription>
           </DialogHeader>
-          <EditProductForm productId={editedProductId} onClose={() => setEditedProductId(null)} />
+          <EditProductForm 
+            productId={editedProductId} 
+            productGroups={productGroups}
+            taxes={taxes}
+            onClose={() => setEditedProductId(null)} 
+          />
         </DialogContent>
       </Dialog>
     </>

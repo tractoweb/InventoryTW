@@ -61,12 +61,16 @@ export async function getProductDetails(productId: number) {
         pg.name as productgroupname,
         c.name as currencyname,
         c.code as currencycode,
+        sc.reorderpoint,
+        sc.lowstockwarningquantity,
+        sc.islowstockwarningenabled,
         (SELECT SUM(s.quantity) FROM stock s WHERE s.productid = p.id) AS totalstock,
         (SELECT GROUP_CONCAT(t.name SEPARATOR ', ') FROM producttax pt JOIN tax t ON pt.taxid = t.id WHERE pt.productid = p.id) as taxes,
         (SELECT GROUP_CONCAT(b.value SEPARATOR ', ') FROM barcode b WHERE b.productid = p.id) as barcodes
       FROM product p
       LEFT JOIN productgroup pg ON p.productgroupid = pg.id
       LEFT JOIN currency c ON p.currencyid = c.id
+      LEFT JOIN stockcontrol sc ON p.id = sc.productid
       WHERE p.id = ?;
     `;
     
