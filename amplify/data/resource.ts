@@ -1,6 +1,18 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 
 const schema = a.schema({
+  User: a.model({
+    username: a.string().required(),
+    password: a.string().required(), // Reminder: Never store plaintext passwords
+    firstName: a.string(),
+    lastName: a.string(),
+    email: a.email().required(),
+    accessLevel: a.integer().default(0), // 0: Cashier, 1: Admin
+    // If you want to link users to documents in the future
+    // documents: a.hasMany('Document', 'userId'),
+  })
+  .authorization((allow) => [allow.publicApiKey()]), // Adjust auth rules as needed
+
   Product: a.model({
     name: a.string().required(),
     code: a.string(),

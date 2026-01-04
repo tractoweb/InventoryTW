@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppShell from '@/components/layout/app-shell';
+import ConfigureAmplifyClientSide from '@/components/layout/configure-amplify';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} font-body antialiased`}>
+        <ConfigureAmplifyClientSide />
         <AppShell>{children}</AppShell>
         <Toaster />
       </body>
