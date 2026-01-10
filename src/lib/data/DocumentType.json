@@ -1,0 +1,86 @@
+[
+    {
+        "Code": "100",
+        "DocumentCategoryId": 1,
+        "EditorType": 0,
+        "Id": 1,
+        "LanguageKey": "Document.Category.Expenses.Purchase",
+        "Name": "Purchase",
+        "PriceType": 2,
+        "PrintTemplate": "Purchase",
+        "StockDirection": 1,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "200",
+        "DocumentCategoryId": 2,
+        "EditorType": 0,
+        "Id": 2,
+        "LanguageKey": "Document.Category.Sales.Sales",
+        "Name": "Sales",
+        "PriceType": 1,
+        "PrintTemplate": "Invoice",
+        "StockDirection": 2,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "300",
+        "DocumentCategoryId": 3,
+        "EditorType": 1,
+        "Id": 3,
+        "LanguageKey": "Document.Category.Inventory.InventoryCount",
+        "Name": "Inventory Count",
+        "PriceType": 0,
+        "PrintTemplate": "InventoryCount",
+        "StockDirection": 1,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "220",
+        "DocumentCategoryId": 2,
+        "EditorType": 0,
+        "Id": 4,
+        "LanguageKey": "Document.Category.Sales.Refund",
+        "Name": "Refund",
+        "PriceType": 1,
+        "PrintTemplate": "Refund",
+        "StockDirection": 1,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "120",
+        "DocumentCategoryId": 1,
+        "EditorType": 0,
+        "Id": 5,
+        "LanguageKey": "Document.Category.Expenses.StockReturn",
+        "Name": "Stock Return",
+        "PriceType": 2,
+        "PrintTemplate": "StockReturn",
+        "StockDirection": 2,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "400",
+        "DocumentCategoryId": 4,
+        "EditorType": 2,
+        "Id": 6,
+        "LanguageKey": "Document.Category.Loss.LossAndDamage",
+        "Name": "Loss And Damage",
+        "PriceType": 0,
+        "PrintTemplate": "LossAndDamage",
+        "StockDirection": 2,
+        "WarehouseId": 1
+    },
+    {
+        "Code": "230",
+        "DocumentCategoryId": 2,
+        "EditorType": 0,
+        "Id": 7,
+        "LanguageKey": "Document.Category.Sales.Proforma",
+        "Name": "Proforma",
+        "PriceType": 1,
+        "PrintTemplate": "Proforma",
+        "StockDirection": 0,
+        "WarehouseId": 1
+    }
+]

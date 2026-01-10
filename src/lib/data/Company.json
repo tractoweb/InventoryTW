@@ -1,0 +1,22 @@
+[
+    {
+        "AdditionalStreetName": null,
+        "Address": null,
+        "BankAccountNumber": null,
+        "BankDetails": null,
+        "BuildingNumber": null,
+        "City": null,
+        "CitySubdivisionName": null,
+        "CountryId": 47,
+        "CountrySubentity": null,
+        "Email": null,
+        "Id": 1,
+        "Logo": null,
+        "Name": "TRACTO AGRICOLA",
+        "PhoneNumber": null,
+        "PlotIdentification": null,
+        "PostalCode": null,
+        "StreetName": null,
+        "TaxNumber": null
+    }
+]

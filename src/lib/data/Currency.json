@@ -1,0 +1,27 @@
+[
+  {
+    "idCurrency": 1,
+    "name": "Peso Colombiano",
+    "code": "COP"
+  },
+  {
+    "idCurrency": 2,
+    "name": "Dólar Estadounidense",
+    "code": "USD"
+  },
+  {
+    "idCurrency": 3,
+    "name": "Euro",
+    "code": "EUR"
+  },
+  {
+    "idCurrency": 4,
+    "name": "Real Brasileño",
+    "code": "BRL"
+  },
+  {
+    "idCurrency": 5,
+    "name": "Guaraní Paraguayo",
+    "code": "PYG"
+  }
+]

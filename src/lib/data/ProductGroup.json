@@ -1,0 +1,130 @@
+[
+    {
+        "Color": "Brown",
+        "Id": 1,
+        "Image": null,
+        "Name": "RODAMIENTOS",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "OrangeRed",
+        "Id": 2,
+        "Image": null,
+        "Name": "KUBOTA",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Transparent",
+        "Id": 3,
+        "Image": null,
+        "Name": "VARIOS",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Yellow",
+        "Id": 4,
+        "Image": null,
+        "Name": "NEW HOLAND",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Red",
+        "Id": 5,
+        "Image": null,
+        "Name": "PERKINS",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Blue",
+        "Id": 6,
+        "Image": null,
+        "Name": "FORD",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "OldLace",
+        "Id": 8,
+        "Image": null,
+        "Name": "H.I",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Green",
+        "Id": 11,
+        "Image": null,
+        "Name": "JHON DEERE",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "PaleVioletRed",
+        "Id": 12,
+        "Image": null,
+        "Name": "NATIONAL",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Purple",
+        "Id": 13,
+        "Image": null,
+        "Name": "DISCOS",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "LightSteelBlue",
+        "Id": 14,
+        "Image": null,
+        "Name": "FORDSON",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Sienna",
+        "Id": 15,
+        "Image": null,
+        "Name": "SELLOS",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Chocolate",
+        "Id": 16,
+        "Image": null,
+        "Name": "SAME",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Transparent",
+        "Id": 17,
+        "Image": null,
+        "Name": "NEUFIELD",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Transparent",
+        "Id": 18,
+        "Image": null,
+        "Name": "ZETOR",
+        "ParentGroupId": null,
+        "Rank": 0
+    },
+    {
+        "Color": "Turquoise",
+        "Id": 19,
+        "Image": null,
+        "Name": "FIAT",
+        "ParentGroupId": null,
+        "Rank": 0
+    }
+]

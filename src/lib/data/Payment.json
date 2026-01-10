@@ -1,0 +1,82 @@
+[
+    {
+        "Amount": 475005.28,
+        "Date": "2023-08-28 00:00:00",
+        "DateCreated": "2023-08-28 00:00:00",
+        "DocumentId": 4,
+        "Id": 7,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 2
+    },
+    {
+        "Amount": 139000,
+        "Date": "2023-08-25 00:00:00",
+        "DateCreated": "2023-08-25 00:00:00",
+        "DocumentId": 5,
+        "Id": 8,
+        "PaymentTypeId": 7,
+        "UserId": 1,
+        "ZReportId": 2
+    },
+    {
+        "Amount": 194600,
+        "Date": "2023-08-28 00:00:00",
+        "DateCreated": "2023-08-28 00:00:00",
+        "DocumentId": 6,
+        "Id": 9,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 2
+    },
+    {
+        "Amount": 582080.8,
+        "Date": "2023-08-29 00:00:00",
+        "DateCreated": "2023-08-29 00:00:00",
+        "DocumentId": 7,
+        "Id": 10,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 3
+    },
+    {
+        "Amount": 2887675,
+        "Date": "2023-09-01 00:00:00",
+        "DateCreated": "2023-09-01 00:00:00",
+        "DocumentId": 9,
+        "Id": 11,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 3
+    },
+    {
+        "Amount": 324400.2,
+        "Date": "2023-09-25 00:00:00",
+        "DateCreated": "2023-09-25 00:00:00",
+        "DocumentId": 11,
+        "Id": 12,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 3
+    },
+    {
+        "Amount": 418010.6,
+        "Date": "2023-09-26 00:00:00",
+        "DateCreated": "2023-09-26 00:00:00",
+        "DocumentId": 13,
+        "Id": 13,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": 3
+    },
+    {
+        "Amount": 5500,
+        "Date": "2024-02-05 00:00:00",
+        "DateCreated": "2024-02-05 00:00:00",
+        "DocumentId": 55,
+        "Id": 14,
+        "PaymentTypeId": 1,
+        "UserId": 1,
+        "ZReportId": null
+    }
+]

@@ -1,0 +1,34 @@
+[
+    {
+        "DocumentId": 4,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 5,
+        "PaymentTypes": "CONSIGNACION"
+    },
+    {
+        "DocumentId": 6,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 7,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 9,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 11,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 13,
+        "PaymentTypes": "Cash"
+    },
+    {
+        "DocumentId": 55,
+        "PaymentTypes": "Cash"
+    }
+]

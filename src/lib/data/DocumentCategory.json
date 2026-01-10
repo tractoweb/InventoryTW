@@ -1,0 +1,22 @@
+[
+    {
+        "Id": 1,
+        "LanguageKey": "Document.Category.Expenses",
+        "Name": "Expenses"
+    },
+    {
+        "Id": 2,
+        "LanguageKey": "Document.Category.Sales",
+        "Name": "Sales"
+    },
+    {
+        "Id": 3,
+        "LanguageKey": "Document.Category.Inventory",
+        "Name": "Inventory"
+    },
+    {
+        "Id": 4,
+        "LanguageKey": "Document.Category.Loss",
+        "Name": "Loss"
+    }
+]

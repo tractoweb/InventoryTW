@@ -1,0 +1,6 @@
+^XA
+^FO50,50^A0N,50,50^FDProducto: Manzana^FS
+^FO50,120^BY2
+^BCN,100,Y,N,N
+^FD12345678^FS
+^XZ

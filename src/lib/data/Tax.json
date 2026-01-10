@@ -1,0 +1,20 @@
+[
+    {
+        "Code": null,
+        "Id": 2,
+        "IsEnabled": 1,
+        "IsFixed": 0,
+        "IsTaxOnTotal": 0,
+        "Name": "IVA",
+        "Rate": 19
+    },
+    {
+        "Code": null,
+        "Id": 3,
+        "IsEnabled": 1,
+        "IsFixed": 0,
+        "IsTaxOnTotal": 0,
+        "Name": "IVA",
+        "Rate": 1
+    }
+]
