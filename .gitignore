@@ -5,6 +5,9 @@
 /.pnp
 .pnp.js
 
+# lockfiles (use pnpm in this repo)
+package-lock.json
+
 # testing
 /coverage
 

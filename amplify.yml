@@ -1,0 +1,22 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - corepack enable
+        # Pin pnpm to a known version for reproducible builds
+        - corepack prepare pnpm@9.15.4 --activate
+        # Keep the pnpm store inside the workspace so Amplify cache can persist it
+        - pnpm config set store-dir .pnpm-store
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .pnpm-store/**/*
