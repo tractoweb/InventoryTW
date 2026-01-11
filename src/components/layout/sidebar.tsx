@@ -16,8 +16,6 @@ import { Boxes, LayoutDashboard, FileText, Calculator, Warehouse, Table, BarChar
 import { AppLogo } from "../icons";
 import { DatabaseStatus } from "./database-status";
 
-import { Globe } from "lucide-react";
-
 const menuItems = [
   {
     href: "/json",
@@ -27,11 +25,6 @@ const menuItems = [
   {
     href: "/print-labels/products",
     label: "Imprimir Etiquetas",
-    icon: FileText,
-  },
-  {
-    href: "/import-data",
-    label: "Importar datos",
     icon: FileText,
   },
   {
