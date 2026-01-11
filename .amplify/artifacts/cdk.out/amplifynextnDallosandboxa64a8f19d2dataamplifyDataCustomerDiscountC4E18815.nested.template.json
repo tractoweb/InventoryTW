@@ -1,0 +1,2298 @@
+{
+ "Parameters": {
+  "DynamoDBModelTableReadIOPS": {
+   "Type": "Number",
+   "Default": 5,
+   "Description": "The number of read IOPS the table should support."
+  },
+  "DynamoDBModelTableWriteIOPS": {
+   "Type": "Number",
+   "Default": 5,
+   "Description": "The number of write IOPS the table should support."
+  },
+  "DynamoDBBillingMode": {
+   "Type": "String",
+   "Default": "PAY_PER_REQUEST",
+   "AllowedValues": [
+    "PAY_PER_REQUEST",
+    "PROVISIONED"
+   ],
+   "Description": "Configure @model types to create DynamoDB tables with PAY_PER_REQUEST or PROVISIONED billing modes."
+  },
+  "DynamoDBEnablePointInTimeRecovery": {
+   "Type": "String",
+   "Default": "false",
+   "AllowedValues": [
+    "true",
+    "false"
+   ],
+   "Description": "Whether to enable Point in Time Recovery on the table."
+  },
+  "DynamoDBEnableServerSideEncryption": {
+   "Type": "String",
+   "Default": "true",
+   "AllowedValues": [
+    "true",
+    "false"
+   ],
+   "Description": "Enable server side encryption powered by KMS."
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderfraEE4B0F12": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref": {
+   "Type": "String"
+  }
+ },
+ "Conditions": {
+  "HasEnvironmentParameter": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      "NONE",
+      "NONE"
+     ]
+    }
+   ]
+  },
+  "ShouldUsePayPerRequestBilling": {
+   "Fn::Equals": [
+    {
+     "Ref": "DynamoDBBillingMode"
+    },
+    "PAY_PER_REQUEST"
+   ]
+  },
+  "ShouldUsePointInTimeRecovery": {
+   "Fn::Equals": [
+    {
+     "Ref": "DynamoDBEnablePointInTimeRecovery"
+    },
+    "true"
+   ]
+  },
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "CustomerDiscountTable": {
+   "Type": "Custom::AmplifyDynamoDBTable",
+   "Properties": {
+    "ServiceToken": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderfraEE4B0F12"
+    },
+    "tableName": {
+     "Fn::Join": [
+      "",
+      [
+       "CustomerDiscount-",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "-NONE"
+      ]
+     ]
+    },
+    "attributeDefinitions": [
+     {
+      "attributeName": "customerDiscountId",
+      "attributeType": "N"
+     },
+     {
+      "attributeName": "customerId",
+      "attributeType": "N"
+     }
+    ],
+    "keySchema": [
+     {
+      "attributeName": "customerDiscountId",
+      "keyType": "HASH"
+     }
+    ],
+    "globalSecondaryIndexes": [
+     {
+      "indexName": "gsi-Customer.discounts",
+      "keySchema": [
+       {
+        "attributeName": "customerId",
+        "keyType": "HASH"
+       }
+      ],
+      "projection": {
+       "projectionType": "ALL"
+      },
+      "provisionedThroughput": {
+       "Fn::If": [
+        "ShouldUsePayPerRequestBilling",
+        {
+         "Ref": "AWS::NoValue"
+        },
+        {
+         "ReadCapacityUnits": {
+          "Ref": "DynamoDBModelTableReadIOPS"
+         },
+         "WriteCapacityUnits": {
+          "Ref": "DynamoDBModelTableWriteIOPS"
+         }
+        }
+       ]
+      }
+     }
+    ],
+    "provisionedThroughput": {
+     "Fn::If": [
+      "ShouldUsePayPerRequestBilling",
+      {
+       "Ref": "AWS::NoValue"
+      },
+      {
+       "ReadCapacityUnits": {
+        "Ref": "DynamoDBModelTableReadIOPS"
+       },
+       "WriteCapacityUnits": {
+        "Ref": "DynamoDBModelTableWriteIOPS"
+       }
+      }
+     ]
+    },
+    "sseSpecification": {
+     "sseEnabled": false
+    },
+    "streamSpecification": {
+     "streamViewType": "NEW_AND_OLD_IMAGES"
+    },
+    "deletionProtectionEnabled": false,
+    "allowDestructiveGraphqlSchemaUpdates": true,
+    "replaceTableUponGsiUpdate": true,
+    "pointInTimeRecoverySpecification": {
+     "Fn::If": [
+      "ShouldUsePointInTimeRecovery",
+      {
+       "PointInTimeRecoveryEnabled": true
+      },
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    },
+    "billingMode": {
+     "Fn::If": [
+      "ShouldUsePayPerRequestBilling",
+      "PAY_PER_REQUEST",
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/CustomerDiscountTable/Default/Default"
+   }
+  },
+  "CustomerDiscountIAMRole7E9A8BAB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem",
+          "dynamodb:ConditionCheckItem",
+          "dynamodb:DescribeTable",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator"
+         ],
+         "Effect": "Allow",
+         "Resource": [
+          {
+           "Fn::Sub": [
+            "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}",
+            {
+             "tablename": {
+              "Fn::Join": [
+               "",
+               [
+                "CustomerDiscount-",
+                {
+                 "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+                },
+                "-NONE"
+               ]
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "Fn::Sub": [
+            "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*",
+            {
+             "tablename": {
+              "Fn::Join": [
+               "",
+               [
+                "CustomerDiscount-",
+                {
+                 "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+                },
+                "-NONE"
+               ]
+              ]
+             }
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "DynamoDBAccess"
+     }
+    ],
+    "RoleName": {
+     "Fn::Join": [
+      "",
+      [
+       "CustomerDiscountIAMR35cd9b-",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "-NONE"
+      ]
+     ]
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/CustomerDiscountIAMRole/Resource"
+   }
+  },
+  "CustomerDiscountDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": {
+      "Ref": "AWS::Region"
+     },
+     "TableName": {
+      "Fn::Select": [
+       1,
+       {
+        "Fn::Split": [
+         "/",
+         {
+          "Fn::Select": [
+           5,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::GetAtt": [
+               "CustomerDiscountTable",
+               "TableArn"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    "Name": "CustomerDiscountTable",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "CustomerDiscountIAMRole7E9A8BAB",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "DependsOn": [
+    "CustomerDiscountIAMRole7E9A8BAB"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/CustomerDiscountDataSource/Resource"
+   }
+  },
+  "QuerygetCustomerDiscountpreAuth0FunctionQuerygetCustomerDiscountpreAuth0FunctionAppSyncFunction3665E6C7": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerygetCustomerDiscountpreAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/b09d34691e77bf70815657d2e30bb8b323996fd99f180759104ef4276ddd03c4.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerygetCustomerDiscountpreAuth0Function/QuerygetCustomerDiscountpreAuth0Function.AppSyncFunction"
+   }
+  },
+  "QuerygetCustomerDiscountauth0FunctionQuerygetCustomerDiscountauth0FunctionAppSyncFunction0D65248C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerygetCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0224a3e5097427da3f4460b5d6d2b86ad4195c9cb8da7bc13e7187eead1c3ae3.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerygetCustomerDiscountauth0Function/QuerygetCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "QuerygetCustomerDiscountpostAuth0FunctionQuerygetCustomerDiscountpostAuth0FunctionAppSyncFunctionC49F9DF1": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerygetCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerygetCustomerDiscountpostAuth0Function/QuerygetCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "QueryGetCustomerDiscountDataResolverFnQueryGetCustomerDiscountDataResolverFnAppSyncFunctionD80A4C23": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryGetCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/08f4d557693d96c1a4efba0f9dc91330e4b19772fd5477c156468843e3d9cb5e.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/4c6a2d29f01c6091bd1d9afe16e5849d456c96f17c3b215938c8067399532719.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QueryGetCustomerDiscountDataResolverFn/QueryGetCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "GetCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "getCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerygetCustomerDiscountpreAuth0FunctionQuerygetCustomerDiscountpreAuth0FunctionAppSyncFunction3665E6C7",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerygetCustomerDiscountauth0FunctionQuerygetCustomerDiscountauth0FunctionAppSyncFunction0D65248C",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerygetCustomerDiscountpostAuth0FunctionQuerygetCustomerDiscountpostAuth0FunctionAppSyncFunctionC49F9DF1",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QueryGetCustomerDiscountDataResolverFnQueryGetCustomerDiscountDataResolverFnAppSyncFunctionD80A4C23",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"getCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "CustomerDiscountTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/queryGetCustomerDiscountResolver"
+   }
+  },
+  "QuerylistCustomerDiscountspreAuth0FunctionQuerylistCustomerDiscountspreAuth0FunctionAppSyncFunction151A605B": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistCustomerDiscountspreAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a6f789f1f041bd9e81357dd087436537cad5156e8c8df4b652b386ea802df3fe.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerylistCustomerDiscountspreAuth0Function/QuerylistCustomerDiscountspreAuth0Function.AppSyncFunction"
+   }
+  },
+  "QuerylistCustomerDiscountsauth0FunctionQuerylistCustomerDiscountsauth0FunctionAppSyncFunction35CB11BF": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistCustomerDiscountsauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0224a3e5097427da3f4460b5d6d2b86ad4195c9cb8da7bc13e7187eead1c3ae3.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerylistCustomerDiscountsauth0Function/QuerylistCustomerDiscountsauth0Function.AppSyncFunction"
+   }
+  },
+  "QuerylistCustomerDiscountspostAuth0FunctionQuerylistCustomerDiscountspostAuth0FunctionAppSyncFunctionF9269D90": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistCustomerDiscountspostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QuerylistCustomerDiscountspostAuth0Function/QuerylistCustomerDiscountspostAuth0Function.AppSyncFunction"
+   }
+  },
+  "QueryListCustomerDiscountsDataResolverFnQueryListCustomerDiscountsDataResolverFnAppSyncFunction4C1475A3": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryListCustomerDiscountsDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/9fcbe070ecd3023c5bf5b966fa9584757db9762eef123bad0820bd87591b2174.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/cc01911d0269d4080ea57505dc445dfc315ef7ad85d3d9d4ea1357858bff451d.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/QueryListCustomerDiscountsDataResolverFn/QueryListCustomerDiscountsDataResolverFn.AppSyncFunction"
+   }
+  },
+  "ListCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "listCustomerDiscounts",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerylistCustomerDiscountspreAuth0FunctionQuerylistCustomerDiscountspreAuth0FunctionAppSyncFunction151A605B",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerylistCustomerDiscountsauth0FunctionQuerylistCustomerDiscountsauth0FunctionAppSyncFunction35CB11BF",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerylistCustomerDiscountspostAuth0FunctionQuerylistCustomerDiscountspostAuth0FunctionAppSyncFunctionF9269D90",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QueryListCustomerDiscountsDataResolverFnQueryListCustomerDiscountsDataResolverFnAppSyncFunction4C1475A3",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"listCustomerDiscounts\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "CustomerDiscountTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/queryListCustomerDiscountsResolver"
+   }
+  },
+  "MutationcreateCustomerDiscountinit0FunctionMutationcreateCustomerDiscountinit0FunctionAppSyncFunction61564D88": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateCustomerDiscountinit0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/3cf32e28e3985b88b598dacbcc9a81cbb12cab62b6507082eb20a0702d3c197e.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationcreateCustomerDiscountinit0Function/MutationcreateCustomerDiscountinit0Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateCustomerDiscountinit1FunctionMutationcreateCustomerDiscountinit1FunctionAppSyncFunctionB0A0826C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateCustomerDiscountinit1Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/bb8082bcc278dfe73d0d38852c9cbdd2cfaf4ee5565f51486314dccf86191c6f.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationcreateCustomerDiscountinit1Function/MutationcreateCustomerDiscountinit1Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateCustomerDiscountpreAuth0FunctionMutationcreateCustomerDiscountpreAuth0FunctionAppSyncFunctionD03CC7B0": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateCustomerDiscountpreAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1034445b14c9f26283489f7f0532ae62ea5d49b7a7c673ce05f0f3c63bf23a7b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationcreateCustomerDiscountpreAuth0Function/MutationcreateCustomerDiscountpreAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateCustomerDiscountauth0FunctionMutationcreateCustomerDiscountauth0FunctionAppSyncFunctionB400381F": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/d637c1fb7301003b8a5ada269338cf2e8df6cc0dc412ef13acc6158d680b6d3e.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationcreateCustomerDiscountauth0Function/MutationcreateCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateCustomerDiscountpostAuth0FunctionMutationcreateCustomerDiscountpostAuth0FunctionAppSyncFunctionEDDA23E0": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationcreateCustomerDiscountpostAuth0Function/MutationcreateCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationCreateCustomerDiscountDataResolverFnMutationCreateCustomerDiscountDataResolverFnAppSyncFunction3C44485E": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationCreateCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/33e6ec04a6e4e20d52b4e2f204cdc047280551096fbb0bec2dc323b7113a5012.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationCreateCustomerDiscountDataResolverFn/MutationCreateCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "CreateCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "createCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationcreateCustomerDiscountinit0FunctionMutationcreateCustomerDiscountinit0FunctionAppSyncFunction61564D88",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateCustomerDiscountinit1FunctionMutationcreateCustomerDiscountinit1FunctionAppSyncFunctionB0A0826C",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateCustomerDiscountpreAuth0FunctionMutationcreateCustomerDiscountpreAuth0FunctionAppSyncFunctionD03CC7B0",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateCustomerDiscountauth0FunctionMutationcreateCustomerDiscountauth0FunctionAppSyncFunctionB400381F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateCustomerDiscountpostAuth0FunctionMutationcreateCustomerDiscountpostAuth0FunctionAppSyncFunctionEDDA23E0",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationCreateCustomerDiscountDataResolverFnMutationCreateCustomerDiscountDataResolverFnAppSyncFunction3C44485E",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"createCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "CustomerDiscountTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/mutationCreateCustomerDiscountResolver"
+   }
+  },
+  "MutationupdateCustomerDiscountinit0FunctionMutationupdateCustomerDiscountinit0FunctionAppSyncFunction0478A78F": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateCustomerDiscountinit0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/06db846fd14e6fc371f22b12b5545ba8e2dbfeda85d8c8d586c71c282166657b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationupdateCustomerDiscountinit0Function/MutationupdateCustomerDiscountinit0Function.AppSyncFunction"
+   }
+  },
+  "MutationupdateCustomerDiscountpreAuth0FunctionMutationupdateCustomerDiscountpreAuth0FunctionAppSyncFunctionDE735261": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateCustomerDiscountpreAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1034445b14c9f26283489f7f0532ae62ea5d49b7a7c673ce05f0f3c63bf23a7b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationupdateCustomerDiscountpreAuth0Function/MutationupdateCustomerDiscountpreAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationupdateCustomerDiscountauth0FunctionMutationupdateCustomerDiscountauth0FunctionAppSyncFunctionA18E528B": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1f5fed297da9c32ae3af922bf3a38ccf23b956078887d16891ec06c20c64722c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/89f92efd98b1034df0e2497fe31a97de6975de554b8a22e0677d05d6efcafa59.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationupdateCustomerDiscountauth0Function/MutationupdateCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationupdateCustomerDiscountpostAuth0FunctionMutationupdateCustomerDiscountpostAuth0FunctionAppSyncFunction3E808D4F": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationupdateCustomerDiscountpostAuth0Function/MutationupdateCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationUpdateCustomerDiscountDataResolverFnMutationUpdateCustomerDiscountDataResolverFnAppSyncFunction5088D488": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationUpdateCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/474bf0776ec2164a13191d1a0a9e057154931e4918fea5086f49850d02a5371b.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationUpdateCustomerDiscountDataResolverFn/MutationUpdateCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "UpdateCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "updateCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationupdateCustomerDiscountinit0FunctionMutationupdateCustomerDiscountinit0FunctionAppSyncFunction0478A78F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationupdateCustomerDiscountpreAuth0FunctionMutationupdateCustomerDiscountpreAuth0FunctionAppSyncFunctionDE735261",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationupdateCustomerDiscountauth0FunctionMutationupdateCustomerDiscountauth0FunctionAppSyncFunctionA18E528B",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationupdateCustomerDiscountpostAuth0FunctionMutationupdateCustomerDiscountpostAuth0FunctionAppSyncFunction3E808D4F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationUpdateCustomerDiscountDataResolverFnMutationUpdateCustomerDiscountDataResolverFnAppSyncFunction5088D488",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"updateCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "CustomerDiscountTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/mutationUpdateCustomerDiscountResolver"
+   }
+  },
+  "MutationdeleteCustomerDiscountpreAuth0FunctionMutationdeleteCustomerDiscountpreAuth0FunctionAppSyncFunction935FE5B7": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationdeleteCustomerDiscountpreAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/de2ecc9290019b9c8b6869fcbd899e9de695ecb8835d17e728f4820404c9e7eb.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationdeleteCustomerDiscountpreAuth0Function/MutationdeleteCustomerDiscountpreAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationdeleteCustomerDiscountauth0FunctionMutationdeleteCustomerDiscountauth0FunctionAppSyncFunction518F70FB": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationdeleteCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1f5fed297da9c32ae3af922bf3a38ccf23b956078887d16891ec06c20c64722c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e3416b4d47414f29c21e59a70e83bddb959ef0625854ed7fb0ca376573e99069.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationdeleteCustomerDiscountauth0Function/MutationdeleteCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationdeleteCustomerDiscountpostAuth0FunctionMutationdeleteCustomerDiscountpostAuth0FunctionAppSyncFunction2B1DF959": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationdeleteCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationdeleteCustomerDiscountpostAuth0Function/MutationdeleteCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationDeleteCustomerDiscountDataResolverFnMutationDeleteCustomerDiscountDataResolverFnAppSyncFunction4485DCC4": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "CustomerDiscountDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationDeleteCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/4f7907d1209a2c9953a0c053df402c634e359546d70c7cc5c2e8e21ea734880f.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "CustomerDiscountDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/MutationDeleteCustomerDiscountDataResolverFn/MutationDeleteCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "DeleteCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "deleteCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationdeleteCustomerDiscountpreAuth0FunctionMutationdeleteCustomerDiscountpreAuth0FunctionAppSyncFunction935FE5B7",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationdeleteCustomerDiscountauth0FunctionMutationdeleteCustomerDiscountauth0FunctionAppSyncFunction518F70FB",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationdeleteCustomerDiscountpostAuth0FunctionMutationdeleteCustomerDiscountpostAuth0FunctionAppSyncFunction2B1DF959",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationDeleteCustomerDiscountDataResolverFnMutationDeleteCustomerDiscountDataResolverFnAppSyncFunction4485DCC4",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"deleteCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "CustomerDiscountTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/mutationDeleteCustomerDiscountResolver"
+   }
+  },
+  "SubscriptiononCreateCustomerDiscountauth0FunctionSubscriptiononCreateCustomerDiscountauth0FunctionAppSyncFunction736B8E17": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononCreateCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e6da5a6e993df8b5fdc91086b71eb53e72a3a97c98836ef9c9257776f36c452b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononCreateCustomerDiscountauth0Function/SubscriptiononCreateCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononCreateCustomerDiscountpostAuth0FunctionSubscriptiononCreateCustomerDiscountpostAuth0FunctionAppSyncFunctionD0610B88": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononCreateCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononCreateCustomerDiscountpostAuth0Function/SubscriptiononCreateCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnCreateCustomerDiscountDataResolverFnSubscriptionOnCreateCustomerDiscountDataResolverFnAppSyncFunction9346A536": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnCreateCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptionOnCreateCustomerDiscountDataResolverFn/SubscriptionOnCreateCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononCreateCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "onCreateCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononCreateCustomerDiscountauth0FunctionSubscriptiononCreateCustomerDiscountauth0FunctionAppSyncFunction736B8E17",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononCreateCustomerDiscountpostAuth0FunctionSubscriptiononCreateCustomerDiscountpostAuth0FunctionAppSyncFunctionD0610B88",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnCreateCustomerDiscountDataResolverFnSubscriptionOnCreateCustomerDiscountDataResolverFnAppSyncFunction9346A536",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onCreateCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/subscriptionOnCreateCustomerDiscountResolver"
+   }
+  },
+  "SubscriptiononUpdateCustomerDiscountauth0FunctionSubscriptiononUpdateCustomerDiscountauth0FunctionAppSyncFunctionF2B481EB": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononUpdateCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e6da5a6e993df8b5fdc91086b71eb53e72a3a97c98836ef9c9257776f36c452b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononUpdateCustomerDiscountauth0Function/SubscriptiononUpdateCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononUpdateCustomerDiscountpostAuth0FunctionSubscriptiononUpdateCustomerDiscountpostAuth0FunctionAppSyncFunctionD4B20901": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononUpdateCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononUpdateCustomerDiscountpostAuth0Function/SubscriptiononUpdateCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnUpdateCustomerDiscountDataResolverFnSubscriptionOnUpdateCustomerDiscountDataResolverFnAppSyncFunctionA8E315BF": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnUpdateCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptionOnUpdateCustomerDiscountDataResolverFn/SubscriptionOnUpdateCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononUpdateCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "onUpdateCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononUpdateCustomerDiscountauth0FunctionSubscriptiononUpdateCustomerDiscountauth0FunctionAppSyncFunctionF2B481EB",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononUpdateCustomerDiscountpostAuth0FunctionSubscriptiononUpdateCustomerDiscountpostAuth0FunctionAppSyncFunctionD4B20901",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnUpdateCustomerDiscountDataResolverFnSubscriptionOnUpdateCustomerDiscountDataResolverFnAppSyncFunctionA8E315BF",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onUpdateCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/subscriptionOnUpdateCustomerDiscountResolver"
+   }
+  },
+  "SubscriptiononDeleteCustomerDiscountauth0FunctionSubscriptiononDeleteCustomerDiscountauth0FunctionAppSyncFunctionF28A85C3": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononDeleteCustomerDiscountauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e6da5a6e993df8b5fdc91086b71eb53e72a3a97c98836ef9c9257776f36c452b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononDeleteCustomerDiscountauth0Function/SubscriptiononDeleteCustomerDiscountauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononDeleteCustomerDiscountpostAuth0FunctionSubscriptiononDeleteCustomerDiscountpostAuth0FunctionAppSyncFunctionCA4FC3C4": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononDeleteCustomerDiscountpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptiononDeleteCustomerDiscountpostAuth0Function/SubscriptiononDeleteCustomerDiscountpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnDeleteCustomerDiscountDataResolverFnSubscriptionOnDeleteCustomerDiscountDataResolverFnAppSyncFunction31FC84BE": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnDeleteCustomerDiscountDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/SubscriptionOnDeleteCustomerDiscountDataResolverFn/SubscriptionOnDeleteCustomerDiscountDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononDeleteCustomerDiscountResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "onDeleteCustomerDiscount",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononDeleteCustomerDiscountauth0FunctionSubscriptiononDeleteCustomerDiscountauth0FunctionAppSyncFunctionF28A85C3",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononDeleteCustomerDiscountpostAuth0FunctionSubscriptiononDeleteCustomerDiscountpostAuth0FunctionAppSyncFunctionCA4FC3C4",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnDeleteCustomerDiscountDataResolverFnSubscriptionOnDeleteCustomerDiscountDataResolverFnAppSyncFunction31FC84BE",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onDeleteCustomerDiscount\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/subscriptionOnDeleteCustomerDiscountResolver"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOQW6DQAxFz5L9xE2hF2hAXaYVdB+ZGYMmgAeNPYkixN0rSJWqq+8nP9k/gyzP4bDDm+yt6/eDb2A+kSi5WtH2pmj5CyOOpBRXKAI7rz6wqUhCipZMkUTD+IctP2e8yXl2d8YxuAa+sRnoiELG4whzFYaHHQZaDE6T3NnCXG562ZSoWD9P/qePxHYtUQRufZcibo1+Pw9XiouR/IwipALvaxjJ4ZhsT7oWWFb3M+mU1GzrWrHz3C2GgyO4yMs1e4PXDA67i3i/j4nVjwTVI38AY5CivTYBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/CustomerDiscount/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "GetAttCustomerDiscountTableStreamArn": {
+   "Description": "Your DynamoDB table StreamArn.",
+   "Value": {
+    "Fn::GetAtt": [
+     "CustomerDiscountTable",
+     "TableStreamArn"
+    ]
+   },
+   "Export": {
+    "Name": {
+     "Fn::Join": [
+      ":",
+      [
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "GetAtt:CustomerDiscountTable:StreamArn"
+      ]
+     ]
+    }
+   }
+  },
+  "GetAttCustomerDiscountTableName": {
+   "Description": "Your DynamoDB table name.",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "CustomerDiscount-",
+      {
+       "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+      },
+      "-NONE"
+     ]
+    ]
+   },
+   "Export": {
+    "Name": {
+     "Fn::Join": [
+      ":",
+      [
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "GetAtt:CustomerDiscountTable:Name"
+      ]
+     ]
+    }
+   }
+  },
+  "amplifynextnDallosandboxa64a8f19d2dataamplifyDataCustomerDiscountCustomerDiscountDataSourceCF99BF22Name": {
+   "Value": {
+    "Fn::GetAtt": [
+     "CustomerDiscountDataSource",
+     "Name"
+    ]
+   }
+  },
+  "amplifynextnDallosandboxa64a8f19d2dataamplifyDataCustomerDiscountCustomerDiscountTableA930955FTableArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "CustomerDiscountTable",
+     "TableArn"
+    ]
+   }
+  }
+ }
+}

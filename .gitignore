@@ -15,12 +15,7 @@ package-lock.json
 /.next/
 /out/
 
-# amplify (generated)
-/.amplify/
-amplify_outputs*
-amplifyconfiguration*
-
-# production
+production
 /build
 
 # misc
