@@ -12,6 +12,11 @@
 /.next/
 /out/
 
+# amplify (generated)
+/.amplify/
+amplify_outputs*
+amplifyconfiguration*
+
 # production
 /build
 
@@ -36,8 +41,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# amplify
-.amplify
-amplify_outputs*
-amplifyconfiguration*
