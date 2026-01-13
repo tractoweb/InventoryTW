@@ -25,7 +25,11 @@ export async function getWarehouses(args?: { onlyEnabled?: boolean }): Promise<{
     if ("error" in result) return { data: [], error: result.error };
 
     const data = (result.data ?? [])
-      .slice()
+      .map((w: any) => ({
+        idWarehouse: Number(w?.idWarehouse),
+        name: String(w?.name ?? ""),
+      }))
+      .filter((w: any) => Number.isFinite(w.idWarehouse) && w.idWarehouse > 0)
       .sort((a: any, b: any) => String(a?.name ?? "").localeCompare(String(b?.name ?? "")));
 
     return { data };

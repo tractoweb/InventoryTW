@@ -24,6 +24,7 @@ import { notifications, user } from "@/lib/data";
 import { Badge } from "../ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { es } from 'date-fns/locale';
+import { ThemeToggle } from "@/components/theme-toggle";
 
 
 const pageTitles: { [key: string]: string } = {
@@ -37,7 +38,7 @@ const pageTitles: { [key: string]: string } = {
 
 
 export function AppHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
@@ -106,6 +107,8 @@ export function AppHeader() {
             </div>
           </PopoverContent>
         </Popover>
+
+        <ThemeToggle />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

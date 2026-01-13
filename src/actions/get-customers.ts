@@ -23,18 +23,30 @@ export async function getCustomers(args?: { onlyEnabled?: boolean; onlySuppliers
 
     if ("error" in result) return { data: [], error: result.error };
 
-    let data = result.data ?? [];
+    let data = (result.data ?? []) as any[];
+
+    // Normalize to plain objects (Amplify models include non-serializable function fields)
+    let normalized: CustomerListItem[] = data
+      .map((c) => ({
+        idCustomer: Number(c?.idCustomer),
+        name: String(c?.name ?? ""),
+        taxNumber: c?.taxNumber ?? null,
+        isEnabled: c?.isEnabled ?? null,
+        isSupplier: c?.isSupplier ?? null,
+        isCustomer: c?.isCustomer ?? null,
+      }))
+      .filter((c) => Number.isFinite(c.idCustomer) && c.idCustomer > 0 && c.name.length > 0);
 
     if (args?.onlyEnabled) {
-      data = data.filter((c: any) => c?.isEnabled !== false);
+      normalized = normalized.filter((c) => c?.isEnabled !== false);
     }
     if (args?.onlySuppliers) {
-      data = data.filter((c: any) => c?.isSupplier !== false);
+      normalized = normalized.filter((c) => c?.isSupplier !== false);
     }
 
-    data.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    normalized.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
-    return { data };
+    return { data: normalized };
   } catch (error) {
     return { data: [], error: formatAmplifyError(error) };
   }

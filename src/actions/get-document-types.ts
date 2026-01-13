@@ -24,7 +24,15 @@ export async function getDocumentTypes() {
     if ("error" in result) return { data: [], error: result.error };
 
     const data = (result.data ?? [])
-      .slice()
+      .map((d: any) => ({
+        documentTypeId: Number(d?.documentTypeId),
+        name: String(d?.name ?? ""),
+        code: d?.code ?? null,
+        warehouseId: d?.warehouseId ?? null,
+        stockDirection: d?.stockDirection ?? null,
+        isEnabled: d?.isEnabled ?? null,
+      }))
+      .filter((d: any) => Number.isFinite(d.documentTypeId) && d.documentTypeId > 0 && d.name.length > 0)
       .sort((a: any, b: any) => String(a?.name ?? "").localeCompare(String(b?.name ?? "")));
 
     return { data };

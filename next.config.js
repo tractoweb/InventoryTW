@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
+const isWindows = process.platform === 'win32';
+const forceStandalone = process.env.NEXT_OUTPUT === 'standalone' || process.env.NEXT_STANDALONE === 'true';
+
 const nextConfig = {
   /* config options here */
-  output: 'standalone',
+  // NOTE: `output: 'standalone'` uses file tracing and may require symlink
+  // permissions on Windows (pnpm + symlinks => EPERM). We keep standalone for
+  // non-Windows builds, and allow forcing it via env vars when needed.
+  output: forceStandalone || !isWindows ? 'standalone' : undefined,
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -11,7 +11,10 @@ export type DocumentListFilters = {
   documentTypeId?: number;
   dateFrom?: string; // YYYY-MM-DD
   dateTo?: string; // YYYY-MM-DD
-  limit?: number;
+  nextToken?: string | null;
+  page?: number; // only used in scan-mode (q search)
+  pageSize?: number;
+  limit?: number; // backwards compat alias for pageSize
 };
 
 export type DocumentListRow = {
@@ -59,49 +62,114 @@ export async function listDocuments(filters?: DocumentListFilters) {
       if (filters.dateTo) filter.date.le = filters.dateTo;
     }
 
-    // NOTE: q search is applied client-side after fetch, to avoid relying on complex OR filters.
-    const docsResult = await listAllPages<any>(
-      (args) => amplifyClient.models.Document.list(args),
-      Object.keys(filter).length ? { filter } : undefined
-    );
+    const pageSizeRaw = filters?.pageSize ?? filters?.limit ?? 10;
+    const pageSize = Number.isFinite(pageSizeRaw) ? Math.max(1, Math.trunc(Number(pageSizeRaw))) : 10;
 
-    if ("error" in docsResult) return { data: [], error: docsResult.error };
+    const qRaw = String(filters?.q ?? "").trim();
+    const scanMode = qRaw.length > 0;
 
-    let docs = (docsResult.data ?? []) as any[];
+    let docs: any[] = [];
+    let nextToken: string | null | undefined = undefined;
 
-    if (filters?.q) {
-      const q = filters.q.trim().toLowerCase();
-      if (q) {
-        docs = docs.filter((d) => {
-          const number = String(d?.number ?? "").toLowerCase();
-          const ref = String(d?.referenceDocumentNumber ?? "").toLowerCase();
-          const order = String(d?.orderNumber ?? "").toLowerCase();
-          return number.includes(q) || ref.includes(q) || order.includes(q);
-        });
-      }
+    if (scanMode) {
+      // Slow path: to support q search over multiple fields we must scan.
+      const docsResult = await listAllPages<any>(
+        (args) => amplifyClient.models.Document.list(args),
+        Object.keys(filter).length ? { filter } : undefined
+      );
+
+      if ("error" in docsResult) return { data: [], error: docsResult.error };
+
+      docs = (docsResult.data ?? []) as any[];
+      const q = qRaw.toLowerCase();
+      docs = docs.filter((d) => {
+        const number = String(d?.number ?? "").toLowerCase();
+        const ref = String(d?.referenceDocumentNumber ?? "").toLowerCase();
+        const order = String(d?.orderNumber ?? "").toLowerCase();
+        return number.includes(q) || ref.includes(q) || order.includes(q);
+      });
+
+      docs.sort((a, b) => String(b?.stockDate ?? "").localeCompare(String(a?.stockDate ?? "")));
+
+      const pageRaw = filters?.page ?? 1;
+      const page = Number.isFinite(pageRaw) ? Math.max(1, Math.trunc(Number(pageRaw))) : 1;
+      const startIdx = (page - 1) * pageSize;
+      docs = docs.slice(startIdx, startIdx + pageSize);
+      nextToken = null;
+    } else {
+      const res: any = await amplifyClient.models.Document.list({
+        ...(Object.keys(filter).length ? { filter } : {}),
+        limit: pageSize,
+        nextToken: filters?.nextToken ?? undefined,
+      });
+
+      docs = (res?.data ?? []) as any[];
+      nextToken = res?.nextToken ?? null;
     }
 
-    docs.sort((a, b) => String(b?.stockDate ?? "").localeCompare(String(a?.stockDate ?? "")));
+    const uniqueCustomerIds = Array.from(
+      new Set(
+        docs
+          .map((d) => (d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null))
+          .filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0)
+      )
+    );
 
-    const limit = filters?.limit && Number.isFinite(filters.limit) ? Math.max(1, Math.trunc(filters.limit)) : 200;
-    docs = docs.slice(0, limit);
+    const uniqueUserIds = Array.from(
+      new Set(
+        docs
+          .map((d) => Number(d?.userId))
+          .filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0)
+      )
+    );
 
-    const [customersResult, usersResult, warehousesResult, documentTypesResult] = await Promise.all([
-      listAllPages<Customer>((args) => amplifyClient.models.Customer.list(args)),
-      listAllPages<User>((args) => amplifyClient.models.User.list(args)),
-      listAllPages<Warehouse>((args) => amplifyClient.models.Warehouse.list(args)),
-      listAllPages<DocumentType>((args) => amplifyClient.models.DocumentType.list(args)),
+    const uniqueWarehouseIds = Array.from(
+      new Set(
+        docs
+          .map((d) => Number(d?.warehouseId))
+          .filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0)
+      )
+    );
+
+    const uniqueDocumentTypeIds = Array.from(
+      new Set(
+        docs
+          .map((d) => Number(d?.documentTypeId))
+          .filter((id): id is number => typeof id === "number" && Number.isFinite(id) && id > 0)
+      )
+    );
+
+    const [customers, users, warehouses, documentTypes] = await Promise.all([
+      Promise.all(uniqueCustomerIds.map((idCustomer) => amplifyClient.models.Customer.get({ idCustomer }))),
+      Promise.all(uniqueUserIds.map((userId) => amplifyClient.models.User.get({ userId }))),
+      Promise.all(uniqueWarehouseIds.map((idWarehouse) => amplifyClient.models.Warehouse.get({ idWarehouse }))),
+      Promise.all(uniqueDocumentTypeIds.map((documentTypeId) => amplifyClient.models.DocumentType.get({ documentTypeId }))),
     ]);
 
-    const customers = ("error" in customersResult ? [] : customersResult.data) as any[];
-    const users = ("error" in usersResult ? [] : usersResult.data) as any[];
-    const warehouses = ("error" in warehousesResult ? [] : warehousesResult.data) as any[];
-    const documentTypes = ("error" in documentTypesResult ? [] : documentTypesResult.data) as any[];
-
-    const customerById = new Map<number, string>(customers.map((c) => [Number((c as any).idCustomer), String((c as any).name ?? "")]));
-    const userById = new Map<number, string>(users.map((u) => [Number((u as any).userId), String((u as any).username ?? "")]));
-    const warehouseById = new Map<number, string>(warehouses.map((w) => [Number((w as any).idWarehouse), String((w as any).name ?? "")]));
-    const documentTypeById = new Map<number, string>(documentTypes.map((dt) => [Number((dt as any).documentTypeId), String((dt as any).name ?? "")]));
+    const customerById = new Map<number, string>(
+      customers
+        .map((r: any) => r?.data)
+        .filter(Boolean)
+        .map((c: any) => [Number(c?.idCustomer), String(c?.name ?? "")])
+    );
+    const userById = new Map<number, string>(
+      users
+        .map((r: any) => r?.data)
+        .filter(Boolean)
+        .map((u: any) => [Number(u?.userId), String(u?.username ?? "")])
+    );
+    const warehouseById = new Map<number, string>(
+      warehouses
+        .map((r: any) => r?.data)
+        .filter(Boolean)
+        .map((w: any) => [Number(w?.idWarehouse), String(w?.name ?? "")])
+    );
+    const documentTypeById = new Map<number, string>(
+      documentTypes
+        .map((r: any) => r?.data)
+        .filter(Boolean)
+        .map((dt: any) => [Number(dt?.documentTypeId), String(dt?.name ?? "")])
+    );
 
     const rows: DocumentListRow[] = docs.map((d) => {
       const customerId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
@@ -124,7 +192,11 @@ export async function listDocuments(filters?: DocumentListFilters) {
       };
     });
 
-    return { data: rows };
+    return {
+      data: rows,
+      nextToken: nextToken ?? null,
+      scanMode,
+    };
   } catch (error) {
     return { data: [], error: formatAmplifyError(error) };
   }
