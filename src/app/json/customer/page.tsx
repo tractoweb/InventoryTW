@@ -15,14 +15,35 @@ export default function UploadCustomer() {
   const [log, setLog] = useState<UploadLog[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const toBool = (value: any, defaultValue: boolean) => {
+    if (value === null || value === undefined) return defaultValue;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "si") return true;
+      if (normalized === "0" || normalized === "false" || normalized === "no") return false;
+    }
+    return defaultValue;
+  };
+
+  const toInt = (value: any) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+  };
+
   const handleUpload = async () => {
     setLoading(true);
     const results: UploadLog[] = [];
     try {
       const existingResult = (await listCustomers()) ?? { data: [] };
       const existing = Array.isArray(existingResult) ? existingResult : existingResult.data ?? [];
-      const existingIds = new Set(existing.map((c: any) => c.idCustomer));
+      const existingIds = new Set(existing.map((c: any) => toInt(c.idCustomer)).filter((v: any) => v !== null));
       function toAmplifyCustomer(row: any) {
+        const isEnabled = toBool(row.isEnabled ?? row.IsEnabled, true);
+        const isCustomer = toBool(row.isCustomer ?? row.IsCustomer, false);
+        const isSupplier = toBool(row.isSupplier ?? row.IsSupplier, true);
+
         return {
           idCustomer: row.idCustomer ?? row.Id ?? row.id,
           code: row.code ?? row.Code,
@@ -34,17 +55,26 @@ export default function UploadCustomer() {
           countryId: row.countryId ?? row.CountryId,
           email: row.email ?? row.Email,
           phoneNumber: row.phoneNumber ?? row.PhoneNumber,
-          isEnabled: row.isEnabled ?? row.IsEnabled ?? true,
-          isCustomer: row.isCustomer ?? row.IsCustomer ?? true,
-          isSupplier: row.isSupplier ?? row.IsSupplier ?? true,
+          isEnabled,
+          isCustomer,
+          isSupplier,
           dueDatePeriod: row.dueDatePeriod ?? row.DueDatePeriod ?? 0,
           isTaxExempt: row.isTaxExempt ?? row.IsTaxExempt ?? false,
         };
       }
       for (const row of (customerData ?? []) as any[]) {
-        const id = row.idCustomer ?? row.Id ?? row.id;
+        const id = toInt(row.idCustomer ?? row.Id ?? row.id);
         const name = row.name ?? row.Name;
         try {
+          if (id === null) {
+            results.push({ id: -1, name: name ?? "-", status: "error", message: "Falta idCustomer/Id válido" });
+            continue;
+          }
+          if (!name || typeof name !== "string") {
+            results.push({ id, name: name ?? "-", status: "error", message: "Falta Name" });
+            continue;
+          }
+
           if (existingIds.has(id)) {
             results.push({ id, name, status: "existente", message: "Ya existe en la base" });
           } else {
@@ -53,7 +83,7 @@ export default function UploadCustomer() {
             existingIds.add(id);
           }
         } catch (e: any) {
-          results.push({ id, name, status: "error", message: e.message });
+          results.push({ id: id ?? -1, name: name ?? "-", status: "error", message: e.message });
         }
       }
     } catch (e: any) {
@@ -66,7 +96,7 @@ export default function UploadCustomer() {
   return (
     <div className="my-6">
       <Button onClick={handleUpload} disabled={loading}>
-        {loading ? "Subiendo..." : "Subir Clientes desde Customer.json"}
+        {loading ? "Subiendo..." : "Subir Proveedores desde Customer.json"}
       </Button>
       <div className="mt-6">
         <h2 className="font-semibold mb-2">Registro de subida:</h2>

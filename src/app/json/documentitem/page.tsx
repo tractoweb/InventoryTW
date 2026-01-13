@@ -23,16 +23,58 @@ export default function UploadDocumentItem() {
       const existing = Array.isArray(existingResult) ? existingResult : existingResult.data ?? [];
       const existingIds = new Set(existing.map((d: any) => d.documentItemId));
       function toAmplifyDocumentItem(row: any) {
+        const documentItemId = Number(row.documentItemId ?? row.DocumentItemId ?? row.Id);
+        const documentId = Number(row.documentId ?? row.DocumentId);
+        const productId = Number(row.productId ?? row.ProductId);
+        const quantity = Number(row.quantity ?? row.Quantity);
+        const price = Number(row.price ?? row.Price);
+
         return {
-          documentItemId: row.documentItemId ?? row.DocumentItemId ?? row.Id,
-          documentId: row.documentId ?? row.DocumentId,
-          // ...otros campos según modelo Amplify
+          documentItemId,
+          documentId,
+          productId,
+          quantity,
+          expectedQuantity: Number(row.expectedQuantity ?? row.ExpectedQuantity ?? 0),
+          priceBeforeTax: Number(row.priceBeforeTax ?? row.PriceBeforeTax ?? 0),
+          price,
+          discount: Number(row.discount ?? row.Discount ?? 0),
+          discountType: Number(row.discountType ?? row.DiscountType ?? 0),
+          productCost: Number(row.productCost ?? row.ProductCost ?? 0),
+          priceBeforeTaxAfterDiscount: Number(
+            row.priceBeforeTaxAfterDiscount ?? row.PriceBeforeTaxAfterDiscount ?? 0
+          ),
+          priceAfterDiscount: Number(row.priceAfterDiscount ?? row.PriceAfterDiscount ?? 0),
+          total: Number(row.total ?? row.Total ?? 0),
+          totalAfterDocumentDiscount: Number(
+            row.totalAfterDocumentDiscount ?? row.TotalAfterDocumentDiscount ?? 0
+          ),
+          discountApplyRule: Number(row.discountApplyRule ?? row.DiscountApplyRule ?? 0),
         };
       }
       for (const row of (documentItemData ?? []) as any[]) {
-        const documentItemId = row.documentItemId ?? row.DocumentItemId ?? row.Id;
-        const documentId = row.documentId ?? row.DocumentId;
+        const documentItemId = Number(row.documentItemId ?? row.DocumentItemId ?? row.Id);
+        const documentId = Number(row.documentId ?? row.DocumentId);
         try {
+          const productId = Number(row.productId ?? row.ProductId);
+          const quantity = Number(row.quantity ?? row.Quantity);
+          const price = Number(row.price ?? row.Price);
+
+          if (
+            !documentItemId ||
+            !documentId ||
+            !productId ||
+            !Number.isFinite(quantity) ||
+            !Number.isFinite(price)
+          ) {
+            results.push({
+              documentItemId: documentItemId || -1,
+              documentId: documentId || -1,
+              status: "error",
+              message: "documentItemId, documentId, productId, quantity y price son obligatorios",
+            });
+            continue;
+          }
+
           if (existingIds.has(documentItemId)) {
             results.push({ documentItemId, documentId, status: "existente", message: "Ya existe en la base" });
           } else {

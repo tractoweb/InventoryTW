@@ -1,7 +1,8 @@
 import { amplifyClient } from "@/lib/amplify-config";
+import { listAllPages } from "@/services/amplify-list-all";
 
 export async function listZReports() {
-  return amplifyClient.models.ZReport.list();
+  return listAllPages(amplifyClient.models.ZReport.list);
 }
 
 export async function createZReport(zreport: any) {

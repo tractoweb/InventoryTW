@@ -2,7 +2,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { listDocumentItemPriceViews, createDocumentItemPriceView } from "@/services/document-item-price-view-service";
+import { listDocumentItems } from "@/services/document-item-service";
 import documentItemPriceViewData from "@/lib/data/DocumentItemPriceView.json";
+import documentItemData from "@/lib/data/DocumentItem.json";
 
 interface UploadLog {
   documentItemId: number;
@@ -21,25 +23,71 @@ export default function UploadDocumentItemPriceView() {
     try {
       const existingResult = (await listDocumentItemPriceViews()) ?? { data: [] };
       const existing = Array.isArray(existingResult) ? existingResult : existingResult.data ?? [];
-      const existingKeys = new Set(existing.map((d: any) => `${d.documentItemId}|${d.price}`));
-      function toAmplifyDocumentItemPriceView(row: any) {
-        return {
-          documentItemId: row.documentItemId ?? row.DocumentItemId,
-          price: row.price ?? row.Price,
-          // ...otros campos según modelo Amplify
-        };
+      const existingIds = new Set(existing.map((d: any) => Number(d.documentItemId)));
+
+      const itemsResult = (await listDocumentItems()) ?? { data: [] };
+      const items = Array.isArray(itemsResult) ? itemsResult : itemsResult.data ?? [];
+      const documentIdByItemId = new Map<number, number>();
+      for (const item of items as any[]) {
+        const documentItemId = Number(item.documentItemId);
+        const documentId = Number(item.documentId);
+        if (documentItemId && documentId) documentIdByItemId.set(documentItemId, documentId);
       }
+
+      if (Array.isArray(documentItemData)) {
+        for (const row of documentItemData as any[]) {
+          const documentItemId = Number(row.documentItemId ?? row.DocumentItemId ?? row.Id);
+          const documentId = Number(row.documentId ?? row.DocumentId);
+          if (documentItemId && documentId && !documentIdByItemId.has(documentItemId)) {
+            documentIdByItemId.set(documentItemId, documentId);
+          }
+        }
+      }
+
+      const seenInJson = new Set<number>();
+
       for (const row of (documentItemPriceViewData ?? []) as any[]) {
-        const documentItemId = row.documentItemId ?? row.DocumentItemId;
-        const price = row.price ?? row.Price;
-        const key = `${documentItemId}|${price}`;
+        const documentItemId = Number(row.documentItemId ?? row.DocumentItemId);
+        const price = Number(row.price ?? row.Price);
         try {
-          if (existingKeys.has(key)) {
+          if (!documentItemId || !Number.isFinite(price)) {
+            results.push({
+              documentItemId: documentItemId || -1,
+              price: price || -1,
+              status: "error",
+              message: "documentItemId y price son obligatorios",
+            });
+            continue;
+          }
+
+          if (seenInJson.has(documentItemId)) {
+            results.push({
+              documentItemId,
+              price,
+              status: "existente",
+              message: "Duplicado en DocumentItemPriceView.json (mismo documentItemId)",
+            });
+            continue;
+          }
+          seenInJson.add(documentItemId);
+
+          if (existingIds.has(documentItemId)) {
             results.push({ documentItemId, price, status: "existente", message: "Ya existe en la base" });
           } else {
-            await createDocumentItemPriceView(toAmplifyDocumentItemPriceView(row));
+            const documentId = documentIdByItemId.get(documentItemId);
+            if (!documentId) {
+              results.push({
+                documentItemId,
+                price,
+                status: "error",
+                message: "No se pudo resolver documentId para este documentItemId. Importa primero DocumentItem.",
+              });
+              continue;
+            }
+
+            await createDocumentItemPriceView({ documentItemId, price, documentId });
             results.push({ documentItemId, price, status: "nuevo" });
-            existingKeys.add(key);
+            existingIds.add(documentItemId);
           }
         } catch (e: any) {
           results.push({ documentItemId, price, status: "error", message: e.message });

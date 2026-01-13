@@ -84,26 +84,27 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
         .then(result => {
           if (result.error) {
             setError(result.error);
-          } else if (result.data) {
-            const taxIds = result.data.taxes ? result.data.taxes.split(',').map((taxName: string) => {
+                    } else if ((result as any).data) {
+                        const data: any = (result as any).data;
+                        const taxIds = data.taxes ? String(data.taxes).split(',').map((taxName: string) => {
                 const foundTax = taxes.find(t => t.name.trim() === taxName.trim());
                 return foundTax ? foundTax.id : null;
-            }).filter((id: number | null) => id !== null) as number[] : [];
+                        }).filter((id: number | null) => id !== null) as number[] : [];
             
             form.reset({
-                id: result.data.id,
-                name: result.data.name || "",
-                code: result.data.code || "",
-                description: result.data.description || "",
-                price: result.data.price || 0,
-                cost: result.data.cost || 0,
-                measurementunit: result.data.measurementunit || "",
-                isenabled: !!result.data.isenabled,
-                productgroupid: result.data.productgroupid || undefined,
+                                id: data.id,
+                                name: data.name || "",
+                                code: data.code || "",
+                                description: data.description || "",
+                                price: data.price || 0,
+                                cost: data.cost || 0,
+                                measurementunit: data.measurementunit || "",
+                                isenabled: !!data.isenabled,
+                                productgroupid: data.productgroupid || undefined,
                 taxes: taxIds,
-                reorderpoint: result.data.reorderpoint ?? 0,
-                lowstockwarningquantity: result.data.lowstockwarningquantity ?? 0,
-                islowstockwarningenabled: !!result.data.islowstockwarningenabled,
+                                reorderpoint: data.reorderpoint ?? 0,
+                                lowstockwarningquantity: data.lowstockwarningquantity ?? 0,
+                                islowstockwarningenabled: !!data.islowstockwarningenabled,
             });
           }
         })

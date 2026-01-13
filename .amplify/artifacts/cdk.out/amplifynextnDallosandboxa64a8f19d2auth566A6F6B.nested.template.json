@@ -301,7 +301,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/02LwQ6CMBBEv4V7WbH4A4aTF2NqPJvarrpQ2oQuEtP03w0xKKeZeTMjQdY1VIWeYmlsVzq6QTpiZLRn1qYTeorXZMLDEwdIl4jDKQQnmrv/+cU0jtDzuvqTg0XPxO/lvM4qONwza/Ps0XMWpHtIM5yHs+YsFMYwDgaz8MEitHHzkjvYSqiKNhKVw+iZegT11Q/BEqKd1wAAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/02LwQrCMBBEv6X3dG2DeJeevIhEPEtMVt02TaDZWiTk36VItaeZeTMjQdY7qAo9xdLYrnR0g3TEyGjPrE0n9BSvyYSHJw6QLhGHUwhONHf/84tpHKHndfUnB4ueid/LeZ1VcLhn1ubZo+csSPeQZjgPZ81ZKIxhHAxm4YNFaOPmJbdQS6iKNhKVw+iZegT11Q/OQGGh1wAAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/auth/CDKMetadata/Default"

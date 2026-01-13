@@ -4,9 +4,11 @@ import { PlaceHolderImages } from "./placeholder-images";
 const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
 export const user: User = {
-    name: "Usuario Admin",
-    email: "admin@inventoryedge.com",
-    avatar: userAvatar?.imageUrl || "https://picsum.photos/seed/user-avatar/40/40",
+  username: "Usuario Admin",
+  email: "admin@inventoryedge.com",
+  accessLevel: 1,
+  isEnabled: true,
+  avatar: userAvatar?.imageUrl || "https://picsum.photos/seed/user-avatar/40/40",
 };
 
 export const inventoryItems: InventoryItem[] = [

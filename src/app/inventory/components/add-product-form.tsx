@@ -433,7 +433,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                             </FormControl>
                             <SelectContent>
                                 {warehouses.map(wh => (
-                                    <SelectItem key={wh.id} value={String(wh.id)}>{wh.name}</SelectItem>
+                                  <SelectItem key={wh.idWarehouse} value={String(wh.idWarehouse)}>{wh.name}</SelectItem>
                                 ))}
                             </SelectContent>
                             </Select>

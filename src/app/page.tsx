@@ -27,12 +27,12 @@ export default function DashboardPage() {
 
 async function StatsCardsWrapper() {
   const { data, error } = await getDashboardStats();
-  return <StatsCards data={data} error={error} />;
+  return <StatsCards data={data ?? null} error={error} />;
 }
 
 async function RecentItemsWrapper() {
     const { data, error } = await getStockData();
-    return <RecentItems items={data} error={error} />;
+  return <RecentItems items={data ?? null} error={error} />;
 }
 
 

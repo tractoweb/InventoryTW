@@ -331,14 +331,14 @@ export async function finalizeDocument(
       await createKardexEntry({
         productId: item.productId,
         date: new Date(docData.stockDate || new Date()),
-        documentId: String(documentId),
+        documentId: Number(documentId),
         documentNumber: docData.number,
         type: stockDirection === DOCUMENT_STOCK_DIRECTION.IN ? 'ENTRADA' : 'SALIDA',
         quantity: item.quantity,
         balance: newQuantity,
         unitCost: item.productCost,
         totalCost: (item.productCost || 0) * item.quantity,
-        userId: userId,
+        userId: Number(userId),
         note: `From document ${docData.number}`,
       });
     }

@@ -1,7 +1,8 @@
 import { amplifyClient } from "@/lib/amplify-config";
+import { listAllPages } from "@/services/amplify-list-all";
 
 export async function listDocumentItems() {
-  return amplifyClient.models.DocumentItem.list();
+  return listAllPages(amplifyClient.models.DocumentItem.list);
 }
 
 export async function createDocumentItem(documentItem: any) {

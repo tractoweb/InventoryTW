@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -21,7 +21,6 @@ import { getStockData } from "@/actions/get-stock-data";
 import { Skeleton } from "../ui/skeleton";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Terminal } from "lucide-react";
-import type { Product } from "@/lib/types";
 
 type ChartData = {
   category: string;
@@ -54,9 +53,9 @@ export function InventoryChart({ className }: { className?: string }) {
         const productStock: { [key: string]: number } = {};
         items.forEach(item => {
           if (productStock[item.name]) {
-            productStock[item.name] += item.totalStock || 0;
+            productStock[item.name] += item.quantity || 0;
           } else {
-            productStock[item.name] = item.totalStock || 0;
+            productStock[item.name] = item.quantity || 0;
           }
         });
 

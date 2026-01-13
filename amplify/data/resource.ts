@@ -105,6 +105,7 @@ const schema = a.schema({
     kardexHistories: a.hasMany('KardexHistory', 'productId'),
   }).identifier(['idProduct']).authorization((allow) => [allow.publicApiKey()]),
 
+  
   Barcode: a.model({
     productId: a.integer().required(),
     value: a.string().required(),
@@ -120,6 +121,7 @@ const schema = a.schema({
   }).identifier(['productId', 'warehouseId']).authorization((allow) => [allow.publicApiKey()]),
 
   StockControl: a.model({
+    stockControlId: a.integer().required(),
     productId: a.integer().required(),
     customerId: a.integer(),
     reorderPoint: a.float().default(0),
@@ -127,7 +129,10 @@ const schema = a.schema({
     isLowStockWarningEnabled: a.boolean().default(true),
     lowStockWarningQuantity: a.float().default(0),
     product: a.belongsTo('Product', 'productId'),
-  }).identifier(['productId']).authorization((allow) => [allow.publicApiKey()]),
+  })
+    .identifier(['stockControlId'])
+    .secondaryIndexes((index) => [index('productId').name('byProductId')])
+    .authorization((allow) => [allow.publicApiKey()]),
 
   ProductComment: a.model({
     commentId: a.integer().required(),

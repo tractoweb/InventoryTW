@@ -46,7 +46,7 @@ export default function JsonImportPage() {
           <Button className="w-full">Importar Stock</Button>
         </Link>
         <Link href="/json/customer">
-          <Button className="w-full">Importar Clientes</Button>
+          <Button className="w-full">Importar Proveedores</Button>
         </Link>
         <Link href="/json/user">
           <Button className="w-full">Importar Usuarios</Button>
@@ -55,7 +55,7 @@ export default function JsonImportPage() {
           <Button className="w-full">Importar Contadores</Button>
         </Link>
         <Link href="/json/customerDiscount">
-          <Button className="w-full">Importar Descuentos de Cliente</Button>
+          <Button className="w-full">Importar Descuentos (CustomerDiscount)</Button>
         </Link>
         <Link href="/json/producttax">
           <Button className="w-full">Importar Impuestos de Producto</Button>

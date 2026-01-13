@@ -1,0 +1,3844 @@
+type User @aws_iam @aws_api_key {
+  userId: Int!
+  username: String!
+  password: String!
+  accessLevel: Int
+  firstName: String
+  lastName: String
+  email: AWSEmail
+  isEnabled: Boolean
+  documents(filter: ModelDocumentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentConnection
+  payments(filter: ModelPaymentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPaymentConnection
+  startingCashes(filter: ModelStartingCashFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelStartingCashConnection
+  posOrders(filter: ModelPosOrderFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPosOrderConnection
+  sessionConfig: SessionConfig
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Company @aws_iam @aws_api_key {
+  idCompany: Int!
+  name: String!
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  taxNumber: String
+  email: String
+  phoneNumber: String
+  logo: String
+  bankAccountNumber: String
+  bankDetails: String
+  streetName: String
+  additionalStreetName: String
+  buildingNumber: String
+  plotIdentification: String
+  citySubdivisionName: String
+  countrySubentity: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Country @aws_iam @aws_api_key {
+  idCountry: Int!
+  name: String!
+  code: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Currency @aws_iam @aws_api_key {
+  idCurrency: Int!
+  name: String!
+  code: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Warehouse @aws_iam @aws_api_key {
+  idWarehouse: Int!
+  name: String!
+  stocks(filter: ModelStockFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelStockConnection
+  documents(filter: ModelDocumentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentConnection
+  documentTypes(filter: ModelDocumentTypeFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentTypeConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ProductGroup @aws_iam @aws_api_key {
+  idProductGroup: Int!
+  name: String!
+  parentGroupId: Int
+  color: String
+  image: String
+  rank: Int
+  products(filter: ModelProductFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelProductConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Product @aws_iam @aws_api_key {
+  idProduct: Int!
+  name: String!
+  code: String
+  plu: Int
+  measurementUnit: String
+  price: Float
+  isTaxInclusivePrice: Boolean
+  currencyId: Int
+  isPriceChangeAllowed: Boolean
+  isService: Boolean
+  isUsingDefaultQuantity: Boolean
+  isEnabled: Boolean
+  description: String
+  cost: Float
+  markup: Float
+  image: String
+  color: String
+  ageRestriction: Float
+  lastPurchasePrice: Float
+  rank: Float
+  productGroupId: Int
+  productGroup: ProductGroup
+  barcodes(filter: ModelBarcodeFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelBarcodeConnection
+  stocks(filter: ModelStockFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelStockConnection
+  stockControls(filter: ModelStockControlFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelStockControlConnection
+  documentItems(filter: ModelDocumentItemFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentItemConnection
+  comments(filter: ModelProductCommentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelProductCommentConnection
+  taxes(filter: ModelProductTaxFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelProductTaxConnection
+  kardexEntries(filter: ModelKardexFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelKardexConnection
+  kardexHistories(filter: ModelKardexHistoryFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelKardexHistoryConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Barcode @aws_iam @aws_api_key {
+  productId: Int!
+  value: String!
+  product: Product
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Stock @aws_iam @aws_api_key {
+  productId: Int!
+  warehouseId: Int!
+  quantity: Float!
+  product: Product
+  warehouse: Warehouse
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type StockControl @aws_iam @aws_api_key {
+  stockControlId: Int!
+  productId: Int!
+  customerId: Int
+  reorderPoint: Float
+  preferredQuantity: Float
+  isLowStockWarningEnabled: Boolean
+  lowStockWarningQuantity: Float
+  product: Product
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ProductComment @aws_iam @aws_api_key {
+  commentId: Int!
+  productId: Int!
+  comment: String!
+  product: Product
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Kardex @aws_iam @aws_api_key {
+  kardexId: Int!
+  productId: Int!
+  date: AWSDateTime!
+  documentId: Int
+  documentNumber: String
+  type: String!
+  quantity: Float!
+  balance: Float!
+  unitCost: Float
+  totalCost: Float
+  note: String
+  userId: Int
+  product: Product
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type KardexHistory @aws_iam @aws_api_key {
+  kardexHistoryId: Int!
+  kardexId: Int!
+  productId: Int!
+  previousBalance: Float
+  newBalance: Float
+  modifiedBy: Int
+  modifiedDate: AWSDateTime!
+  reason: String
+  product: Product
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Customer @aws_iam @aws_api_key {
+  idCustomer: Int!
+  code: String
+  name: String!
+  taxNumber: String
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  email: String
+  phoneNumber: String
+  isEnabled: Boolean
+  isCustomer: Boolean
+  isSupplier: Boolean
+  dueDatePeriod: Int
+  isTaxExempt: Boolean
+  documents(filter: ModelDocumentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentConnection
+  discounts(filter: ModelCustomerDiscountFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelCustomerDiscountConnection
+  loyaltyCards(filter: ModelLoyaltyCardFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelLoyaltyCardConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type CustomerDiscount @aws_iam @aws_api_key {
+  customerDiscountId: Int!
+  customerId: Int!
+  type: Int
+  uid: Int
+  value: Float
+  customer: Customer
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type LoyaltyCard @aws_iam @aws_api_key {
+  cardNumber: String!
+  customerId: Int!
+  customer: Customer
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentCategory @aws_iam @aws_api_key {
+  idDocumentCategory: Int!
+  name: String!
+  languageKey: String
+  documentTypes(filter: ModelDocumentTypeFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentTypeConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentType @aws_iam @aws_api_key {
+  documentTypeId: Int!
+  name: String!
+  code: String!
+  documentCategoryId: Int!
+  warehouseId: Int!
+  stockDirection: Int
+  editorType: Int
+  printTemplate: String
+  priceType: Int
+  languageKey: String
+  warehouse: Warehouse
+  category: DocumentCategory
+  documents(filter: ModelDocumentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Document @aws_iam @aws_api_key {
+  documentId: Int!
+  number: String!
+  userId: Int!
+  customerId: Int
+  orderNumber: String
+  date: AWSDate!
+  stockDate: AWSDateTime!
+  total: Float!
+  isClockedOut: Boolean
+  documentTypeId: Int!
+  warehouseId: Int!
+  referenceDocumentNumber: String
+  internalNote: String
+  note: String
+  dueDate: AWSDate
+  discount: Float
+  discountType: Int
+  paidStatus: Int
+  discountApplyRule: Int
+  serviceType: Int
+  user: User
+  customer: Customer
+  warehouse: Warehouse
+  documentType: DocumentType
+  items(filter: ModelDocumentItemFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentItemConnection
+  payments(filter: ModelPaymentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPaymentConnection
+  itemPriceViews(filter: ModelDocumentItemPriceViewFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentItemPriceViewConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentItem @aws_iam @aws_api_key {
+  documentId: Int!
+  productId: Int!
+  quantity: Float!
+  expectedQuantity: Float
+  priceBeforeTax: Float
+  price: Float!
+  discount: Float
+  discountType: Int
+  productCost: Float
+  priceBeforeTaxAfterDiscount: Float
+  priceAfterDiscount: Float
+  total: Float
+  totalAfterDocumentDiscount: Float
+  discountApplyRule: Int
+  priceView: DocumentItemPriceView
+  document: Document
+  product: Product
+  taxes(filter: ModelDocumentItemTaxFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentItemTaxConnection
+  documentItemId: Int!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentItemPriceView @aws_iam @aws_api_key {
+  documentItemId: Int!
+  price: Float!
+  documentId: Int!
+  documentItem: DocumentItem
+  document: Document
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Tax @aws_iam @aws_api_key {
+  idTax: Int!
+  name: String!
+  rate: Float!
+  code: String
+  isFixed: Boolean
+  isTaxOnTotal: Boolean
+  isEnabled: Boolean
+  productTaxes(filter: ModelProductTaxFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelProductTaxConnection
+  documentItemTaxes(filter: ModelDocumentItemTaxFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelDocumentItemTaxConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ProductTax @aws_iam @aws_api_key {
+  productId: Int!
+  taxId: Int!
+  product: Product
+  tax: Tax
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentItemTax @aws_iam @aws_api_key {
+  documentItemId: Int!
+  taxId: Int!
+  amount: Float!
+  documentItem: DocumentItem
+  tax: Tax
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type PaymentType @aws_iam @aws_api_key {
+  paymentTypeId: Int!
+  name: String!
+  code: String
+  isCustomerRequired: Boolean
+  isFiscal: Boolean
+  isSlipRequired: Boolean
+  isChangeAllowed: Boolean
+  ordinal: Int
+  isEnabled: Boolean
+  isQuickPayment: Boolean
+  openCashDrawer: Boolean
+  shortcutKey: String
+  markAsPaid: Boolean
+  payments(filter: ModelPaymentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPaymentConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Payment @aws_iam @aws_api_key {
+  paymentId: Int!
+  documentId: Int!
+  paymentTypeId: Int!
+  amount: Float!
+  date: AWSDate
+  userId: Int
+  zReportId: Int
+  document: Document
+  paymentType: PaymentType
+  user: User
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type PosOrder @aws_iam @aws_api_key {
+  posOrderId: Int!
+  userId: Int!
+  number: String!
+  discount: Float
+  discountType: Int
+  total: Float
+  customerId: Int
+  serviceType: Int
+  user: User
+  items(filter: ModelPosOrderItemFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPosOrderItemConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type PosOrderItem @aws_iam @aws_api_key {
+  posOrderId: Int!
+  productId: Int!
+  roundNumber: Int
+  quantity: Float!
+  price: Float!
+  isLocked: Boolean
+  discount: Float
+  discountType: Int
+  isFeatured: Boolean
+  voidedBy: Int
+  comment: String
+  dateCreated: AWSDate!
+  bundle: String
+  discountAppliedType: Int
+  posOrder: PosOrder
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type StartingCash @aws_iam @aws_api_key {
+  startingCashId: Int!
+  userId: Int!
+  amount: Float!
+  description: String
+  startingCashType: Int
+  zReportNumber: Int
+  user: User
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Counter @aws_iam @aws_api_key {
+  name: String!
+  value: Int!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ApplicationProperty @aws_iam @aws_api_key {
+  name: String!
+  value: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ZReport @aws_iam @aws_api_key {
+  number: Int!
+  fromDocumentId: Int!
+  toDocumentId: Int!
+  dateCreated: AWSDateTime!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Template @aws_iam @aws_api_key {
+  name: String!
+  value: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type SessionConfig @aws_iam @aws_api_key {
+  userId: Int!
+  accessLevel: Int!
+  firstName: String
+  lastName: String
+  email: String
+  loginTime: AWSDateTime!
+  lastActivityTime: AWSDateTime
+  isActive: Boolean
+  sessionToken: String
+  user: User
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ApplicationSettings @aws_iam @aws_api_key {
+  companyId: Int!
+  organizationName: String
+  organizationLogo: String
+  primaryColor: String
+  currencySymbol: String
+  dateFormat: String
+  timeFormat: String
+  taxPercentage: Float
+  allowNegativeStock: Boolean
+  defaultWarehouseId: Int
+  lastModifiedBy: Int
+  lastModifiedDate: AWSDateTime
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type AuditLog @aws_iam @aws_api_key {
+  logId: ID!
+  userId: Int!
+  action: String!
+  tableName: String!
+  recordId: Int!
+  oldValues: String
+  newValues: String
+  timestamp: AWSDateTime!
+  ipAddress: String
+  userAgent: String
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type DocumentNumber @aws_iam @aws_api_key {
+  documentTypeId: Int!
+  warehouseId: Int!
+  year: Int!
+  month: Int!
+  sequence: Int!
+  lastNumber: Int!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+input AmplifyAIConversationTurnErrorInput {
+  errorType: String!
+  message: String!
+}
+
+input ModelStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelBooleanInput {
+  ne: Boolean
+  eq: Boolean
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelSubscriptionStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  in: [String]
+  notIn: [String]
+}
+
+input ModelSubscriptionIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  in: [Int]
+  notIn: [Int]
+}
+
+input ModelSubscriptionFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  in: [Float]
+  notIn: [Float]
+}
+
+input ModelSubscriptionBooleanInput {
+  ne: Boolean
+  eq: Boolean
+}
+
+input ModelSubscriptionIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  in: [ID]
+  notIn: [ID]
+}
+
+enum ModelAttributeTypes {
+  binary
+  binarySet
+  bool
+  list
+  map
+  number
+  numberSet
+  string
+  stringSet
+  _null
+}
+
+input ModelSizeInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+}
+
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+type ModelUserConnection @aws_api_key @aws_iam {
+  items: [User]!
+  nextToken: String
+}
+
+input ModelUserFilterInput {
+  userId: ModelIntInput
+  username: ModelStringInput
+  password: ModelStringInput
+  accessLevel: ModelIntInput
+  firstName: ModelStringInput
+  lastName: ModelStringInput
+  email: ModelStringInput
+  isEnabled: ModelBooleanInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelUserFilterInput]
+  or: [ModelUserFilterInput]
+  not: ModelUserFilterInput
+}
+
+type Query {
+  getUser(userId: Int!): User @aws_api_key @aws_iam
+  listUsers(userId: Int, filter: ModelUserFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelUserConnection @aws_api_key @aws_iam
+  getCompany(idCompany: Int!): Company @aws_api_key @aws_iam
+  listCompanies(idCompany: Int, filter: ModelCompanyFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCompanyConnection @aws_api_key @aws_iam
+  getCountry(idCountry: Int!): Country @aws_api_key @aws_iam
+  listCountries(idCountry: Int, filter: ModelCountryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCountryConnection @aws_api_key @aws_iam
+  getCurrency(idCurrency: Int!): Currency @aws_api_key @aws_iam
+  listCurrencies(idCurrency: Int, filter: ModelCurrencyFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCurrencyConnection @aws_api_key @aws_iam
+  getWarehouse(idWarehouse: Int!): Warehouse @aws_api_key @aws_iam
+  listWarehouses(idWarehouse: Int, filter: ModelWarehouseFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelWarehouseConnection @aws_api_key @aws_iam
+  getProductGroup(idProductGroup: Int!): ProductGroup @aws_api_key @aws_iam
+  listProductGroups(idProductGroup: Int, filter: ModelProductGroupFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelProductGroupConnection @aws_api_key @aws_iam
+  getProduct(idProduct: Int!): Product @aws_api_key @aws_iam
+  listProducts(idProduct: Int, filter: ModelProductFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelProductConnection @aws_api_key @aws_iam
+  getBarcode(productId: Int!, value: String!): Barcode @aws_api_key @aws_iam
+  listBarcodes(productId: Int, value: ModelStringKeyConditionInput, filter: ModelBarcodeFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelBarcodeConnection @aws_api_key @aws_iam
+  getStock(productId: Int!, warehouseId: Int!): Stock @aws_api_key @aws_iam
+  listStocks(productId: Int, warehouseId: ModelIntKeyConditionInput, filter: ModelStockFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelStockConnection @aws_api_key @aws_iam
+  getStockControl(stockControlId: Int!): StockControl @aws_api_key @aws_iam
+  listStockControls(stockControlId: Int, filter: ModelStockControlFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelStockControlConnection @aws_api_key @aws_iam
+  listStockControlByProductId(productId: Int!, sortDirection: ModelSortDirection, filter: ModelStockControlFilterInput, limit: Int, nextToken: String): ModelStockControlConnection @aws_api_key @aws_iam
+  getProductComment(commentId: Int!): ProductComment @aws_api_key @aws_iam
+  listProductComments(commentId: Int, filter: ModelProductCommentFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelProductCommentConnection @aws_api_key @aws_iam
+  getKardex(kardexId: Int!): Kardex @aws_api_key @aws_iam
+  listKardexes(kardexId: Int, filter: ModelKardexFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelKardexConnection @aws_api_key @aws_iam
+  getKardexHistory(kardexHistoryId: Int!): KardexHistory @aws_api_key @aws_iam
+  listKardexHistories(kardexHistoryId: Int, filter: ModelKardexHistoryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelKardexHistoryConnection @aws_api_key @aws_iam
+  getCustomer(idCustomer: Int!): Customer @aws_api_key @aws_iam
+  listCustomers(idCustomer: Int, filter: ModelCustomerFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCustomerConnection @aws_api_key @aws_iam
+  getCustomerDiscount(customerDiscountId: Int!): CustomerDiscount @aws_api_key @aws_iam
+  listCustomerDiscounts(customerDiscountId: Int, filter: ModelCustomerDiscountFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCustomerDiscountConnection @aws_api_key @aws_iam
+  getLoyaltyCard(cardNumber: String!): LoyaltyCard @aws_api_key @aws_iam
+  listLoyaltyCards(cardNumber: String, filter: ModelLoyaltyCardFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLoyaltyCardConnection @aws_api_key @aws_iam
+  getDocumentCategory(idDocumentCategory: Int!): DocumentCategory @aws_api_key @aws_iam
+  listDocumentCategories(idDocumentCategory: Int, filter: ModelDocumentCategoryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentCategoryConnection @aws_api_key @aws_iam
+  getDocumentType(documentTypeId: Int!): DocumentType @aws_api_key @aws_iam
+  listDocumentTypes(documentTypeId: Int, filter: ModelDocumentTypeFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentTypeConnection @aws_api_key @aws_iam
+  getDocument(documentId: Int!): Document @aws_api_key @aws_iam
+  listDocuments(documentId: Int, filter: ModelDocumentFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentConnection @aws_api_key @aws_iam
+  getDocumentItem(documentItemId: Int!): DocumentItem @aws_api_key @aws_iam
+  listDocumentItems(documentItemId: Int, filter: ModelDocumentItemFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentItemConnection @aws_api_key @aws_iam
+  getDocumentItemPriceView(documentItemId: Int!): DocumentItemPriceView @aws_api_key @aws_iam
+  listDocumentItemPriceViews(documentItemId: Int, filter: ModelDocumentItemPriceViewFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentItemPriceViewConnection @aws_api_key @aws_iam
+  getTax(idTax: Int!): Tax @aws_api_key @aws_iam
+  listTaxes(idTax: Int, filter: ModelTaxFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTaxConnection @aws_api_key @aws_iam
+  getProductTax(productId: Int!, taxId: Int!): ProductTax @aws_api_key @aws_iam
+  listProductTaxes(productId: Int, taxId: ModelIntKeyConditionInput, filter: ModelProductTaxFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelProductTaxConnection @aws_api_key @aws_iam
+  getDocumentItemTax(documentItemId: Int!, taxId: Int!): DocumentItemTax @aws_api_key @aws_iam
+  listDocumentItemTaxes(documentItemId: Int, taxId: ModelIntKeyConditionInput, filter: ModelDocumentItemTaxFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentItemTaxConnection @aws_api_key @aws_iam
+  getPaymentType(paymentTypeId: Int!): PaymentType @aws_api_key @aws_iam
+  listPaymentTypes(paymentTypeId: Int, filter: ModelPaymentTypeFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPaymentTypeConnection @aws_api_key @aws_iam
+  getPayment(paymentId: Int!): Payment @aws_api_key @aws_iam
+  listPayments(paymentId: Int, filter: ModelPaymentFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPaymentConnection @aws_api_key @aws_iam
+  getPosOrder(posOrderId: Int!): PosOrder @aws_api_key @aws_iam
+  listPosOrders(posOrderId: Int, filter: ModelPosOrderFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPosOrderConnection @aws_api_key @aws_iam
+  getPosOrderItem(posOrderId: Int!, productId: Int!): PosOrderItem @aws_api_key @aws_iam
+  listPosOrderItems(posOrderId: Int, productId: ModelIntKeyConditionInput, filter: ModelPosOrderItemFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPosOrderItemConnection @aws_api_key @aws_iam
+  getStartingCash(startingCashId: Int!): StartingCash @aws_api_key @aws_iam
+  listStartingCashes(startingCashId: Int, filter: ModelStartingCashFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelStartingCashConnection @aws_api_key @aws_iam
+  getCounter(name: String!): Counter @aws_api_key @aws_iam
+  listCounters(name: String, filter: ModelCounterFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCounterConnection @aws_api_key @aws_iam
+  getApplicationProperty(name: String!): ApplicationProperty @aws_api_key @aws_iam
+  listApplicationProperties(name: String, filter: ModelApplicationPropertyFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelApplicationPropertyConnection @aws_api_key @aws_iam
+  getZReport(number: Int!): ZReport @aws_api_key @aws_iam
+  listZReports(number: Int, filter: ModelZReportFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelZReportConnection @aws_api_key @aws_iam
+  getTemplate(name: String!): Template @aws_api_key @aws_iam
+  listTemplates(name: String, filter: ModelTemplateFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTemplateConnection @aws_api_key @aws_iam
+  getSessionConfig(userId: Int!): SessionConfig @aws_api_key @aws_iam
+  listSessionConfigs(userId: Int, filter: ModelSessionConfigFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelSessionConfigConnection @aws_api_key @aws_iam
+  getApplicationSettings(companyId: Int!): ApplicationSettings @aws_api_key @aws_iam
+  listApplicationSettings(companyId: Int, filter: ModelApplicationSettingsFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelApplicationSettingsConnection @aws_api_key @aws_iam
+  getAuditLog(id: ID!): AuditLog @aws_api_key @aws_iam
+  listAuditLogs(filter: ModelAuditLogFilterInput, limit: Int, nextToken: String): ModelAuditLogConnection @aws_api_key @aws_iam
+  getDocumentNumber(documentTypeId: Int!, warehouseId: Int!, year: Int!): DocumentNumber @aws_api_key @aws_iam
+  listDocumentNumbers(documentTypeId: Int, warehouseIdYear: ModelDocumentNumberPrimaryCompositeKeyConditionInput, filter: ModelDocumentNumberFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelDocumentNumberConnection @aws_api_key @aws_iam
+}
+
+input ModelUserConditionInput {
+  username: ModelStringInput
+  password: ModelStringInput
+  accessLevel: ModelIntInput
+  firstName: ModelStringInput
+  lastName: ModelStringInput
+  email: ModelStringInput
+  isEnabled: ModelBooleanInput
+  and: [ModelUserConditionInput]
+  or: [ModelUserConditionInput]
+  not: ModelUserConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateUserInput {
+  userId: Int!
+  username: String!
+  password: String!
+  accessLevel: Int
+  firstName: String
+  lastName: String
+  email: AWSEmail
+  isEnabled: Boolean
+}
+
+input UpdateUserInput {
+  userId: Int!
+  username: String
+  password: String
+  accessLevel: Int
+  firstName: String
+  lastName: String
+  email: AWSEmail
+  isEnabled: Boolean
+}
+
+input DeleteUserInput {
+  userId: Int!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!, condition: ModelUserConditionInput): User @aws_api_key @aws_iam
+  updateUser(input: UpdateUserInput!, condition: ModelUserConditionInput): User @aws_api_key @aws_iam
+  deleteUser(input: DeleteUserInput!, condition: ModelUserConditionInput): User @aws_api_key @aws_iam
+  createCompany(input: CreateCompanyInput!, condition: ModelCompanyConditionInput): Company @aws_api_key @aws_iam
+  updateCompany(input: UpdateCompanyInput!, condition: ModelCompanyConditionInput): Company @aws_api_key @aws_iam
+  deleteCompany(input: DeleteCompanyInput!, condition: ModelCompanyConditionInput): Company @aws_api_key @aws_iam
+  createCountry(input: CreateCountryInput!, condition: ModelCountryConditionInput): Country @aws_api_key @aws_iam
+  updateCountry(input: UpdateCountryInput!, condition: ModelCountryConditionInput): Country @aws_api_key @aws_iam
+  deleteCountry(input: DeleteCountryInput!, condition: ModelCountryConditionInput): Country @aws_api_key @aws_iam
+  createCurrency(input: CreateCurrencyInput!, condition: ModelCurrencyConditionInput): Currency @aws_api_key @aws_iam
+  updateCurrency(input: UpdateCurrencyInput!, condition: ModelCurrencyConditionInput): Currency @aws_api_key @aws_iam
+  deleteCurrency(input: DeleteCurrencyInput!, condition: ModelCurrencyConditionInput): Currency @aws_api_key @aws_iam
+  createWarehouse(input: CreateWarehouseInput!, condition: ModelWarehouseConditionInput): Warehouse @aws_api_key @aws_iam
+  updateWarehouse(input: UpdateWarehouseInput!, condition: ModelWarehouseConditionInput): Warehouse @aws_api_key @aws_iam
+  deleteWarehouse(input: DeleteWarehouseInput!, condition: ModelWarehouseConditionInput): Warehouse @aws_api_key @aws_iam
+  createProductGroup(input: CreateProductGroupInput!, condition: ModelProductGroupConditionInput): ProductGroup @aws_api_key @aws_iam
+  updateProductGroup(input: UpdateProductGroupInput!, condition: ModelProductGroupConditionInput): ProductGroup @aws_api_key @aws_iam
+  deleteProductGroup(input: DeleteProductGroupInput!, condition: ModelProductGroupConditionInput): ProductGroup @aws_api_key @aws_iam
+  createProduct(input: CreateProductInput!, condition: ModelProductConditionInput): Product @aws_api_key @aws_iam
+  updateProduct(input: UpdateProductInput!, condition: ModelProductConditionInput): Product @aws_api_key @aws_iam
+  deleteProduct(input: DeleteProductInput!, condition: ModelProductConditionInput): Product @aws_api_key @aws_iam
+  createBarcode(input: CreateBarcodeInput!, condition: ModelBarcodeConditionInput): Barcode @aws_api_key @aws_iam
+  updateBarcode(input: UpdateBarcodeInput!, condition: ModelBarcodeConditionInput): Barcode @aws_api_key @aws_iam
+  deleteBarcode(input: DeleteBarcodeInput!, condition: ModelBarcodeConditionInput): Barcode @aws_api_key @aws_iam
+  createStock(input: CreateStockInput!, condition: ModelStockConditionInput): Stock @aws_api_key @aws_iam
+  updateStock(input: UpdateStockInput!, condition: ModelStockConditionInput): Stock @aws_api_key @aws_iam
+  deleteStock(input: DeleteStockInput!, condition: ModelStockConditionInput): Stock @aws_api_key @aws_iam
+  createStockControl(input: CreateStockControlInput!, condition: ModelStockControlConditionInput): StockControl @aws_api_key @aws_iam
+  updateStockControl(input: UpdateStockControlInput!, condition: ModelStockControlConditionInput): StockControl @aws_api_key @aws_iam
+  deleteStockControl(input: DeleteStockControlInput!, condition: ModelStockControlConditionInput): StockControl @aws_api_key @aws_iam
+  createProductComment(input: CreateProductCommentInput!, condition: ModelProductCommentConditionInput): ProductComment @aws_api_key @aws_iam
+  updateProductComment(input: UpdateProductCommentInput!, condition: ModelProductCommentConditionInput): ProductComment @aws_api_key @aws_iam
+  deleteProductComment(input: DeleteProductCommentInput!, condition: ModelProductCommentConditionInput): ProductComment @aws_api_key @aws_iam
+  createKardex(input: CreateKardexInput!, condition: ModelKardexConditionInput): Kardex @aws_api_key @aws_iam
+  updateKardex(input: UpdateKardexInput!, condition: ModelKardexConditionInput): Kardex @aws_api_key @aws_iam
+  deleteKardex(input: DeleteKardexInput!, condition: ModelKardexConditionInput): Kardex @aws_api_key @aws_iam
+  createKardexHistory(input: CreateKardexHistoryInput!, condition: ModelKardexHistoryConditionInput): KardexHistory @aws_api_key @aws_iam
+  updateKardexHistory(input: UpdateKardexHistoryInput!, condition: ModelKardexHistoryConditionInput): KardexHistory @aws_api_key @aws_iam
+  deleteKardexHistory(input: DeleteKardexHistoryInput!, condition: ModelKardexHistoryConditionInput): KardexHistory @aws_api_key @aws_iam
+  createCustomer(input: CreateCustomerInput!, condition: ModelCustomerConditionInput): Customer @aws_api_key @aws_iam
+  updateCustomer(input: UpdateCustomerInput!, condition: ModelCustomerConditionInput): Customer @aws_api_key @aws_iam
+  deleteCustomer(input: DeleteCustomerInput!, condition: ModelCustomerConditionInput): Customer @aws_api_key @aws_iam
+  createCustomerDiscount(input: CreateCustomerDiscountInput!, condition: ModelCustomerDiscountConditionInput): CustomerDiscount @aws_api_key @aws_iam
+  updateCustomerDiscount(input: UpdateCustomerDiscountInput!, condition: ModelCustomerDiscountConditionInput): CustomerDiscount @aws_api_key @aws_iam
+  deleteCustomerDiscount(input: DeleteCustomerDiscountInput!, condition: ModelCustomerDiscountConditionInput): CustomerDiscount @aws_api_key @aws_iam
+  createLoyaltyCard(input: CreateLoyaltyCardInput!, condition: ModelLoyaltyCardConditionInput): LoyaltyCard @aws_api_key @aws_iam
+  updateLoyaltyCard(input: UpdateLoyaltyCardInput!, condition: ModelLoyaltyCardConditionInput): LoyaltyCard @aws_api_key @aws_iam
+  deleteLoyaltyCard(input: DeleteLoyaltyCardInput!, condition: ModelLoyaltyCardConditionInput): LoyaltyCard @aws_api_key @aws_iam
+  createDocumentCategory(input: CreateDocumentCategoryInput!, condition: ModelDocumentCategoryConditionInput): DocumentCategory @aws_api_key @aws_iam
+  updateDocumentCategory(input: UpdateDocumentCategoryInput!, condition: ModelDocumentCategoryConditionInput): DocumentCategory @aws_api_key @aws_iam
+  deleteDocumentCategory(input: DeleteDocumentCategoryInput!, condition: ModelDocumentCategoryConditionInput): DocumentCategory @aws_api_key @aws_iam
+  createDocumentType(input: CreateDocumentTypeInput!, condition: ModelDocumentTypeConditionInput): DocumentType @aws_api_key @aws_iam
+  updateDocumentType(input: UpdateDocumentTypeInput!, condition: ModelDocumentTypeConditionInput): DocumentType @aws_api_key @aws_iam
+  deleteDocumentType(input: DeleteDocumentTypeInput!, condition: ModelDocumentTypeConditionInput): DocumentType @aws_api_key @aws_iam
+  createDocument(input: CreateDocumentInput!, condition: ModelDocumentConditionInput): Document @aws_api_key @aws_iam
+  updateDocument(input: UpdateDocumentInput!, condition: ModelDocumentConditionInput): Document @aws_api_key @aws_iam
+  deleteDocument(input: DeleteDocumentInput!, condition: ModelDocumentConditionInput): Document @aws_api_key @aws_iam
+  createDocumentItem(input: CreateDocumentItemInput!, condition: ModelDocumentItemConditionInput): DocumentItem @aws_api_key @aws_iam
+  updateDocumentItem(input: UpdateDocumentItemInput!, condition: ModelDocumentItemConditionInput): DocumentItem @aws_api_key @aws_iam
+  deleteDocumentItem(input: DeleteDocumentItemInput!, condition: ModelDocumentItemConditionInput): DocumentItem @aws_api_key @aws_iam
+  createDocumentItemPriceView(input: CreateDocumentItemPriceViewInput!, condition: ModelDocumentItemPriceViewConditionInput): DocumentItemPriceView @aws_api_key @aws_iam
+  updateDocumentItemPriceView(input: UpdateDocumentItemPriceViewInput!, condition: ModelDocumentItemPriceViewConditionInput): DocumentItemPriceView @aws_api_key @aws_iam
+  deleteDocumentItemPriceView(input: DeleteDocumentItemPriceViewInput!, condition: ModelDocumentItemPriceViewConditionInput): DocumentItemPriceView @aws_api_key @aws_iam
+  createTax(input: CreateTaxInput!, condition: ModelTaxConditionInput): Tax @aws_api_key @aws_iam
+  updateTax(input: UpdateTaxInput!, condition: ModelTaxConditionInput): Tax @aws_api_key @aws_iam
+  deleteTax(input: DeleteTaxInput!, condition: ModelTaxConditionInput): Tax @aws_api_key @aws_iam
+  createProductTax(input: CreateProductTaxInput!, condition: ModelProductTaxConditionInput): ProductTax @aws_api_key @aws_iam
+  updateProductTax(input: UpdateProductTaxInput!, condition: ModelProductTaxConditionInput): ProductTax @aws_api_key @aws_iam
+  deleteProductTax(input: DeleteProductTaxInput!, condition: ModelProductTaxConditionInput): ProductTax @aws_api_key @aws_iam
+  createDocumentItemTax(input: CreateDocumentItemTaxInput!, condition: ModelDocumentItemTaxConditionInput): DocumentItemTax @aws_api_key @aws_iam
+  updateDocumentItemTax(input: UpdateDocumentItemTaxInput!, condition: ModelDocumentItemTaxConditionInput): DocumentItemTax @aws_api_key @aws_iam
+  deleteDocumentItemTax(input: DeleteDocumentItemTaxInput!, condition: ModelDocumentItemTaxConditionInput): DocumentItemTax @aws_api_key @aws_iam
+  createPaymentType(input: CreatePaymentTypeInput!, condition: ModelPaymentTypeConditionInput): PaymentType @aws_api_key @aws_iam
+  updatePaymentType(input: UpdatePaymentTypeInput!, condition: ModelPaymentTypeConditionInput): PaymentType @aws_api_key @aws_iam
+  deletePaymentType(input: DeletePaymentTypeInput!, condition: ModelPaymentTypeConditionInput): PaymentType @aws_api_key @aws_iam
+  createPayment(input: CreatePaymentInput!, condition: ModelPaymentConditionInput): Payment @aws_api_key @aws_iam
+  updatePayment(input: UpdatePaymentInput!, condition: ModelPaymentConditionInput): Payment @aws_api_key @aws_iam
+  deletePayment(input: DeletePaymentInput!, condition: ModelPaymentConditionInput): Payment @aws_api_key @aws_iam
+  createPosOrder(input: CreatePosOrderInput!, condition: ModelPosOrderConditionInput): PosOrder @aws_api_key @aws_iam
+  updatePosOrder(input: UpdatePosOrderInput!, condition: ModelPosOrderConditionInput): PosOrder @aws_api_key @aws_iam
+  deletePosOrder(input: DeletePosOrderInput!, condition: ModelPosOrderConditionInput): PosOrder @aws_api_key @aws_iam
+  createPosOrderItem(input: CreatePosOrderItemInput!, condition: ModelPosOrderItemConditionInput): PosOrderItem @aws_api_key @aws_iam
+  updatePosOrderItem(input: UpdatePosOrderItemInput!, condition: ModelPosOrderItemConditionInput): PosOrderItem @aws_api_key @aws_iam
+  deletePosOrderItem(input: DeletePosOrderItemInput!, condition: ModelPosOrderItemConditionInput): PosOrderItem @aws_api_key @aws_iam
+  createStartingCash(input: CreateStartingCashInput!, condition: ModelStartingCashConditionInput): StartingCash @aws_api_key @aws_iam
+  updateStartingCash(input: UpdateStartingCashInput!, condition: ModelStartingCashConditionInput): StartingCash @aws_api_key @aws_iam
+  deleteStartingCash(input: DeleteStartingCashInput!, condition: ModelStartingCashConditionInput): StartingCash @aws_api_key @aws_iam
+  createCounter(input: CreateCounterInput!, condition: ModelCounterConditionInput): Counter @aws_api_key @aws_iam
+  updateCounter(input: UpdateCounterInput!, condition: ModelCounterConditionInput): Counter @aws_api_key @aws_iam
+  deleteCounter(input: DeleteCounterInput!, condition: ModelCounterConditionInput): Counter @aws_api_key @aws_iam
+  createApplicationProperty(input: CreateApplicationPropertyInput!, condition: ModelApplicationPropertyConditionInput): ApplicationProperty @aws_api_key @aws_iam
+  updateApplicationProperty(input: UpdateApplicationPropertyInput!, condition: ModelApplicationPropertyConditionInput): ApplicationProperty @aws_api_key @aws_iam
+  deleteApplicationProperty(input: DeleteApplicationPropertyInput!, condition: ModelApplicationPropertyConditionInput): ApplicationProperty @aws_api_key @aws_iam
+  createZReport(input: CreateZReportInput!, condition: ModelZReportConditionInput): ZReport @aws_api_key @aws_iam
+  updateZReport(input: UpdateZReportInput!, condition: ModelZReportConditionInput): ZReport @aws_api_key @aws_iam
+  deleteZReport(input: DeleteZReportInput!, condition: ModelZReportConditionInput): ZReport @aws_api_key @aws_iam
+  createTemplate(input: CreateTemplateInput!, condition: ModelTemplateConditionInput): Template @aws_api_key @aws_iam
+  updateTemplate(input: UpdateTemplateInput!, condition: ModelTemplateConditionInput): Template @aws_api_key @aws_iam
+  deleteTemplate(input: DeleteTemplateInput!, condition: ModelTemplateConditionInput): Template @aws_api_key @aws_iam
+  createSessionConfig(input: CreateSessionConfigInput!, condition: ModelSessionConfigConditionInput): SessionConfig @aws_api_key @aws_iam
+  updateSessionConfig(input: UpdateSessionConfigInput!, condition: ModelSessionConfigConditionInput): SessionConfig @aws_api_key @aws_iam
+  deleteSessionConfig(input: DeleteSessionConfigInput!, condition: ModelSessionConfigConditionInput): SessionConfig @aws_api_key @aws_iam
+  createApplicationSettings(input: CreateApplicationSettingsInput!, condition: ModelApplicationSettingsConditionInput): ApplicationSettings @aws_api_key @aws_iam
+  updateApplicationSettings(input: UpdateApplicationSettingsInput!, condition: ModelApplicationSettingsConditionInput): ApplicationSettings @aws_api_key @aws_iam
+  deleteApplicationSettings(input: DeleteApplicationSettingsInput!, condition: ModelApplicationSettingsConditionInput): ApplicationSettings @aws_api_key @aws_iam
+  createAuditLog(input: CreateAuditLogInput!, condition: ModelAuditLogConditionInput): AuditLog @aws_api_key @aws_iam
+  updateAuditLog(input: UpdateAuditLogInput!, condition: ModelAuditLogConditionInput): AuditLog @aws_api_key @aws_iam
+  deleteAuditLog(input: DeleteAuditLogInput!, condition: ModelAuditLogConditionInput): AuditLog @aws_api_key @aws_iam
+  createDocumentNumber(input: CreateDocumentNumberInput!, condition: ModelDocumentNumberConditionInput): DocumentNumber @aws_api_key @aws_iam
+  updateDocumentNumber(input: UpdateDocumentNumberInput!, condition: ModelDocumentNumberConditionInput): DocumentNumber @aws_api_key @aws_iam
+  deleteDocumentNumber(input: DeleteDocumentNumberInput!, condition: ModelDocumentNumberConditionInput): DocumentNumber @aws_api_key @aws_iam
+}
+
+input ModelSubscriptionUserFilterInput {
+  userId: ModelSubscriptionIntInput
+  username: ModelSubscriptionStringInput
+  password: ModelSubscriptionStringInput
+  accessLevel: ModelSubscriptionIntInput
+  firstName: ModelSubscriptionStringInput
+  lastName: ModelSubscriptionStringInput
+  email: ModelSubscriptionStringInput
+  isEnabled: ModelSubscriptionBooleanInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionUserFilterInput]
+  or: [ModelSubscriptionUserFilterInput]
+}
+
+type Subscription {
+  onCreateUser(filter: ModelSubscriptionUserFilterInput): User @aws_subscribe(mutations: ["createUser"]) @aws_api_key @aws_iam
+  onUpdateUser(filter: ModelSubscriptionUserFilterInput): User @aws_subscribe(mutations: ["updateUser"]) @aws_api_key @aws_iam
+  onDeleteUser(filter: ModelSubscriptionUserFilterInput): User @aws_subscribe(mutations: ["deleteUser"]) @aws_api_key @aws_iam
+  onCreateCompany(filter: ModelSubscriptionCompanyFilterInput): Company @aws_subscribe(mutations: ["createCompany"]) @aws_api_key @aws_iam
+  onUpdateCompany(filter: ModelSubscriptionCompanyFilterInput): Company @aws_subscribe(mutations: ["updateCompany"]) @aws_api_key @aws_iam
+  onDeleteCompany(filter: ModelSubscriptionCompanyFilterInput): Company @aws_subscribe(mutations: ["deleteCompany"]) @aws_api_key @aws_iam
+  onCreateCountry(filter: ModelSubscriptionCountryFilterInput): Country @aws_subscribe(mutations: ["createCountry"]) @aws_api_key @aws_iam
+  onUpdateCountry(filter: ModelSubscriptionCountryFilterInput): Country @aws_subscribe(mutations: ["updateCountry"]) @aws_api_key @aws_iam
+  onDeleteCountry(filter: ModelSubscriptionCountryFilterInput): Country @aws_subscribe(mutations: ["deleteCountry"]) @aws_api_key @aws_iam
+  onCreateCurrency(filter: ModelSubscriptionCurrencyFilterInput): Currency @aws_subscribe(mutations: ["createCurrency"]) @aws_api_key @aws_iam
+  onUpdateCurrency(filter: ModelSubscriptionCurrencyFilterInput): Currency @aws_subscribe(mutations: ["updateCurrency"]) @aws_api_key @aws_iam
+  onDeleteCurrency(filter: ModelSubscriptionCurrencyFilterInput): Currency @aws_subscribe(mutations: ["deleteCurrency"]) @aws_api_key @aws_iam
+  onCreateWarehouse(filter: ModelSubscriptionWarehouseFilterInput): Warehouse @aws_subscribe(mutations: ["createWarehouse"]) @aws_api_key @aws_iam
+  onUpdateWarehouse(filter: ModelSubscriptionWarehouseFilterInput): Warehouse @aws_subscribe(mutations: ["updateWarehouse"]) @aws_api_key @aws_iam
+  onDeleteWarehouse(filter: ModelSubscriptionWarehouseFilterInput): Warehouse @aws_subscribe(mutations: ["deleteWarehouse"]) @aws_api_key @aws_iam
+  onCreateProductGroup(filter: ModelSubscriptionProductGroupFilterInput): ProductGroup @aws_subscribe(mutations: ["createProductGroup"]) @aws_api_key @aws_iam
+  onUpdateProductGroup(filter: ModelSubscriptionProductGroupFilterInput): ProductGroup @aws_subscribe(mutations: ["updateProductGroup"]) @aws_api_key @aws_iam
+  onDeleteProductGroup(filter: ModelSubscriptionProductGroupFilterInput): ProductGroup @aws_subscribe(mutations: ["deleteProductGroup"]) @aws_api_key @aws_iam
+  onCreateProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["createProduct"]) @aws_api_key @aws_iam
+  onUpdateProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["updateProduct"]) @aws_api_key @aws_iam
+  onDeleteProduct(filter: ModelSubscriptionProductFilterInput): Product @aws_subscribe(mutations: ["deleteProduct"]) @aws_api_key @aws_iam
+  onCreateBarcode(filter: ModelSubscriptionBarcodeFilterInput): Barcode @aws_subscribe(mutations: ["createBarcode"]) @aws_api_key @aws_iam
+  onUpdateBarcode(filter: ModelSubscriptionBarcodeFilterInput): Barcode @aws_subscribe(mutations: ["updateBarcode"]) @aws_api_key @aws_iam
+  onDeleteBarcode(filter: ModelSubscriptionBarcodeFilterInput): Barcode @aws_subscribe(mutations: ["deleteBarcode"]) @aws_api_key @aws_iam
+  onCreateStock(filter: ModelSubscriptionStockFilterInput): Stock @aws_subscribe(mutations: ["createStock"]) @aws_api_key @aws_iam
+  onUpdateStock(filter: ModelSubscriptionStockFilterInput): Stock @aws_subscribe(mutations: ["updateStock"]) @aws_api_key @aws_iam
+  onDeleteStock(filter: ModelSubscriptionStockFilterInput): Stock @aws_subscribe(mutations: ["deleteStock"]) @aws_api_key @aws_iam
+  onCreateStockControl(filter: ModelSubscriptionStockControlFilterInput): StockControl @aws_subscribe(mutations: ["createStockControl"]) @aws_api_key @aws_iam
+  onUpdateStockControl(filter: ModelSubscriptionStockControlFilterInput): StockControl @aws_subscribe(mutations: ["updateStockControl"]) @aws_api_key @aws_iam
+  onDeleteStockControl(filter: ModelSubscriptionStockControlFilterInput): StockControl @aws_subscribe(mutations: ["deleteStockControl"]) @aws_api_key @aws_iam
+  onCreateProductComment(filter: ModelSubscriptionProductCommentFilterInput): ProductComment @aws_subscribe(mutations: ["createProductComment"]) @aws_api_key @aws_iam
+  onUpdateProductComment(filter: ModelSubscriptionProductCommentFilterInput): ProductComment @aws_subscribe(mutations: ["updateProductComment"]) @aws_api_key @aws_iam
+  onDeleteProductComment(filter: ModelSubscriptionProductCommentFilterInput): ProductComment @aws_subscribe(mutations: ["deleteProductComment"]) @aws_api_key @aws_iam
+  onCreateKardex(filter: ModelSubscriptionKardexFilterInput): Kardex @aws_subscribe(mutations: ["createKardex"]) @aws_api_key @aws_iam
+  onUpdateKardex(filter: ModelSubscriptionKardexFilterInput): Kardex @aws_subscribe(mutations: ["updateKardex"]) @aws_api_key @aws_iam
+  onDeleteKardex(filter: ModelSubscriptionKardexFilterInput): Kardex @aws_subscribe(mutations: ["deleteKardex"]) @aws_api_key @aws_iam
+  onCreateKardexHistory(filter: ModelSubscriptionKardexHistoryFilterInput): KardexHistory @aws_subscribe(mutations: ["createKardexHistory"]) @aws_api_key @aws_iam
+  onUpdateKardexHistory(filter: ModelSubscriptionKardexHistoryFilterInput): KardexHistory @aws_subscribe(mutations: ["updateKardexHistory"]) @aws_api_key @aws_iam
+  onDeleteKardexHistory(filter: ModelSubscriptionKardexHistoryFilterInput): KardexHistory @aws_subscribe(mutations: ["deleteKardexHistory"]) @aws_api_key @aws_iam
+  onCreateCustomer(filter: ModelSubscriptionCustomerFilterInput): Customer @aws_subscribe(mutations: ["createCustomer"]) @aws_api_key @aws_iam
+  onUpdateCustomer(filter: ModelSubscriptionCustomerFilterInput): Customer @aws_subscribe(mutations: ["updateCustomer"]) @aws_api_key @aws_iam
+  onDeleteCustomer(filter: ModelSubscriptionCustomerFilterInput): Customer @aws_subscribe(mutations: ["deleteCustomer"]) @aws_api_key @aws_iam
+  onCreateCustomerDiscount(filter: ModelSubscriptionCustomerDiscountFilterInput): CustomerDiscount @aws_subscribe(mutations: ["createCustomerDiscount"]) @aws_api_key @aws_iam
+  onUpdateCustomerDiscount(filter: ModelSubscriptionCustomerDiscountFilterInput): CustomerDiscount @aws_subscribe(mutations: ["updateCustomerDiscount"]) @aws_api_key @aws_iam
+  onDeleteCustomerDiscount(filter: ModelSubscriptionCustomerDiscountFilterInput): CustomerDiscount @aws_subscribe(mutations: ["deleteCustomerDiscount"]) @aws_api_key @aws_iam
+  onCreateLoyaltyCard(filter: ModelSubscriptionLoyaltyCardFilterInput): LoyaltyCard @aws_subscribe(mutations: ["createLoyaltyCard"]) @aws_api_key @aws_iam
+  onUpdateLoyaltyCard(filter: ModelSubscriptionLoyaltyCardFilterInput): LoyaltyCard @aws_subscribe(mutations: ["updateLoyaltyCard"]) @aws_api_key @aws_iam
+  onDeleteLoyaltyCard(filter: ModelSubscriptionLoyaltyCardFilterInput): LoyaltyCard @aws_subscribe(mutations: ["deleteLoyaltyCard"]) @aws_api_key @aws_iam
+  onCreateDocumentCategory(filter: ModelSubscriptionDocumentCategoryFilterInput): DocumentCategory @aws_subscribe(mutations: ["createDocumentCategory"]) @aws_api_key @aws_iam
+  onUpdateDocumentCategory(filter: ModelSubscriptionDocumentCategoryFilterInput): DocumentCategory @aws_subscribe(mutations: ["updateDocumentCategory"]) @aws_api_key @aws_iam
+  onDeleteDocumentCategory(filter: ModelSubscriptionDocumentCategoryFilterInput): DocumentCategory @aws_subscribe(mutations: ["deleteDocumentCategory"]) @aws_api_key @aws_iam
+  onCreateDocumentType(filter: ModelSubscriptionDocumentTypeFilterInput): DocumentType @aws_subscribe(mutations: ["createDocumentType"]) @aws_api_key @aws_iam
+  onUpdateDocumentType(filter: ModelSubscriptionDocumentTypeFilterInput): DocumentType @aws_subscribe(mutations: ["updateDocumentType"]) @aws_api_key @aws_iam
+  onDeleteDocumentType(filter: ModelSubscriptionDocumentTypeFilterInput): DocumentType @aws_subscribe(mutations: ["deleteDocumentType"]) @aws_api_key @aws_iam
+  onCreateDocument(filter: ModelSubscriptionDocumentFilterInput): Document @aws_subscribe(mutations: ["createDocument"]) @aws_api_key @aws_iam
+  onUpdateDocument(filter: ModelSubscriptionDocumentFilterInput): Document @aws_subscribe(mutations: ["updateDocument"]) @aws_api_key @aws_iam
+  onDeleteDocument(filter: ModelSubscriptionDocumentFilterInput): Document @aws_subscribe(mutations: ["deleteDocument"]) @aws_api_key @aws_iam
+  onCreateDocumentItem(filter: ModelSubscriptionDocumentItemFilterInput): DocumentItem @aws_subscribe(mutations: ["createDocumentItem"]) @aws_api_key @aws_iam
+  onUpdateDocumentItem(filter: ModelSubscriptionDocumentItemFilterInput): DocumentItem @aws_subscribe(mutations: ["updateDocumentItem"]) @aws_api_key @aws_iam
+  onDeleteDocumentItem(filter: ModelSubscriptionDocumentItemFilterInput): DocumentItem @aws_subscribe(mutations: ["deleteDocumentItem"]) @aws_api_key @aws_iam
+  onCreateDocumentItemPriceView(filter: ModelSubscriptionDocumentItemPriceViewFilterInput): DocumentItemPriceView @aws_subscribe(mutations: ["createDocumentItemPriceView"]) @aws_api_key @aws_iam
+  onUpdateDocumentItemPriceView(filter: ModelSubscriptionDocumentItemPriceViewFilterInput): DocumentItemPriceView @aws_subscribe(mutations: ["updateDocumentItemPriceView"]) @aws_api_key @aws_iam
+  onDeleteDocumentItemPriceView(filter: ModelSubscriptionDocumentItemPriceViewFilterInput): DocumentItemPriceView @aws_subscribe(mutations: ["deleteDocumentItemPriceView"]) @aws_api_key @aws_iam
+  onCreateTax(filter: ModelSubscriptionTaxFilterInput): Tax @aws_subscribe(mutations: ["createTax"]) @aws_api_key @aws_iam
+  onUpdateTax(filter: ModelSubscriptionTaxFilterInput): Tax @aws_subscribe(mutations: ["updateTax"]) @aws_api_key @aws_iam
+  onDeleteTax(filter: ModelSubscriptionTaxFilterInput): Tax @aws_subscribe(mutations: ["deleteTax"]) @aws_api_key @aws_iam
+  onCreateProductTax(filter: ModelSubscriptionProductTaxFilterInput): ProductTax @aws_subscribe(mutations: ["createProductTax"]) @aws_api_key @aws_iam
+  onUpdateProductTax(filter: ModelSubscriptionProductTaxFilterInput): ProductTax @aws_subscribe(mutations: ["updateProductTax"]) @aws_api_key @aws_iam
+  onDeleteProductTax(filter: ModelSubscriptionProductTaxFilterInput): ProductTax @aws_subscribe(mutations: ["deleteProductTax"]) @aws_api_key @aws_iam
+  onCreateDocumentItemTax(filter: ModelSubscriptionDocumentItemTaxFilterInput): DocumentItemTax @aws_subscribe(mutations: ["createDocumentItemTax"]) @aws_api_key @aws_iam
+  onUpdateDocumentItemTax(filter: ModelSubscriptionDocumentItemTaxFilterInput): DocumentItemTax @aws_subscribe(mutations: ["updateDocumentItemTax"]) @aws_api_key @aws_iam
+  onDeleteDocumentItemTax(filter: ModelSubscriptionDocumentItemTaxFilterInput): DocumentItemTax @aws_subscribe(mutations: ["deleteDocumentItemTax"]) @aws_api_key @aws_iam
+  onCreatePaymentType(filter: ModelSubscriptionPaymentTypeFilterInput): PaymentType @aws_subscribe(mutations: ["createPaymentType"]) @aws_api_key @aws_iam
+  onUpdatePaymentType(filter: ModelSubscriptionPaymentTypeFilterInput): PaymentType @aws_subscribe(mutations: ["updatePaymentType"]) @aws_api_key @aws_iam
+  onDeletePaymentType(filter: ModelSubscriptionPaymentTypeFilterInput): PaymentType @aws_subscribe(mutations: ["deletePaymentType"]) @aws_api_key @aws_iam
+  onCreatePayment(filter: ModelSubscriptionPaymentFilterInput): Payment @aws_subscribe(mutations: ["createPayment"]) @aws_api_key @aws_iam
+  onUpdatePayment(filter: ModelSubscriptionPaymentFilterInput): Payment @aws_subscribe(mutations: ["updatePayment"]) @aws_api_key @aws_iam
+  onDeletePayment(filter: ModelSubscriptionPaymentFilterInput): Payment @aws_subscribe(mutations: ["deletePayment"]) @aws_api_key @aws_iam
+  onCreatePosOrder(filter: ModelSubscriptionPosOrderFilterInput): PosOrder @aws_subscribe(mutations: ["createPosOrder"]) @aws_api_key @aws_iam
+  onUpdatePosOrder(filter: ModelSubscriptionPosOrderFilterInput): PosOrder @aws_subscribe(mutations: ["updatePosOrder"]) @aws_api_key @aws_iam
+  onDeletePosOrder(filter: ModelSubscriptionPosOrderFilterInput): PosOrder @aws_subscribe(mutations: ["deletePosOrder"]) @aws_api_key @aws_iam
+  onCreatePosOrderItem(filter: ModelSubscriptionPosOrderItemFilterInput): PosOrderItem @aws_subscribe(mutations: ["createPosOrderItem"]) @aws_api_key @aws_iam
+  onUpdatePosOrderItem(filter: ModelSubscriptionPosOrderItemFilterInput): PosOrderItem @aws_subscribe(mutations: ["updatePosOrderItem"]) @aws_api_key @aws_iam
+  onDeletePosOrderItem(filter: ModelSubscriptionPosOrderItemFilterInput): PosOrderItem @aws_subscribe(mutations: ["deletePosOrderItem"]) @aws_api_key @aws_iam
+  onCreateStartingCash(filter: ModelSubscriptionStartingCashFilterInput): StartingCash @aws_subscribe(mutations: ["createStartingCash"]) @aws_api_key @aws_iam
+  onUpdateStartingCash(filter: ModelSubscriptionStartingCashFilterInput): StartingCash @aws_subscribe(mutations: ["updateStartingCash"]) @aws_api_key @aws_iam
+  onDeleteStartingCash(filter: ModelSubscriptionStartingCashFilterInput): StartingCash @aws_subscribe(mutations: ["deleteStartingCash"]) @aws_api_key @aws_iam
+  onCreateCounter(filter: ModelSubscriptionCounterFilterInput): Counter @aws_subscribe(mutations: ["createCounter"]) @aws_api_key @aws_iam
+  onUpdateCounter(filter: ModelSubscriptionCounterFilterInput): Counter @aws_subscribe(mutations: ["updateCounter"]) @aws_api_key @aws_iam
+  onDeleteCounter(filter: ModelSubscriptionCounterFilterInput): Counter @aws_subscribe(mutations: ["deleteCounter"]) @aws_api_key @aws_iam
+  onCreateApplicationProperty(filter: ModelSubscriptionApplicationPropertyFilterInput): ApplicationProperty @aws_subscribe(mutations: ["createApplicationProperty"]) @aws_api_key @aws_iam
+  onUpdateApplicationProperty(filter: ModelSubscriptionApplicationPropertyFilterInput): ApplicationProperty @aws_subscribe(mutations: ["updateApplicationProperty"]) @aws_api_key @aws_iam
+  onDeleteApplicationProperty(filter: ModelSubscriptionApplicationPropertyFilterInput): ApplicationProperty @aws_subscribe(mutations: ["deleteApplicationProperty"]) @aws_api_key @aws_iam
+  onCreateZReport(filter: ModelSubscriptionZReportFilterInput): ZReport @aws_subscribe(mutations: ["createZReport"]) @aws_api_key @aws_iam
+  onUpdateZReport(filter: ModelSubscriptionZReportFilterInput): ZReport @aws_subscribe(mutations: ["updateZReport"]) @aws_api_key @aws_iam
+  onDeleteZReport(filter: ModelSubscriptionZReportFilterInput): ZReport @aws_subscribe(mutations: ["deleteZReport"]) @aws_api_key @aws_iam
+  onCreateTemplate(filter: ModelSubscriptionTemplateFilterInput): Template @aws_subscribe(mutations: ["createTemplate"]) @aws_api_key @aws_iam
+  onUpdateTemplate(filter: ModelSubscriptionTemplateFilterInput): Template @aws_subscribe(mutations: ["updateTemplate"]) @aws_api_key @aws_iam
+  onDeleteTemplate(filter: ModelSubscriptionTemplateFilterInput): Template @aws_subscribe(mutations: ["deleteTemplate"]) @aws_api_key @aws_iam
+  onCreateSessionConfig(filter: ModelSubscriptionSessionConfigFilterInput): SessionConfig @aws_subscribe(mutations: ["createSessionConfig"]) @aws_api_key @aws_iam
+  onUpdateSessionConfig(filter: ModelSubscriptionSessionConfigFilterInput): SessionConfig @aws_subscribe(mutations: ["updateSessionConfig"]) @aws_api_key @aws_iam
+  onDeleteSessionConfig(filter: ModelSubscriptionSessionConfigFilterInput): SessionConfig @aws_subscribe(mutations: ["deleteSessionConfig"]) @aws_api_key @aws_iam
+  onCreateApplicationSettings(filter: ModelSubscriptionApplicationSettingsFilterInput): ApplicationSettings @aws_subscribe(mutations: ["createApplicationSettings"]) @aws_api_key @aws_iam
+  onUpdateApplicationSettings(filter: ModelSubscriptionApplicationSettingsFilterInput): ApplicationSettings @aws_subscribe(mutations: ["updateApplicationSettings"]) @aws_api_key @aws_iam
+  onDeleteApplicationSettings(filter: ModelSubscriptionApplicationSettingsFilterInput): ApplicationSettings @aws_subscribe(mutations: ["deleteApplicationSettings"]) @aws_api_key @aws_iam
+  onCreateAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_subscribe(mutations: ["createAuditLog"]) @aws_api_key @aws_iam
+  onUpdateAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_subscribe(mutations: ["updateAuditLog"]) @aws_api_key @aws_iam
+  onDeleteAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_subscribe(mutations: ["deleteAuditLog"]) @aws_api_key @aws_iam
+  onCreateDocumentNumber(filter: ModelSubscriptionDocumentNumberFilterInput): DocumentNumber @aws_subscribe(mutations: ["createDocumentNumber"]) @aws_api_key @aws_iam
+  onUpdateDocumentNumber(filter: ModelSubscriptionDocumentNumberFilterInput): DocumentNumber @aws_subscribe(mutations: ["updateDocumentNumber"]) @aws_api_key @aws_iam
+  onDeleteDocumentNumber(filter: ModelSubscriptionDocumentNumberFilterInput): DocumentNumber @aws_subscribe(mutations: ["deleteDocumentNumber"]) @aws_api_key @aws_iam
+}
+
+type ModelCompanyConnection @aws_api_key @aws_iam {
+  items: [Company]!
+  nextToken: String
+}
+
+input ModelCompanyFilterInput {
+  idCompany: ModelIntInput
+  name: ModelStringInput
+  address: ModelStringInput
+  postalCode: ModelStringInput
+  city: ModelStringInput
+  countryId: ModelIntInput
+  taxNumber: ModelStringInput
+  email: ModelStringInput
+  phoneNumber: ModelStringInput
+  logo: ModelStringInput
+  bankAccountNumber: ModelStringInput
+  bankDetails: ModelStringInput
+  streetName: ModelStringInput
+  additionalStreetName: ModelStringInput
+  buildingNumber: ModelStringInput
+  plotIdentification: ModelStringInput
+  citySubdivisionName: ModelStringInput
+  countrySubentity: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCompanyFilterInput]
+  or: [ModelCompanyFilterInput]
+  not: ModelCompanyFilterInput
+}
+
+input ModelCompanyConditionInput {
+  name: ModelStringInput
+  address: ModelStringInput
+  postalCode: ModelStringInput
+  city: ModelStringInput
+  countryId: ModelIntInput
+  taxNumber: ModelStringInput
+  email: ModelStringInput
+  phoneNumber: ModelStringInput
+  logo: ModelStringInput
+  bankAccountNumber: ModelStringInput
+  bankDetails: ModelStringInput
+  streetName: ModelStringInput
+  additionalStreetName: ModelStringInput
+  buildingNumber: ModelStringInput
+  plotIdentification: ModelStringInput
+  citySubdivisionName: ModelStringInput
+  countrySubentity: ModelStringInput
+  and: [ModelCompanyConditionInput]
+  or: [ModelCompanyConditionInput]
+  not: ModelCompanyConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCompanyInput {
+  idCompany: Int!
+  name: String!
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  taxNumber: String
+  email: String
+  phoneNumber: String
+  logo: String
+  bankAccountNumber: String
+  bankDetails: String
+  streetName: String
+  additionalStreetName: String
+  buildingNumber: String
+  plotIdentification: String
+  citySubdivisionName: String
+  countrySubentity: String
+}
+
+input UpdateCompanyInput {
+  idCompany: Int!
+  name: String
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  taxNumber: String
+  email: String
+  phoneNumber: String
+  logo: String
+  bankAccountNumber: String
+  bankDetails: String
+  streetName: String
+  additionalStreetName: String
+  buildingNumber: String
+  plotIdentification: String
+  citySubdivisionName: String
+  countrySubentity: String
+}
+
+input DeleteCompanyInput {
+  idCompany: Int!
+}
+
+input ModelSubscriptionCompanyFilterInput {
+  idCompany: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  address: ModelSubscriptionStringInput
+  postalCode: ModelSubscriptionStringInput
+  city: ModelSubscriptionStringInput
+  countryId: ModelSubscriptionIntInput
+  taxNumber: ModelSubscriptionStringInput
+  email: ModelSubscriptionStringInput
+  phoneNumber: ModelSubscriptionStringInput
+  logo: ModelSubscriptionStringInput
+  bankAccountNumber: ModelSubscriptionStringInput
+  bankDetails: ModelSubscriptionStringInput
+  streetName: ModelSubscriptionStringInput
+  additionalStreetName: ModelSubscriptionStringInput
+  buildingNumber: ModelSubscriptionStringInput
+  plotIdentification: ModelSubscriptionStringInput
+  citySubdivisionName: ModelSubscriptionStringInput
+  countrySubentity: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCompanyFilterInput]
+  or: [ModelSubscriptionCompanyFilterInput]
+}
+
+type ModelCountryConnection @aws_api_key @aws_iam {
+  items: [Country]!
+  nextToken: String
+}
+
+input ModelCountryFilterInput {
+  idCountry: ModelIntInput
+  name: ModelStringInput
+  code: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCountryFilterInput]
+  or: [ModelCountryFilterInput]
+  not: ModelCountryFilterInput
+}
+
+input ModelCountryConditionInput {
+  name: ModelStringInput
+  code: ModelStringInput
+  and: [ModelCountryConditionInput]
+  or: [ModelCountryConditionInput]
+  not: ModelCountryConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCountryInput {
+  idCountry: Int!
+  name: String!
+  code: String
+}
+
+input UpdateCountryInput {
+  idCountry: Int!
+  name: String
+  code: String
+}
+
+input DeleteCountryInput {
+  idCountry: Int!
+}
+
+input ModelSubscriptionCountryFilterInput {
+  idCountry: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  code: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCountryFilterInput]
+  or: [ModelSubscriptionCountryFilterInput]
+}
+
+type ModelCurrencyConnection @aws_api_key @aws_iam {
+  items: [Currency]!
+  nextToken: String
+}
+
+input ModelCurrencyFilterInput {
+  idCurrency: ModelIntInput
+  name: ModelStringInput
+  code: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCurrencyFilterInput]
+  or: [ModelCurrencyFilterInput]
+  not: ModelCurrencyFilterInput
+}
+
+input ModelCurrencyConditionInput {
+  name: ModelStringInput
+  code: ModelStringInput
+  and: [ModelCurrencyConditionInput]
+  or: [ModelCurrencyConditionInput]
+  not: ModelCurrencyConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCurrencyInput {
+  idCurrency: Int!
+  name: String!
+  code: String
+}
+
+input UpdateCurrencyInput {
+  idCurrency: Int!
+  name: String
+  code: String
+}
+
+input DeleteCurrencyInput {
+  idCurrency: Int!
+}
+
+input ModelSubscriptionCurrencyFilterInput {
+  idCurrency: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  code: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCurrencyFilterInput]
+  or: [ModelSubscriptionCurrencyFilterInput]
+}
+
+type ModelWarehouseConnection @aws_api_key @aws_iam {
+  items: [Warehouse]!
+  nextToken: String
+}
+
+input ModelWarehouseFilterInput {
+  idWarehouse: ModelIntInput
+  name: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelWarehouseFilterInput]
+  or: [ModelWarehouseFilterInput]
+  not: ModelWarehouseFilterInput
+}
+
+input ModelWarehouseConditionInput {
+  name: ModelStringInput
+  and: [ModelWarehouseConditionInput]
+  or: [ModelWarehouseConditionInput]
+  not: ModelWarehouseConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateWarehouseInput {
+  idWarehouse: Int!
+  name: String!
+}
+
+input UpdateWarehouseInput {
+  idWarehouse: Int!
+  name: String
+}
+
+input DeleteWarehouseInput {
+  idWarehouse: Int!
+}
+
+input ModelSubscriptionWarehouseFilterInput {
+  idWarehouse: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionWarehouseFilterInput]
+  or: [ModelSubscriptionWarehouseFilterInput]
+}
+
+type ModelProductGroupConnection @aws_api_key @aws_iam {
+  items: [ProductGroup]!
+  nextToken: String
+}
+
+input ModelProductGroupFilterInput {
+  idProductGroup: ModelIntInput
+  name: ModelStringInput
+  parentGroupId: ModelIntInput
+  color: ModelStringInput
+  image: ModelStringInput
+  rank: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelProductGroupFilterInput]
+  or: [ModelProductGroupFilterInput]
+  not: ModelProductGroupFilterInput
+}
+
+input ModelProductGroupConditionInput {
+  name: ModelStringInput
+  parentGroupId: ModelIntInput
+  color: ModelStringInput
+  image: ModelStringInput
+  rank: ModelIntInput
+  and: [ModelProductGroupConditionInput]
+  or: [ModelProductGroupConditionInput]
+  not: ModelProductGroupConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateProductGroupInput {
+  idProductGroup: Int!
+  name: String!
+  parentGroupId: Int
+  color: String
+  image: String
+  rank: Int
+}
+
+input UpdateProductGroupInput {
+  idProductGroup: Int!
+  name: String
+  parentGroupId: Int
+  color: String
+  image: String
+  rank: Int
+}
+
+input DeleteProductGroupInput {
+  idProductGroup: Int!
+}
+
+input ModelSubscriptionProductGroupFilterInput {
+  idProductGroup: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  parentGroupId: ModelSubscriptionIntInput
+  color: ModelSubscriptionStringInput
+  image: ModelSubscriptionStringInput
+  rank: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionProductGroupFilterInput]
+  or: [ModelSubscriptionProductGroupFilterInput]
+}
+
+type ModelProductConnection @aws_iam @aws_api_key {
+  items: [Product]!
+  nextToken: String
+}
+
+input ModelProductFilterInput {
+  idProduct: ModelIntInput
+  name: ModelStringInput
+  code: ModelStringInput
+  plu: ModelIntInput
+  measurementUnit: ModelStringInput
+  price: ModelFloatInput
+  isTaxInclusivePrice: ModelBooleanInput
+  currencyId: ModelIntInput
+  isPriceChangeAllowed: ModelBooleanInput
+  isService: ModelBooleanInput
+  isUsingDefaultQuantity: ModelBooleanInput
+  isEnabled: ModelBooleanInput
+  description: ModelStringInput
+  cost: ModelFloatInput
+  markup: ModelFloatInput
+  image: ModelStringInput
+  color: ModelStringInput
+  ageRestriction: ModelFloatInput
+  lastPurchasePrice: ModelFloatInput
+  rank: ModelFloatInput
+  productGroupId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelProductFilterInput]
+  or: [ModelProductFilterInput]
+  not: ModelProductFilterInput
+}
+
+input ModelProductConditionInput {
+  name: ModelStringInput
+  code: ModelStringInput
+  plu: ModelIntInput
+  measurementUnit: ModelStringInput
+  price: ModelFloatInput
+  isTaxInclusivePrice: ModelBooleanInput
+  currencyId: ModelIntInput
+  isPriceChangeAllowed: ModelBooleanInput
+  isService: ModelBooleanInput
+  isUsingDefaultQuantity: ModelBooleanInput
+  isEnabled: ModelBooleanInput
+  description: ModelStringInput
+  cost: ModelFloatInput
+  markup: ModelFloatInput
+  image: ModelStringInput
+  color: ModelStringInput
+  ageRestriction: ModelFloatInput
+  lastPurchasePrice: ModelFloatInput
+  rank: ModelFloatInput
+  productGroupId: ModelIntInput
+  and: [ModelProductConditionInput]
+  or: [ModelProductConditionInput]
+  not: ModelProductConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateProductInput {
+  idProduct: Int!
+  name: String!
+  code: String
+  plu: Int
+  measurementUnit: String
+  price: Float
+  isTaxInclusivePrice: Boolean
+  currencyId: Int
+  isPriceChangeAllowed: Boolean
+  isService: Boolean
+  isUsingDefaultQuantity: Boolean
+  isEnabled: Boolean
+  description: String
+  cost: Float
+  markup: Float
+  image: String
+  color: String
+  ageRestriction: Float
+  lastPurchasePrice: Float
+  rank: Float
+  productGroupId: Int
+}
+
+input UpdateProductInput {
+  idProduct: Int!
+  name: String
+  code: String
+  plu: Int
+  measurementUnit: String
+  price: Float
+  isTaxInclusivePrice: Boolean
+  currencyId: Int
+  isPriceChangeAllowed: Boolean
+  isService: Boolean
+  isUsingDefaultQuantity: Boolean
+  isEnabled: Boolean
+  description: String
+  cost: Float
+  markup: Float
+  image: String
+  color: String
+  ageRestriction: Float
+  lastPurchasePrice: Float
+  rank: Float
+  productGroupId: Int
+}
+
+input DeleteProductInput {
+  idProduct: Int!
+}
+
+input ModelSubscriptionProductFilterInput {
+  idProduct: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  code: ModelSubscriptionStringInput
+  plu: ModelSubscriptionIntInput
+  measurementUnit: ModelSubscriptionStringInput
+  price: ModelSubscriptionFloatInput
+  isTaxInclusivePrice: ModelSubscriptionBooleanInput
+  currencyId: ModelSubscriptionIntInput
+  isPriceChangeAllowed: ModelSubscriptionBooleanInput
+  isService: ModelSubscriptionBooleanInput
+  isUsingDefaultQuantity: ModelSubscriptionBooleanInput
+  isEnabled: ModelSubscriptionBooleanInput
+  description: ModelSubscriptionStringInput
+  cost: ModelSubscriptionFloatInput
+  markup: ModelSubscriptionFloatInput
+  image: ModelSubscriptionStringInput
+  color: ModelSubscriptionStringInput
+  ageRestriction: ModelSubscriptionFloatInput
+  lastPurchasePrice: ModelSubscriptionFloatInput
+  rank: ModelSubscriptionFloatInput
+  productGroupId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionProductFilterInput]
+  or: [ModelSubscriptionProductFilterInput]
+}
+
+type ModelBarcodeConnection @aws_iam @aws_api_key {
+  items: [Barcode]!
+  nextToken: String
+}
+
+input ModelBarcodeFilterInput {
+  productId: ModelIntInput
+  value: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelBarcodeFilterInput]
+  or: [ModelBarcodeFilterInput]
+  not: ModelBarcodeFilterInput
+}
+
+input ModelBarcodeConditionInput {
+  and: [ModelBarcodeConditionInput]
+  or: [ModelBarcodeConditionInput]
+  not: ModelBarcodeConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateBarcodeInput {
+  productId: Int!
+  value: String!
+}
+
+input UpdateBarcodeInput {
+  productId: Int!
+  value: String!
+}
+
+input DeleteBarcodeInput {
+  productId: Int!
+  value: String!
+}
+
+input ModelSubscriptionBarcodeFilterInput {
+  productId: ModelSubscriptionIntInput
+  value: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionBarcodeFilterInput]
+  or: [ModelSubscriptionBarcodeFilterInput]
+}
+
+type ModelStockConnection @aws_iam @aws_api_key {
+  items: [Stock]!
+  nextToken: String
+}
+
+input ModelStockFilterInput {
+  productId: ModelIntInput
+  warehouseId: ModelIntInput
+  quantity: ModelFloatInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelStockFilterInput]
+  or: [ModelStockFilterInput]
+  not: ModelStockFilterInput
+}
+
+input ModelStockConditionInput {
+  quantity: ModelFloatInput
+  and: [ModelStockConditionInput]
+  or: [ModelStockConditionInput]
+  not: ModelStockConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateStockInput {
+  productId: Int!
+  warehouseId: Int!
+  quantity: Float!
+}
+
+input UpdateStockInput {
+  productId: Int!
+  warehouseId: Int!
+  quantity: Float
+}
+
+input DeleteStockInput {
+  productId: Int!
+  warehouseId: Int!
+}
+
+input ModelSubscriptionStockFilterInput {
+  productId: ModelSubscriptionIntInput
+  warehouseId: ModelSubscriptionIntInput
+  quantity: ModelSubscriptionFloatInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionStockFilterInput]
+  or: [ModelSubscriptionStockFilterInput]
+}
+
+type ModelStockControlConnection @aws_iam @aws_api_key {
+  items: [StockControl]!
+  nextToken: String
+}
+
+input ModelStockControlFilterInput {
+  stockControlId: ModelIntInput
+  productId: ModelIntInput
+  customerId: ModelIntInput
+  reorderPoint: ModelFloatInput
+  preferredQuantity: ModelFloatInput
+  isLowStockWarningEnabled: ModelBooleanInput
+  lowStockWarningQuantity: ModelFloatInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelStockControlFilterInput]
+  or: [ModelStockControlFilterInput]
+  not: ModelStockControlFilterInput
+}
+
+input ModelStockControlConditionInput {
+  productId: ModelIntInput
+  customerId: ModelIntInput
+  reorderPoint: ModelFloatInput
+  preferredQuantity: ModelFloatInput
+  isLowStockWarningEnabled: ModelBooleanInput
+  lowStockWarningQuantity: ModelFloatInput
+  and: [ModelStockControlConditionInput]
+  or: [ModelStockControlConditionInput]
+  not: ModelStockControlConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateStockControlInput {
+  stockControlId: Int!
+  productId: Int!
+  customerId: Int
+  reorderPoint: Float
+  preferredQuantity: Float
+  isLowStockWarningEnabled: Boolean
+  lowStockWarningQuantity: Float
+}
+
+input UpdateStockControlInput {
+  stockControlId: Int!
+  productId: Int
+  customerId: Int
+  reorderPoint: Float
+  preferredQuantity: Float
+  isLowStockWarningEnabled: Boolean
+  lowStockWarningQuantity: Float
+}
+
+input DeleteStockControlInput {
+  stockControlId: Int!
+}
+
+input ModelSubscriptionStockControlFilterInput {
+  stockControlId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  customerId: ModelSubscriptionIntInput
+  reorderPoint: ModelSubscriptionFloatInput
+  preferredQuantity: ModelSubscriptionFloatInput
+  isLowStockWarningEnabled: ModelSubscriptionBooleanInput
+  lowStockWarningQuantity: ModelSubscriptionFloatInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionStockControlFilterInput]
+  or: [ModelSubscriptionStockControlFilterInput]
+}
+
+type ModelProductCommentConnection @aws_iam @aws_api_key {
+  items: [ProductComment]!
+  nextToken: String
+}
+
+input ModelProductCommentFilterInput {
+  commentId: ModelIntInput
+  productId: ModelIntInput
+  comment: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelProductCommentFilterInput]
+  or: [ModelProductCommentFilterInput]
+  not: ModelProductCommentFilterInput
+}
+
+input ModelProductCommentConditionInput {
+  productId: ModelIntInput
+  comment: ModelStringInput
+  and: [ModelProductCommentConditionInput]
+  or: [ModelProductCommentConditionInput]
+  not: ModelProductCommentConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateProductCommentInput {
+  commentId: Int!
+  productId: Int!
+  comment: String!
+}
+
+input UpdateProductCommentInput {
+  commentId: Int!
+  productId: Int
+  comment: String
+}
+
+input DeleteProductCommentInput {
+  commentId: Int!
+}
+
+input ModelSubscriptionProductCommentFilterInput {
+  commentId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  comment: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionProductCommentFilterInput]
+  or: [ModelSubscriptionProductCommentFilterInput]
+}
+
+type ModelKardexConnection @aws_iam @aws_api_key {
+  items: [Kardex]!
+  nextToken: String
+}
+
+input ModelKardexFilterInput {
+  kardexId: ModelIntInput
+  productId: ModelIntInput
+  date: ModelStringInput
+  documentId: ModelIntInput
+  documentNumber: ModelStringInput
+  type: ModelStringInput
+  quantity: ModelFloatInput
+  balance: ModelFloatInput
+  unitCost: ModelFloatInput
+  totalCost: ModelFloatInput
+  note: ModelStringInput
+  userId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelKardexFilterInput]
+  or: [ModelKardexFilterInput]
+  not: ModelKardexFilterInput
+}
+
+input ModelKardexConditionInput {
+  productId: ModelIntInput
+  date: ModelStringInput
+  documentId: ModelIntInput
+  documentNumber: ModelStringInput
+  type: ModelStringInput
+  quantity: ModelFloatInput
+  balance: ModelFloatInput
+  unitCost: ModelFloatInput
+  totalCost: ModelFloatInput
+  note: ModelStringInput
+  userId: ModelIntInput
+  and: [ModelKardexConditionInput]
+  or: [ModelKardexConditionInput]
+  not: ModelKardexConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateKardexInput {
+  kardexId: Int!
+  productId: Int!
+  date: AWSDateTime!
+  documentId: Int
+  documentNumber: String
+  type: String!
+  quantity: Float!
+  balance: Float!
+  unitCost: Float
+  totalCost: Float
+  note: String
+  userId: Int
+}
+
+input UpdateKardexInput {
+  kardexId: Int!
+  productId: Int
+  date: AWSDateTime
+  documentId: Int
+  documentNumber: String
+  type: String
+  quantity: Float
+  balance: Float
+  unitCost: Float
+  totalCost: Float
+  note: String
+  userId: Int
+}
+
+input DeleteKardexInput {
+  kardexId: Int!
+}
+
+input ModelSubscriptionKardexFilterInput {
+  kardexId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  date: ModelSubscriptionStringInput
+  documentId: ModelSubscriptionIntInput
+  documentNumber: ModelSubscriptionStringInput
+  type: ModelSubscriptionStringInput
+  quantity: ModelSubscriptionFloatInput
+  balance: ModelSubscriptionFloatInput
+  unitCost: ModelSubscriptionFloatInput
+  totalCost: ModelSubscriptionFloatInput
+  note: ModelSubscriptionStringInput
+  userId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionKardexFilterInput]
+  or: [ModelSubscriptionKardexFilterInput]
+}
+
+type ModelKardexHistoryConnection @aws_iam @aws_api_key {
+  items: [KardexHistory]!
+  nextToken: String
+}
+
+input ModelKardexHistoryFilterInput {
+  kardexHistoryId: ModelIntInput
+  kardexId: ModelIntInput
+  productId: ModelIntInput
+  previousBalance: ModelFloatInput
+  newBalance: ModelFloatInput
+  modifiedBy: ModelIntInput
+  modifiedDate: ModelStringInput
+  reason: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelKardexHistoryFilterInput]
+  or: [ModelKardexHistoryFilterInput]
+  not: ModelKardexHistoryFilterInput
+}
+
+input ModelKardexHistoryConditionInput {
+  kardexId: ModelIntInput
+  productId: ModelIntInput
+  previousBalance: ModelFloatInput
+  newBalance: ModelFloatInput
+  modifiedBy: ModelIntInput
+  modifiedDate: ModelStringInput
+  reason: ModelStringInput
+  and: [ModelKardexHistoryConditionInput]
+  or: [ModelKardexHistoryConditionInput]
+  not: ModelKardexHistoryConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateKardexHistoryInput {
+  kardexHistoryId: Int!
+  kardexId: Int!
+  productId: Int!
+  previousBalance: Float
+  newBalance: Float
+  modifiedBy: Int
+  modifiedDate: AWSDateTime!
+  reason: String
+}
+
+input UpdateKardexHistoryInput {
+  kardexHistoryId: Int!
+  kardexId: Int
+  productId: Int
+  previousBalance: Float
+  newBalance: Float
+  modifiedBy: Int
+  modifiedDate: AWSDateTime
+  reason: String
+}
+
+input DeleteKardexHistoryInput {
+  kardexHistoryId: Int!
+}
+
+input ModelSubscriptionKardexHistoryFilterInput {
+  kardexHistoryId: ModelSubscriptionIntInput
+  kardexId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  previousBalance: ModelSubscriptionFloatInput
+  newBalance: ModelSubscriptionFloatInput
+  modifiedBy: ModelSubscriptionIntInput
+  modifiedDate: ModelSubscriptionStringInput
+  reason: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionKardexHistoryFilterInput]
+  or: [ModelSubscriptionKardexHistoryFilterInput]
+}
+
+type ModelCustomerConnection @aws_api_key @aws_iam {
+  items: [Customer]!
+  nextToken: String
+}
+
+input ModelCustomerFilterInput {
+  idCustomer: ModelIntInput
+  code: ModelStringInput
+  name: ModelStringInput
+  taxNumber: ModelStringInput
+  address: ModelStringInput
+  postalCode: ModelStringInput
+  city: ModelStringInput
+  countryId: ModelIntInput
+  email: ModelStringInput
+  phoneNumber: ModelStringInput
+  isEnabled: ModelBooleanInput
+  isCustomer: ModelBooleanInput
+  isSupplier: ModelBooleanInput
+  dueDatePeriod: ModelIntInput
+  isTaxExempt: ModelBooleanInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCustomerFilterInput]
+  or: [ModelCustomerFilterInput]
+  not: ModelCustomerFilterInput
+}
+
+input ModelCustomerConditionInput {
+  code: ModelStringInput
+  name: ModelStringInput
+  taxNumber: ModelStringInput
+  address: ModelStringInput
+  postalCode: ModelStringInput
+  city: ModelStringInput
+  countryId: ModelIntInput
+  email: ModelStringInput
+  phoneNumber: ModelStringInput
+  isEnabled: ModelBooleanInput
+  isCustomer: ModelBooleanInput
+  isSupplier: ModelBooleanInput
+  dueDatePeriod: ModelIntInput
+  isTaxExempt: ModelBooleanInput
+  and: [ModelCustomerConditionInput]
+  or: [ModelCustomerConditionInput]
+  not: ModelCustomerConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCustomerInput {
+  idCustomer: Int!
+  code: String
+  name: String!
+  taxNumber: String
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  email: String
+  phoneNumber: String
+  isEnabled: Boolean
+  isCustomer: Boolean
+  isSupplier: Boolean
+  dueDatePeriod: Int
+  isTaxExempt: Boolean
+}
+
+input UpdateCustomerInput {
+  idCustomer: Int!
+  code: String
+  name: String
+  taxNumber: String
+  address: String
+  postalCode: String
+  city: String
+  countryId: Int
+  email: String
+  phoneNumber: String
+  isEnabled: Boolean
+  isCustomer: Boolean
+  isSupplier: Boolean
+  dueDatePeriod: Int
+  isTaxExempt: Boolean
+}
+
+input DeleteCustomerInput {
+  idCustomer: Int!
+}
+
+input ModelSubscriptionCustomerFilterInput {
+  idCustomer: ModelSubscriptionIntInput
+  code: ModelSubscriptionStringInput
+  name: ModelSubscriptionStringInput
+  taxNumber: ModelSubscriptionStringInput
+  address: ModelSubscriptionStringInput
+  postalCode: ModelSubscriptionStringInput
+  city: ModelSubscriptionStringInput
+  countryId: ModelSubscriptionIntInput
+  email: ModelSubscriptionStringInput
+  phoneNumber: ModelSubscriptionStringInput
+  isEnabled: ModelSubscriptionBooleanInput
+  isCustomer: ModelSubscriptionBooleanInput
+  isSupplier: ModelSubscriptionBooleanInput
+  dueDatePeriod: ModelSubscriptionIntInput
+  isTaxExempt: ModelSubscriptionBooleanInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCustomerFilterInput]
+  or: [ModelSubscriptionCustomerFilterInput]
+}
+
+type ModelCustomerDiscountConnection @aws_iam @aws_api_key {
+  items: [CustomerDiscount]!
+  nextToken: String
+}
+
+input ModelCustomerDiscountFilterInput {
+  customerDiscountId: ModelIntInput
+  customerId: ModelIntInput
+  type: ModelIntInput
+  uid: ModelIntInput
+  value: ModelFloatInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCustomerDiscountFilterInput]
+  or: [ModelCustomerDiscountFilterInput]
+  not: ModelCustomerDiscountFilterInput
+}
+
+input ModelCustomerDiscountConditionInput {
+  customerId: ModelIntInput
+  type: ModelIntInput
+  uid: ModelIntInput
+  value: ModelFloatInput
+  and: [ModelCustomerDiscountConditionInput]
+  or: [ModelCustomerDiscountConditionInput]
+  not: ModelCustomerDiscountConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCustomerDiscountInput {
+  customerDiscountId: Int!
+  customerId: Int!
+  type: Int
+  uid: Int
+  value: Float
+}
+
+input UpdateCustomerDiscountInput {
+  customerDiscountId: Int!
+  customerId: Int
+  type: Int
+  uid: Int
+  value: Float
+}
+
+input DeleteCustomerDiscountInput {
+  customerDiscountId: Int!
+}
+
+input ModelSubscriptionCustomerDiscountFilterInput {
+  customerDiscountId: ModelSubscriptionIntInput
+  customerId: ModelSubscriptionIntInput
+  type: ModelSubscriptionIntInput
+  uid: ModelSubscriptionIntInput
+  value: ModelSubscriptionFloatInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCustomerDiscountFilterInput]
+  or: [ModelSubscriptionCustomerDiscountFilterInput]
+}
+
+type ModelLoyaltyCardConnection @aws_iam @aws_api_key {
+  items: [LoyaltyCard]!
+  nextToken: String
+}
+
+input ModelLoyaltyCardFilterInput {
+  cardNumber: ModelStringInput
+  customerId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelLoyaltyCardFilterInput]
+  or: [ModelLoyaltyCardFilterInput]
+  not: ModelLoyaltyCardFilterInput
+}
+
+input ModelLoyaltyCardConditionInput {
+  customerId: ModelIntInput
+  and: [ModelLoyaltyCardConditionInput]
+  or: [ModelLoyaltyCardConditionInput]
+  not: ModelLoyaltyCardConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateLoyaltyCardInput {
+  cardNumber: String!
+  customerId: Int!
+}
+
+input UpdateLoyaltyCardInput {
+  cardNumber: String!
+  customerId: Int
+}
+
+input DeleteLoyaltyCardInput {
+  cardNumber: String!
+}
+
+input ModelSubscriptionLoyaltyCardFilterInput {
+  cardNumber: ModelSubscriptionStringInput
+  customerId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionLoyaltyCardFilterInput]
+  or: [ModelSubscriptionLoyaltyCardFilterInput]
+}
+
+type ModelDocumentCategoryConnection @aws_api_key @aws_iam {
+  items: [DocumentCategory]!
+  nextToken: String
+}
+
+input ModelDocumentCategoryFilterInput {
+  idDocumentCategory: ModelIntInput
+  name: ModelStringInput
+  languageKey: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentCategoryFilterInput]
+  or: [ModelDocumentCategoryFilterInput]
+  not: ModelDocumentCategoryFilterInput
+}
+
+input ModelDocumentCategoryConditionInput {
+  name: ModelStringInput
+  languageKey: ModelStringInput
+  and: [ModelDocumentCategoryConditionInput]
+  or: [ModelDocumentCategoryConditionInput]
+  not: ModelDocumentCategoryConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentCategoryInput {
+  idDocumentCategory: Int!
+  name: String!
+  languageKey: String
+}
+
+input UpdateDocumentCategoryInput {
+  idDocumentCategory: Int!
+  name: String
+  languageKey: String
+}
+
+input DeleteDocumentCategoryInput {
+  idDocumentCategory: Int!
+}
+
+input ModelSubscriptionDocumentCategoryFilterInput {
+  idDocumentCategory: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  languageKey: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentCategoryFilterInput]
+  or: [ModelSubscriptionDocumentCategoryFilterInput]
+}
+
+type ModelDocumentTypeConnection @aws_iam @aws_api_key {
+  items: [DocumentType]!
+  nextToken: String
+}
+
+input ModelDocumentTypeFilterInput {
+  documentTypeId: ModelIntInput
+  name: ModelStringInput
+  code: ModelStringInput
+  documentCategoryId: ModelIntInput
+  warehouseId: ModelIntInput
+  stockDirection: ModelIntInput
+  editorType: ModelIntInput
+  printTemplate: ModelStringInput
+  priceType: ModelIntInput
+  languageKey: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentTypeFilterInput]
+  or: [ModelDocumentTypeFilterInput]
+  not: ModelDocumentTypeFilterInput
+}
+
+input ModelDocumentTypeConditionInput {
+  name: ModelStringInput
+  code: ModelStringInput
+  documentCategoryId: ModelIntInput
+  warehouseId: ModelIntInput
+  stockDirection: ModelIntInput
+  editorType: ModelIntInput
+  printTemplate: ModelStringInput
+  priceType: ModelIntInput
+  languageKey: ModelStringInput
+  and: [ModelDocumentTypeConditionInput]
+  or: [ModelDocumentTypeConditionInput]
+  not: ModelDocumentTypeConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentTypeInput {
+  documentTypeId: Int!
+  name: String!
+  code: String!
+  documentCategoryId: Int!
+  warehouseId: Int!
+  stockDirection: Int
+  editorType: Int
+  printTemplate: String
+  priceType: Int
+  languageKey: String
+}
+
+input UpdateDocumentTypeInput {
+  documentTypeId: Int!
+  name: String
+  code: String
+  documentCategoryId: Int
+  warehouseId: Int
+  stockDirection: Int
+  editorType: Int
+  printTemplate: String
+  priceType: Int
+  languageKey: String
+}
+
+input DeleteDocumentTypeInput {
+  documentTypeId: Int!
+}
+
+input ModelSubscriptionDocumentTypeFilterInput {
+  documentTypeId: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  code: ModelSubscriptionStringInput
+  documentCategoryId: ModelSubscriptionIntInput
+  warehouseId: ModelSubscriptionIntInput
+  stockDirection: ModelSubscriptionIntInput
+  editorType: ModelSubscriptionIntInput
+  printTemplate: ModelSubscriptionStringInput
+  priceType: ModelSubscriptionIntInput
+  languageKey: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentTypeFilterInput]
+  or: [ModelSubscriptionDocumentTypeFilterInput]
+}
+
+type ModelDocumentConnection @aws_iam @aws_api_key {
+  items: [Document]!
+  nextToken: String
+}
+
+input ModelDocumentFilterInput {
+  documentId: ModelIntInput
+  number: ModelStringInput
+  userId: ModelIntInput
+  customerId: ModelIntInput
+  orderNumber: ModelStringInput
+  date: ModelStringInput
+  stockDate: ModelStringInput
+  total: ModelFloatInput
+  isClockedOut: ModelBooleanInput
+  documentTypeId: ModelIntInput
+  warehouseId: ModelIntInput
+  referenceDocumentNumber: ModelStringInput
+  internalNote: ModelStringInput
+  note: ModelStringInput
+  dueDate: ModelStringInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  paidStatus: ModelIntInput
+  discountApplyRule: ModelIntInput
+  serviceType: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentFilterInput]
+  or: [ModelDocumentFilterInput]
+  not: ModelDocumentFilterInput
+}
+
+input ModelDocumentConditionInput {
+  number: ModelStringInput
+  userId: ModelIntInput
+  customerId: ModelIntInput
+  orderNumber: ModelStringInput
+  date: ModelStringInput
+  stockDate: ModelStringInput
+  total: ModelFloatInput
+  isClockedOut: ModelBooleanInput
+  documentTypeId: ModelIntInput
+  warehouseId: ModelIntInput
+  referenceDocumentNumber: ModelStringInput
+  internalNote: ModelStringInput
+  note: ModelStringInput
+  dueDate: ModelStringInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  paidStatus: ModelIntInput
+  discountApplyRule: ModelIntInput
+  serviceType: ModelIntInput
+  and: [ModelDocumentConditionInput]
+  or: [ModelDocumentConditionInput]
+  not: ModelDocumentConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentInput {
+  documentId: Int!
+  number: String!
+  userId: Int!
+  customerId: Int
+  orderNumber: String
+  date: AWSDate!
+  stockDate: AWSDateTime!
+  total: Float!
+  isClockedOut: Boolean
+  documentTypeId: Int!
+  warehouseId: Int!
+  referenceDocumentNumber: String
+  internalNote: String
+  note: String
+  dueDate: AWSDate
+  discount: Float
+  discountType: Int
+  paidStatus: Int
+  discountApplyRule: Int
+  serviceType: Int
+}
+
+input UpdateDocumentInput {
+  documentId: Int!
+  number: String
+  userId: Int
+  customerId: Int
+  orderNumber: String
+  date: AWSDate
+  stockDate: AWSDateTime
+  total: Float
+  isClockedOut: Boolean
+  documentTypeId: Int
+  warehouseId: Int
+  referenceDocumentNumber: String
+  internalNote: String
+  note: String
+  dueDate: AWSDate
+  discount: Float
+  discountType: Int
+  paidStatus: Int
+  discountApplyRule: Int
+  serviceType: Int
+}
+
+input DeleteDocumentInput {
+  documentId: Int!
+}
+
+input ModelSubscriptionDocumentFilterInput {
+  documentId: ModelSubscriptionIntInput
+  number: ModelSubscriptionStringInput
+  userId: ModelSubscriptionIntInput
+  customerId: ModelSubscriptionIntInput
+  orderNumber: ModelSubscriptionStringInput
+  date: ModelSubscriptionStringInput
+  stockDate: ModelSubscriptionStringInput
+  total: ModelSubscriptionFloatInput
+  isClockedOut: ModelSubscriptionBooleanInput
+  documentTypeId: ModelSubscriptionIntInput
+  warehouseId: ModelSubscriptionIntInput
+  referenceDocumentNumber: ModelSubscriptionStringInput
+  internalNote: ModelSubscriptionStringInput
+  note: ModelSubscriptionStringInput
+  dueDate: ModelSubscriptionStringInput
+  discount: ModelSubscriptionFloatInput
+  discountType: ModelSubscriptionIntInput
+  paidStatus: ModelSubscriptionIntInput
+  discountApplyRule: ModelSubscriptionIntInput
+  serviceType: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentFilterInput]
+  or: [ModelSubscriptionDocumentFilterInput]
+}
+
+type ModelDocumentItemConnection @aws_iam @aws_api_key {
+  items: [DocumentItem]!
+  nextToken: String
+}
+
+input ModelDocumentItemFilterInput {
+  documentId: ModelIntInput
+  productId: ModelIntInput
+  quantity: ModelFloatInput
+  expectedQuantity: ModelFloatInput
+  priceBeforeTax: ModelFloatInput
+  price: ModelFloatInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  productCost: ModelFloatInput
+  priceBeforeTaxAfterDiscount: ModelFloatInput
+  priceAfterDiscount: ModelFloatInput
+  total: ModelFloatInput
+  totalAfterDocumentDiscount: ModelFloatInput
+  discountApplyRule: ModelIntInput
+  documentItemId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentItemFilterInput]
+  or: [ModelDocumentItemFilterInput]
+  not: ModelDocumentItemFilterInput
+}
+
+input ModelDocumentItemConditionInput {
+  documentId: ModelIntInput
+  productId: ModelIntInput
+  quantity: ModelFloatInput
+  expectedQuantity: ModelFloatInput
+  priceBeforeTax: ModelFloatInput
+  price: ModelFloatInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  productCost: ModelFloatInput
+  priceBeforeTaxAfterDiscount: ModelFloatInput
+  priceAfterDiscount: ModelFloatInput
+  total: ModelFloatInput
+  totalAfterDocumentDiscount: ModelFloatInput
+  discountApplyRule: ModelIntInput
+  and: [ModelDocumentItemConditionInput]
+  or: [ModelDocumentItemConditionInput]
+  not: ModelDocumentItemConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentItemInput {
+  documentId: Int!
+  productId: Int!
+  quantity: Float!
+  expectedQuantity: Float
+  priceBeforeTax: Float
+  price: Float!
+  discount: Float
+  discountType: Int
+  productCost: Float
+  priceBeforeTaxAfterDiscount: Float
+  priceAfterDiscount: Float
+  total: Float
+  totalAfterDocumentDiscount: Float
+  discountApplyRule: Int
+  documentItemId: Int!
+}
+
+input UpdateDocumentItemInput {
+  documentId: Int
+  productId: Int
+  quantity: Float
+  expectedQuantity: Float
+  priceBeforeTax: Float
+  price: Float
+  discount: Float
+  discountType: Int
+  productCost: Float
+  priceBeforeTaxAfterDiscount: Float
+  priceAfterDiscount: Float
+  total: Float
+  totalAfterDocumentDiscount: Float
+  discountApplyRule: Int
+  documentItemId: Int!
+}
+
+input DeleteDocumentItemInput {
+  documentItemId: Int!
+}
+
+input ModelSubscriptionDocumentItemFilterInput {
+  documentId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  quantity: ModelSubscriptionFloatInput
+  expectedQuantity: ModelSubscriptionFloatInput
+  priceBeforeTax: ModelSubscriptionFloatInput
+  price: ModelSubscriptionFloatInput
+  discount: ModelSubscriptionFloatInput
+  discountType: ModelSubscriptionIntInput
+  productCost: ModelSubscriptionFloatInput
+  priceBeforeTaxAfterDiscount: ModelSubscriptionFloatInput
+  priceAfterDiscount: ModelSubscriptionFloatInput
+  total: ModelSubscriptionFloatInput
+  totalAfterDocumentDiscount: ModelSubscriptionFloatInput
+  discountApplyRule: ModelSubscriptionIntInput
+  documentItemId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentItemFilterInput]
+  or: [ModelSubscriptionDocumentItemFilterInput]
+}
+
+type ModelDocumentItemPriceViewConnection @aws_iam @aws_api_key {
+  items: [DocumentItemPriceView]!
+  nextToken: String
+}
+
+input ModelDocumentItemPriceViewFilterInput {
+  documentItemId: ModelIntInput
+  price: ModelFloatInput
+  documentId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentItemPriceViewFilterInput]
+  or: [ModelDocumentItemPriceViewFilterInput]
+  not: ModelDocumentItemPriceViewFilterInput
+}
+
+input ModelDocumentItemPriceViewConditionInput {
+  price: ModelFloatInput
+  documentId: ModelIntInput
+  and: [ModelDocumentItemPriceViewConditionInput]
+  or: [ModelDocumentItemPriceViewConditionInput]
+  not: ModelDocumentItemPriceViewConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentItemPriceViewInput {
+  documentItemId: Int!
+  price: Float!
+  documentId: Int!
+}
+
+input UpdateDocumentItemPriceViewInput {
+  documentItemId: Int!
+  price: Float
+  documentId: Int
+}
+
+input DeleteDocumentItemPriceViewInput {
+  documentItemId: Int!
+}
+
+input ModelSubscriptionDocumentItemPriceViewFilterInput {
+  documentItemId: ModelSubscriptionIntInput
+  price: ModelSubscriptionFloatInput
+  documentId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentItemPriceViewFilterInput]
+  or: [ModelSubscriptionDocumentItemPriceViewFilterInput]
+}
+
+type ModelTaxConnection @aws_api_key @aws_iam {
+  items: [Tax]!
+  nextToken: String
+}
+
+input ModelTaxFilterInput {
+  idTax: ModelIntInput
+  name: ModelStringInput
+  rate: ModelFloatInput
+  code: ModelStringInput
+  isFixed: ModelBooleanInput
+  isTaxOnTotal: ModelBooleanInput
+  isEnabled: ModelBooleanInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelTaxFilterInput]
+  or: [ModelTaxFilterInput]
+  not: ModelTaxFilterInput
+}
+
+input ModelTaxConditionInput {
+  name: ModelStringInput
+  rate: ModelFloatInput
+  code: ModelStringInput
+  isFixed: ModelBooleanInput
+  isTaxOnTotal: ModelBooleanInput
+  isEnabled: ModelBooleanInput
+  and: [ModelTaxConditionInput]
+  or: [ModelTaxConditionInput]
+  not: ModelTaxConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateTaxInput {
+  idTax: Int!
+  name: String!
+  rate: Float!
+  code: String
+  isFixed: Boolean
+  isTaxOnTotal: Boolean
+  isEnabled: Boolean
+}
+
+input UpdateTaxInput {
+  idTax: Int!
+  name: String
+  rate: Float
+  code: String
+  isFixed: Boolean
+  isTaxOnTotal: Boolean
+  isEnabled: Boolean
+}
+
+input DeleteTaxInput {
+  idTax: Int!
+}
+
+input ModelSubscriptionTaxFilterInput {
+  idTax: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  rate: ModelSubscriptionFloatInput
+  code: ModelSubscriptionStringInput
+  isFixed: ModelSubscriptionBooleanInput
+  isTaxOnTotal: ModelSubscriptionBooleanInput
+  isEnabled: ModelSubscriptionBooleanInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionTaxFilterInput]
+  or: [ModelSubscriptionTaxFilterInput]
+}
+
+type ModelProductTaxConnection @aws_iam @aws_api_key {
+  items: [ProductTax]!
+  nextToken: String
+}
+
+input ModelProductTaxFilterInput {
+  productId: ModelIntInput
+  taxId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelProductTaxFilterInput]
+  or: [ModelProductTaxFilterInput]
+  not: ModelProductTaxFilterInput
+}
+
+input ModelProductTaxConditionInput {
+  and: [ModelProductTaxConditionInput]
+  or: [ModelProductTaxConditionInput]
+  not: ModelProductTaxConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateProductTaxInput {
+  productId: Int!
+  taxId: Int!
+}
+
+input UpdateProductTaxInput {
+  productId: Int!
+  taxId: Int!
+}
+
+input DeleteProductTaxInput {
+  productId: Int!
+  taxId: Int!
+}
+
+input ModelSubscriptionProductTaxFilterInput {
+  productId: ModelSubscriptionIntInput
+  taxId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionProductTaxFilterInput]
+  or: [ModelSubscriptionProductTaxFilterInput]
+}
+
+type ModelDocumentItemTaxConnection @aws_iam @aws_api_key {
+  items: [DocumentItemTax]!
+  nextToken: String
+}
+
+input ModelDocumentItemTaxFilterInput {
+  documentItemId: ModelIntInput
+  taxId: ModelIntInput
+  amount: ModelFloatInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentItemTaxFilterInput]
+  or: [ModelDocumentItemTaxFilterInput]
+  not: ModelDocumentItemTaxFilterInput
+}
+
+input ModelDocumentItemTaxConditionInput {
+  amount: ModelFloatInput
+  and: [ModelDocumentItemTaxConditionInput]
+  or: [ModelDocumentItemTaxConditionInput]
+  not: ModelDocumentItemTaxConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentItemTaxInput {
+  documentItemId: Int!
+  taxId: Int!
+  amount: Float!
+}
+
+input UpdateDocumentItemTaxInput {
+  documentItemId: Int!
+  taxId: Int!
+  amount: Float
+}
+
+input DeleteDocumentItemTaxInput {
+  documentItemId: Int!
+  taxId: Int!
+}
+
+input ModelSubscriptionDocumentItemTaxFilterInput {
+  documentItemId: ModelSubscriptionIntInput
+  taxId: ModelSubscriptionIntInput
+  amount: ModelSubscriptionFloatInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentItemTaxFilterInput]
+  or: [ModelSubscriptionDocumentItemTaxFilterInput]
+}
+
+type ModelPaymentTypeConnection @aws_api_key @aws_iam {
+  items: [PaymentType]!
+  nextToken: String
+}
+
+input ModelPaymentTypeFilterInput {
+  paymentTypeId: ModelIntInput
+  name: ModelStringInput
+  code: ModelStringInput
+  isCustomerRequired: ModelBooleanInput
+  isFiscal: ModelBooleanInput
+  isSlipRequired: ModelBooleanInput
+  isChangeAllowed: ModelBooleanInput
+  ordinal: ModelIntInput
+  isEnabled: ModelBooleanInput
+  isQuickPayment: ModelBooleanInput
+  openCashDrawer: ModelBooleanInput
+  shortcutKey: ModelStringInput
+  markAsPaid: ModelBooleanInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelPaymentTypeFilterInput]
+  or: [ModelPaymentTypeFilterInput]
+  not: ModelPaymentTypeFilterInput
+}
+
+input ModelPaymentTypeConditionInput {
+  name: ModelStringInput
+  code: ModelStringInput
+  isCustomerRequired: ModelBooleanInput
+  isFiscal: ModelBooleanInput
+  isSlipRequired: ModelBooleanInput
+  isChangeAllowed: ModelBooleanInput
+  ordinal: ModelIntInput
+  isEnabled: ModelBooleanInput
+  isQuickPayment: ModelBooleanInput
+  openCashDrawer: ModelBooleanInput
+  shortcutKey: ModelStringInput
+  markAsPaid: ModelBooleanInput
+  and: [ModelPaymentTypeConditionInput]
+  or: [ModelPaymentTypeConditionInput]
+  not: ModelPaymentTypeConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreatePaymentTypeInput {
+  paymentTypeId: Int!
+  name: String!
+  code: String
+  isCustomerRequired: Boolean
+  isFiscal: Boolean
+  isSlipRequired: Boolean
+  isChangeAllowed: Boolean
+  ordinal: Int
+  isEnabled: Boolean
+  isQuickPayment: Boolean
+  openCashDrawer: Boolean
+  shortcutKey: String
+  markAsPaid: Boolean
+}
+
+input UpdatePaymentTypeInput {
+  paymentTypeId: Int!
+  name: String
+  code: String
+  isCustomerRequired: Boolean
+  isFiscal: Boolean
+  isSlipRequired: Boolean
+  isChangeAllowed: Boolean
+  ordinal: Int
+  isEnabled: Boolean
+  isQuickPayment: Boolean
+  openCashDrawer: Boolean
+  shortcutKey: String
+  markAsPaid: Boolean
+}
+
+input DeletePaymentTypeInput {
+  paymentTypeId: Int!
+}
+
+input ModelSubscriptionPaymentTypeFilterInput {
+  paymentTypeId: ModelSubscriptionIntInput
+  name: ModelSubscriptionStringInput
+  code: ModelSubscriptionStringInput
+  isCustomerRequired: ModelSubscriptionBooleanInput
+  isFiscal: ModelSubscriptionBooleanInput
+  isSlipRequired: ModelSubscriptionBooleanInput
+  isChangeAllowed: ModelSubscriptionBooleanInput
+  ordinal: ModelSubscriptionIntInput
+  isEnabled: ModelSubscriptionBooleanInput
+  isQuickPayment: ModelSubscriptionBooleanInput
+  openCashDrawer: ModelSubscriptionBooleanInput
+  shortcutKey: ModelSubscriptionStringInput
+  markAsPaid: ModelSubscriptionBooleanInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPaymentTypeFilterInput]
+  or: [ModelSubscriptionPaymentTypeFilterInput]
+}
+
+type ModelPaymentConnection @aws_iam @aws_api_key {
+  items: [Payment]!
+  nextToken: String
+}
+
+input ModelPaymentFilterInput {
+  paymentId: ModelIntInput
+  documentId: ModelIntInput
+  paymentTypeId: ModelIntInput
+  amount: ModelFloatInput
+  date: ModelStringInput
+  userId: ModelIntInput
+  zReportId: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelPaymentFilterInput]
+  or: [ModelPaymentFilterInput]
+  not: ModelPaymentFilterInput
+}
+
+input ModelPaymentConditionInput {
+  documentId: ModelIntInput
+  paymentTypeId: ModelIntInput
+  amount: ModelFloatInput
+  date: ModelStringInput
+  userId: ModelIntInput
+  zReportId: ModelIntInput
+  and: [ModelPaymentConditionInput]
+  or: [ModelPaymentConditionInput]
+  not: ModelPaymentConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreatePaymentInput {
+  paymentId: Int!
+  documentId: Int!
+  paymentTypeId: Int!
+  amount: Float!
+  date: AWSDate
+  userId: Int
+  zReportId: Int
+}
+
+input UpdatePaymentInput {
+  paymentId: Int!
+  documentId: Int
+  paymentTypeId: Int
+  amount: Float
+  date: AWSDate
+  userId: Int
+  zReportId: Int
+}
+
+input DeletePaymentInput {
+  paymentId: Int!
+}
+
+input ModelSubscriptionPaymentFilterInput {
+  paymentId: ModelSubscriptionIntInput
+  documentId: ModelSubscriptionIntInput
+  paymentTypeId: ModelSubscriptionIntInput
+  amount: ModelSubscriptionFloatInput
+  date: ModelSubscriptionStringInput
+  userId: ModelSubscriptionIntInput
+  zReportId: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPaymentFilterInput]
+  or: [ModelSubscriptionPaymentFilterInput]
+}
+
+type ModelPosOrderConnection @aws_iam @aws_api_key {
+  items: [PosOrder]!
+  nextToken: String
+}
+
+input ModelPosOrderFilterInput {
+  posOrderId: ModelIntInput
+  userId: ModelIntInput
+  number: ModelStringInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  total: ModelFloatInput
+  customerId: ModelIntInput
+  serviceType: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelPosOrderFilterInput]
+  or: [ModelPosOrderFilterInput]
+  not: ModelPosOrderFilterInput
+}
+
+input ModelPosOrderConditionInput {
+  userId: ModelIntInput
+  number: ModelStringInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  total: ModelFloatInput
+  customerId: ModelIntInput
+  serviceType: ModelIntInput
+  and: [ModelPosOrderConditionInput]
+  or: [ModelPosOrderConditionInput]
+  not: ModelPosOrderConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreatePosOrderInput {
+  posOrderId: Int!
+  userId: Int!
+  number: String!
+  discount: Float
+  discountType: Int
+  total: Float
+  customerId: Int
+  serviceType: Int
+}
+
+input UpdatePosOrderInput {
+  posOrderId: Int!
+  userId: Int
+  number: String
+  discount: Float
+  discountType: Int
+  total: Float
+  customerId: Int
+  serviceType: Int
+}
+
+input DeletePosOrderInput {
+  posOrderId: Int!
+}
+
+input ModelSubscriptionPosOrderFilterInput {
+  posOrderId: ModelSubscriptionIntInput
+  userId: ModelSubscriptionIntInput
+  number: ModelSubscriptionStringInput
+  discount: ModelSubscriptionFloatInput
+  discountType: ModelSubscriptionIntInput
+  total: ModelSubscriptionFloatInput
+  customerId: ModelSubscriptionIntInput
+  serviceType: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPosOrderFilterInput]
+  or: [ModelSubscriptionPosOrderFilterInput]
+}
+
+type ModelPosOrderItemConnection @aws_iam @aws_api_key {
+  items: [PosOrderItem]!
+  nextToken: String
+}
+
+input ModelPosOrderItemFilterInput {
+  posOrderId: ModelIntInput
+  productId: ModelIntInput
+  roundNumber: ModelIntInput
+  quantity: ModelFloatInput
+  price: ModelFloatInput
+  isLocked: ModelBooleanInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  isFeatured: ModelBooleanInput
+  voidedBy: ModelIntInput
+  comment: ModelStringInput
+  dateCreated: ModelStringInput
+  bundle: ModelStringInput
+  discountAppliedType: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelPosOrderItemFilterInput]
+  or: [ModelPosOrderItemFilterInput]
+  not: ModelPosOrderItemFilterInput
+}
+
+input ModelPosOrderItemConditionInput {
+  roundNumber: ModelIntInput
+  quantity: ModelFloatInput
+  price: ModelFloatInput
+  isLocked: ModelBooleanInput
+  discount: ModelFloatInput
+  discountType: ModelIntInput
+  isFeatured: ModelBooleanInput
+  voidedBy: ModelIntInput
+  comment: ModelStringInput
+  dateCreated: ModelStringInput
+  bundle: ModelStringInput
+  discountAppliedType: ModelIntInput
+  and: [ModelPosOrderItemConditionInput]
+  or: [ModelPosOrderItemConditionInput]
+  not: ModelPosOrderItemConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreatePosOrderItemInput {
+  posOrderId: Int!
+  productId: Int!
+  roundNumber: Int
+  quantity: Float!
+  price: Float!
+  isLocked: Boolean
+  discount: Float
+  discountType: Int
+  isFeatured: Boolean
+  voidedBy: Int
+  comment: String
+  dateCreated: AWSDate!
+  bundle: String
+  discountAppliedType: Int
+}
+
+input UpdatePosOrderItemInput {
+  posOrderId: Int!
+  productId: Int!
+  roundNumber: Int
+  quantity: Float
+  price: Float
+  isLocked: Boolean
+  discount: Float
+  discountType: Int
+  isFeatured: Boolean
+  voidedBy: Int
+  comment: String
+  dateCreated: AWSDate
+  bundle: String
+  discountAppliedType: Int
+}
+
+input DeletePosOrderItemInput {
+  posOrderId: Int!
+  productId: Int!
+}
+
+input ModelSubscriptionPosOrderItemFilterInput {
+  posOrderId: ModelSubscriptionIntInput
+  productId: ModelSubscriptionIntInput
+  roundNumber: ModelSubscriptionIntInput
+  quantity: ModelSubscriptionFloatInput
+  price: ModelSubscriptionFloatInput
+  isLocked: ModelSubscriptionBooleanInput
+  discount: ModelSubscriptionFloatInput
+  discountType: ModelSubscriptionIntInput
+  isFeatured: ModelSubscriptionBooleanInput
+  voidedBy: ModelSubscriptionIntInput
+  comment: ModelSubscriptionStringInput
+  dateCreated: ModelSubscriptionStringInput
+  bundle: ModelSubscriptionStringInput
+  discountAppliedType: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPosOrderItemFilterInput]
+  or: [ModelSubscriptionPosOrderItemFilterInput]
+}
+
+type ModelStartingCashConnection @aws_iam @aws_api_key {
+  items: [StartingCash]!
+  nextToken: String
+}
+
+input ModelStartingCashFilterInput {
+  startingCashId: ModelIntInput
+  userId: ModelIntInput
+  amount: ModelFloatInput
+  description: ModelStringInput
+  startingCashType: ModelIntInput
+  zReportNumber: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelStartingCashFilterInput]
+  or: [ModelStartingCashFilterInput]
+  not: ModelStartingCashFilterInput
+}
+
+input ModelStartingCashConditionInput {
+  userId: ModelIntInput
+  amount: ModelFloatInput
+  description: ModelStringInput
+  startingCashType: ModelIntInput
+  zReportNumber: ModelIntInput
+  and: [ModelStartingCashConditionInput]
+  or: [ModelStartingCashConditionInput]
+  not: ModelStartingCashConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateStartingCashInput {
+  startingCashId: Int!
+  userId: Int!
+  amount: Float!
+  description: String
+  startingCashType: Int
+  zReportNumber: Int
+}
+
+input UpdateStartingCashInput {
+  startingCashId: Int!
+  userId: Int
+  amount: Float
+  description: String
+  startingCashType: Int
+  zReportNumber: Int
+}
+
+input DeleteStartingCashInput {
+  startingCashId: Int!
+}
+
+input ModelSubscriptionStartingCashFilterInput {
+  startingCashId: ModelSubscriptionIntInput
+  userId: ModelSubscriptionIntInput
+  amount: ModelSubscriptionFloatInput
+  description: ModelSubscriptionStringInput
+  startingCashType: ModelSubscriptionIntInput
+  zReportNumber: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionStartingCashFilterInput]
+  or: [ModelSubscriptionStartingCashFilterInput]
+}
+
+type ModelCounterConnection @aws_api_key @aws_iam {
+  items: [Counter]!
+  nextToken: String
+}
+
+input ModelCounterFilterInput {
+  name: ModelStringInput
+  value: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCounterFilterInput]
+  or: [ModelCounterFilterInput]
+  not: ModelCounterFilterInput
+}
+
+input ModelCounterConditionInput {
+  value: ModelIntInput
+  and: [ModelCounterConditionInput]
+  or: [ModelCounterConditionInput]
+  not: ModelCounterConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateCounterInput {
+  name: String!
+  value: Int!
+}
+
+input UpdateCounterInput {
+  name: String!
+  value: Int
+}
+
+input DeleteCounterInput {
+  name: String!
+}
+
+input ModelSubscriptionCounterFilterInput {
+  name: ModelSubscriptionStringInput
+  value: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCounterFilterInput]
+  or: [ModelSubscriptionCounterFilterInput]
+}
+
+type ModelApplicationPropertyConnection @aws_api_key @aws_iam {
+  items: [ApplicationProperty]!
+  nextToken: String
+}
+
+input ModelApplicationPropertyFilterInput {
+  name: ModelStringInput
+  value: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelApplicationPropertyFilterInput]
+  or: [ModelApplicationPropertyFilterInput]
+  not: ModelApplicationPropertyFilterInput
+}
+
+input ModelApplicationPropertyConditionInput {
+  value: ModelStringInput
+  and: [ModelApplicationPropertyConditionInput]
+  or: [ModelApplicationPropertyConditionInput]
+  not: ModelApplicationPropertyConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateApplicationPropertyInput {
+  name: String!
+  value: String
+}
+
+input UpdateApplicationPropertyInput {
+  name: String!
+  value: String
+}
+
+input DeleteApplicationPropertyInput {
+  name: String!
+}
+
+input ModelSubscriptionApplicationPropertyFilterInput {
+  name: ModelSubscriptionStringInput
+  value: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionApplicationPropertyFilterInput]
+  or: [ModelSubscriptionApplicationPropertyFilterInput]
+}
+
+type ModelZReportConnection @aws_api_key @aws_iam {
+  items: [ZReport]!
+  nextToken: String
+}
+
+input ModelZReportFilterInput {
+  number: ModelIntInput
+  fromDocumentId: ModelIntInput
+  toDocumentId: ModelIntInput
+  dateCreated: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelZReportFilterInput]
+  or: [ModelZReportFilterInput]
+  not: ModelZReportFilterInput
+}
+
+input ModelZReportConditionInput {
+  fromDocumentId: ModelIntInput
+  toDocumentId: ModelIntInput
+  dateCreated: ModelStringInput
+  and: [ModelZReportConditionInput]
+  or: [ModelZReportConditionInput]
+  not: ModelZReportConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateZReportInput {
+  number: Int!
+  fromDocumentId: Int!
+  toDocumentId: Int!
+  dateCreated: AWSDateTime!
+}
+
+input UpdateZReportInput {
+  number: Int!
+  fromDocumentId: Int
+  toDocumentId: Int
+  dateCreated: AWSDateTime
+}
+
+input DeleteZReportInput {
+  number: Int!
+}
+
+input ModelSubscriptionZReportFilterInput {
+  number: ModelSubscriptionIntInput
+  fromDocumentId: ModelSubscriptionIntInput
+  toDocumentId: ModelSubscriptionIntInput
+  dateCreated: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionZReportFilterInput]
+  or: [ModelSubscriptionZReportFilterInput]
+}
+
+type ModelTemplateConnection @aws_api_key @aws_iam {
+  items: [Template]!
+  nextToken: String
+}
+
+input ModelTemplateFilterInput {
+  name: ModelStringInput
+  value: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelTemplateFilterInput]
+  or: [ModelTemplateFilterInput]
+  not: ModelTemplateFilterInput
+}
+
+input ModelTemplateConditionInput {
+  value: ModelStringInput
+  and: [ModelTemplateConditionInput]
+  or: [ModelTemplateConditionInput]
+  not: ModelTemplateConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateTemplateInput {
+  name: String!
+  value: String!
+}
+
+input UpdateTemplateInput {
+  name: String!
+  value: String
+}
+
+input DeleteTemplateInput {
+  name: String!
+}
+
+input ModelSubscriptionTemplateFilterInput {
+  name: ModelSubscriptionStringInput
+  value: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionTemplateFilterInput]
+  or: [ModelSubscriptionTemplateFilterInput]
+}
+
+type ModelSessionConfigConnection @aws_api_key @aws_iam {
+  items: [SessionConfig]!
+  nextToken: String
+}
+
+input ModelSessionConfigFilterInput {
+  userId: ModelIntInput
+  accessLevel: ModelIntInput
+  firstName: ModelStringInput
+  lastName: ModelStringInput
+  email: ModelStringInput
+  loginTime: ModelStringInput
+  lastActivityTime: ModelStringInput
+  isActive: ModelBooleanInput
+  sessionToken: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelSessionConfigFilterInput]
+  or: [ModelSessionConfigFilterInput]
+  not: ModelSessionConfigFilterInput
+}
+
+input ModelSessionConfigConditionInput {
+  accessLevel: ModelIntInput
+  firstName: ModelStringInput
+  lastName: ModelStringInput
+  email: ModelStringInput
+  loginTime: ModelStringInput
+  lastActivityTime: ModelStringInput
+  isActive: ModelBooleanInput
+  sessionToken: ModelStringInput
+  and: [ModelSessionConfigConditionInput]
+  or: [ModelSessionConfigConditionInput]
+  not: ModelSessionConfigConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateSessionConfigInput {
+  userId: Int!
+  accessLevel: Int!
+  firstName: String
+  lastName: String
+  email: String
+  loginTime: AWSDateTime!
+  lastActivityTime: AWSDateTime
+  isActive: Boolean
+  sessionToken: String
+}
+
+input UpdateSessionConfigInput {
+  userId: Int!
+  accessLevel: Int
+  firstName: String
+  lastName: String
+  email: String
+  loginTime: AWSDateTime
+  lastActivityTime: AWSDateTime
+  isActive: Boolean
+  sessionToken: String
+}
+
+input DeleteSessionConfigInput {
+  userId: Int!
+}
+
+input ModelSubscriptionSessionConfigFilterInput {
+  userId: ModelSubscriptionIntInput
+  accessLevel: ModelSubscriptionIntInput
+  firstName: ModelSubscriptionStringInput
+  lastName: ModelSubscriptionStringInput
+  email: ModelSubscriptionStringInput
+  loginTime: ModelSubscriptionStringInput
+  lastActivityTime: ModelSubscriptionStringInput
+  isActive: ModelSubscriptionBooleanInput
+  sessionToken: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionSessionConfigFilterInput]
+  or: [ModelSubscriptionSessionConfigFilterInput]
+}
+
+type ModelApplicationSettingsConnection @aws_api_key @aws_iam {
+  items: [ApplicationSettings]!
+  nextToken: String
+}
+
+input ModelApplicationSettingsFilterInput {
+  companyId: ModelIntInput
+  organizationName: ModelStringInput
+  organizationLogo: ModelStringInput
+  primaryColor: ModelStringInput
+  currencySymbol: ModelStringInput
+  dateFormat: ModelStringInput
+  timeFormat: ModelStringInput
+  taxPercentage: ModelFloatInput
+  allowNegativeStock: ModelBooleanInput
+  defaultWarehouseId: ModelIntInput
+  lastModifiedBy: ModelIntInput
+  lastModifiedDate: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelApplicationSettingsFilterInput]
+  or: [ModelApplicationSettingsFilterInput]
+  not: ModelApplicationSettingsFilterInput
+}
+
+input ModelApplicationSettingsConditionInput {
+  organizationName: ModelStringInput
+  organizationLogo: ModelStringInput
+  primaryColor: ModelStringInput
+  currencySymbol: ModelStringInput
+  dateFormat: ModelStringInput
+  timeFormat: ModelStringInput
+  taxPercentage: ModelFloatInput
+  allowNegativeStock: ModelBooleanInput
+  defaultWarehouseId: ModelIntInput
+  lastModifiedBy: ModelIntInput
+  lastModifiedDate: ModelStringInput
+  and: [ModelApplicationSettingsConditionInput]
+  or: [ModelApplicationSettingsConditionInput]
+  not: ModelApplicationSettingsConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateApplicationSettingsInput {
+  companyId: Int!
+  organizationName: String
+  organizationLogo: String
+  primaryColor: String
+  currencySymbol: String
+  dateFormat: String
+  timeFormat: String
+  taxPercentage: Float
+  allowNegativeStock: Boolean
+  defaultWarehouseId: Int
+  lastModifiedBy: Int
+  lastModifiedDate: AWSDateTime
+}
+
+input UpdateApplicationSettingsInput {
+  companyId: Int!
+  organizationName: String
+  organizationLogo: String
+  primaryColor: String
+  currencySymbol: String
+  dateFormat: String
+  timeFormat: String
+  taxPercentage: Float
+  allowNegativeStock: Boolean
+  defaultWarehouseId: Int
+  lastModifiedBy: Int
+  lastModifiedDate: AWSDateTime
+}
+
+input DeleteApplicationSettingsInput {
+  companyId: Int!
+}
+
+input ModelSubscriptionApplicationSettingsFilterInput {
+  companyId: ModelSubscriptionIntInput
+  organizationName: ModelSubscriptionStringInput
+  organizationLogo: ModelSubscriptionStringInput
+  primaryColor: ModelSubscriptionStringInput
+  currencySymbol: ModelSubscriptionStringInput
+  dateFormat: ModelSubscriptionStringInput
+  timeFormat: ModelSubscriptionStringInput
+  taxPercentage: ModelSubscriptionFloatInput
+  allowNegativeStock: ModelSubscriptionBooleanInput
+  defaultWarehouseId: ModelSubscriptionIntInput
+  lastModifiedBy: ModelSubscriptionIntInput
+  lastModifiedDate: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionApplicationSettingsFilterInput]
+  or: [ModelSubscriptionApplicationSettingsFilterInput]
+}
+
+type ModelAuditLogConnection @aws_api_key @aws_iam {
+  items: [AuditLog]!
+  nextToken: String
+}
+
+input ModelAuditLogFilterInput {
+  logId: ModelIDInput
+  userId: ModelIntInput
+  action: ModelStringInput
+  tableName: ModelStringInput
+  recordId: ModelIntInput
+  oldValues: ModelStringInput
+  newValues: ModelStringInput
+  timestamp: ModelStringInput
+  ipAddress: ModelStringInput
+  userAgent: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelAuditLogFilterInput]
+  or: [ModelAuditLogFilterInput]
+  not: ModelAuditLogFilterInput
+}
+
+input ModelAuditLogConditionInput {
+  logId: ModelIDInput
+  userId: ModelIntInput
+  action: ModelStringInput
+  tableName: ModelStringInput
+  recordId: ModelIntInput
+  oldValues: ModelStringInput
+  newValues: ModelStringInput
+  timestamp: ModelStringInput
+  ipAddress: ModelStringInput
+  userAgent: ModelStringInput
+  and: [ModelAuditLogConditionInput]
+  or: [ModelAuditLogConditionInput]
+  not: ModelAuditLogConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateAuditLogInput {
+  logId: ID!
+  userId: Int!
+  action: String!
+  tableName: String!
+  recordId: Int!
+  oldValues: String
+  newValues: String
+  timestamp: AWSDateTime!
+  ipAddress: String
+  userAgent: String
+  id: ID
+}
+
+input UpdateAuditLogInput {
+  logId: ID
+  userId: Int
+  action: String
+  tableName: String
+  recordId: Int
+  oldValues: String
+  newValues: String
+  timestamp: AWSDateTime
+  ipAddress: String
+  userAgent: String
+  id: ID!
+}
+
+input DeleteAuditLogInput {
+  id: ID!
+}
+
+input ModelSubscriptionAuditLogFilterInput {
+  logId: ModelSubscriptionIDInput
+  userId: ModelSubscriptionIntInput
+  action: ModelSubscriptionStringInput
+  tableName: ModelSubscriptionStringInput
+  recordId: ModelSubscriptionIntInput
+  oldValues: ModelSubscriptionStringInput
+  newValues: ModelSubscriptionStringInput
+  timestamp: ModelSubscriptionStringInput
+  ipAddress: ModelSubscriptionStringInput
+  userAgent: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionAuditLogFilterInput]
+  or: [ModelSubscriptionAuditLogFilterInput]
+}
+
+type ModelDocumentNumberConnection @aws_api_key @aws_iam {
+  items: [DocumentNumber]!
+  nextToken: String
+}
+
+input ModelDocumentNumberFilterInput {
+  documentTypeId: ModelIntInput
+  warehouseId: ModelIntInput
+  year: ModelIntInput
+  month: ModelIntInput
+  sequence: ModelIntInput
+  lastNumber: ModelIntInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelDocumentNumberFilterInput]
+  or: [ModelDocumentNumberFilterInput]
+  not: ModelDocumentNumberFilterInput
+}
+
+input ModelDocumentNumberConditionInput {
+  month: ModelIntInput
+  sequence: ModelIntInput
+  lastNumber: ModelIntInput
+  and: [ModelDocumentNumberConditionInput]
+  or: [ModelDocumentNumberConditionInput]
+  not: ModelDocumentNumberConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateDocumentNumberInput {
+  documentTypeId: Int!
+  warehouseId: Int!
+  year: Int!
+  month: Int!
+  sequence: Int!
+  lastNumber: Int!
+}
+
+input UpdateDocumentNumberInput {
+  documentTypeId: Int!
+  warehouseId: Int!
+  year: Int!
+  month: Int
+  sequence: Int
+  lastNumber: Int
+}
+
+input DeleteDocumentNumberInput {
+  documentTypeId: Int!
+  warehouseId: Int!
+  year: Int!
+}
+
+input ModelSubscriptionDocumentNumberFilterInput {
+  documentTypeId: ModelSubscriptionIntInput
+  warehouseId: ModelSubscriptionIntInput
+  year: ModelSubscriptionIntInput
+  month: ModelSubscriptionIntInput
+  sequence: ModelSubscriptionIntInput
+  lastNumber: ModelSubscriptionIntInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionDocumentNumberFilterInput]
+  or: [ModelSubscriptionDocumentNumberFilterInput]
+}
+
+input ModelStringKeyConditionInput {
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  between: [String]
+  beginsWith: String
+}
+
+input ModelIntKeyConditionInput {
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+}
+
+input ModelDocumentNumberPrimaryCompositeKeyConditionInput {
+  eq: ModelDocumentNumberPrimaryCompositeKeyInput
+  le: ModelDocumentNumberPrimaryCompositeKeyInput
+  lt: ModelDocumentNumberPrimaryCompositeKeyInput
+  ge: ModelDocumentNumberPrimaryCompositeKeyInput
+  gt: ModelDocumentNumberPrimaryCompositeKeyInput
+  between: [ModelDocumentNumberPrimaryCompositeKeyInput]
+  beginsWith: ModelDocumentNumberPrimaryCompositeKeyInput
+}
+
+input ModelDocumentNumberPrimaryCompositeKeyInput {
+  warehouseId: Int
+  year: Int
+}

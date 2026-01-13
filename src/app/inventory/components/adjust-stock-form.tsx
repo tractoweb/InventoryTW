@@ -119,7 +119,7 @@ export function AdjustStockForm({ setOpen, products, warehouses }: AdjustStockFo
                   </FormControl>
                   <SelectContent>
                     {warehouses.map(wh => (
-                        <SelectItem key={wh.id} value={String(wh.id)}>
+                      <SelectItem key={wh.idWarehouse} value={String(wh.idWarehouse)}>
                             {wh.name}
                         </SelectItem>
                     ))}

@@ -8869,7 +8869,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yXMQQ6CMBBA0bOwLyO2XkBIXLqAA5CxDKSAU9JpIYZwd4OuXv7ma9DGQJHhJrntpnx2L9ifJJG6JqKdFG7S7mJaFKEocD9RYqBMdqJYopDCZZEPW9irnh+JbXSeK8+9G1LAM1TVc03i55XCcajfo4k4OB4Oxb4jGOWy6htcNRTZKM7lIXF0b4L67xcpR+rGpwAAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yXMQQ6CMBBA0bOwLyMU415IXLqAA5CxDKSAU9JpIYZwd4OuXv7ma9D5DbIEN0lNN6WzfcH+JAnUNQHNpHCTdpeiRREKAvcTJQWU0UwUShRSuCzyYQN71fMjsgnWceW4t0P0eIaqeq5J3LySPw71ezQBB8vDodh1BKNcVn2FXEOWjGJt6iMH+yao/34B04ouX6cAAAA="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/CDKMetadata/Default"

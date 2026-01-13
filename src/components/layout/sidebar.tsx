@@ -12,11 +12,93 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Boxes, LayoutDashboard, FileText, Calculator, Warehouse, Table, BarChart3, Receipt, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Receipt,
+  Boxes,
+  Tag,
+  Warehouse,
+  BarChart3,
+  Users,
+  Shield,
+  CreditCard,
+  Globe,
+  Percent,
+  Building2,
+  FileText,
+  Table,
+  Calculator,
+  Settings,
+} from "lucide-react";
 import { AppLogo } from "../icons";
 import { DatabaseStatus } from "./database-status";
 
 const menuItems = [
+  {
+    href: "/",
+    label: "Panel de Control",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/documents",
+    label: "Documentos",
+    icon: Receipt,
+  },
+  {
+    href: "/inventory",
+    label: "Productos",
+    icon: Boxes,
+  },
+  {
+    href: "/price-lists",
+    label: "Listas de precios",
+    icon: Tag,
+  },
+  {
+    href: "/stock",
+    label: "Stock",
+    icon: Warehouse,
+  },
+  {
+    href: "/reports",
+    label: "Informes",
+    icon: BarChart3,
+  },
+  {
+    href: "/partners",
+    label: "Clientes & Proveedores",
+    icon: Users,
+  },
+  {
+    href: "/kardex",
+    label: "Kardex",
+    icon: BarChart3,
+  },
+  {
+    href: "/user-security",
+    label: "Usuario & Seguridad",
+    icon: Shield,
+  },
+  {
+    href: "/payment-methods",
+    label: "Formas de pago",
+    icon: CreditCard,
+  },
+  {
+    href: "/paises",
+    label: "Países",
+    icon: Globe,
+  },
+  {
+    href: "/taxes",
+    label: "Tasas de impuestos",
+    icon: Percent,
+  },
+  {
+    href: "/company",
+    label: "Mi empresa",
+    icon: Building2,
+  },
   {
     href: "/json",
     label: "Importar JSON",
@@ -28,49 +110,9 @@ const menuItems = [
     icon: FileText,
   },
   {
-    href: "/users",
-    label: "Usuarios",
-    icon: Settings, // Puedes cambiar el icono por uno más representativo si lo deseas
-  },
-  {
-    href: "/",
-    label: "Panel de Control",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/inventory",
-    label: "Inventario",
-    icon: Boxes,
-  },
-  {
-    href: "/stock",
-    label: "Stock",
-    icon: Warehouse,
-  },
-  {
-    href: "/documents",
-    label: "Documentos",
-    icon: Receipt,
-  },
-  {
-    href: "/kardex",
-    label: "Kardex (Auditoría)",
-    icon: BarChart3,
-  },
-  {
-    href: "/reporting",
-    label: "Reportes",
-    icon: BarChart3,
-  },
-  {
     href: "/tables",
-    label: "Tablas",
+    label: "Tablas (Admin)",
     icon: Table,
-  },
-  {
-    href: "/settings",
-    label: "Configuración",
-    icon: Settings,
   },
   {
     href: "/documentation",
@@ -79,8 +121,16 @@ const menuItems = [
   },
   {
     href: "/financing-calculator",
-    label: "Calculadora de Financiación",
+    label: "Calculadora",
     icon: Calculator,
+  },
+];
+
+const footerMenuItems = [
+  {
+    href: "/settings",
+    label: "Configuración",
+    icon: Settings,
   },
 ];
 
@@ -114,7 +164,25 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <DatabaseStatus />
+        <SidebarMenu>
+          {footerMenuItems.map((item) => (
+            <SidebarMenuItem key={item.label}>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === item.href}
+                tooltip={item.label}
+              >
+                <Link href={item.href}>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+        <div className="mt-2">
+          <DatabaseStatus />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

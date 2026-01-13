@@ -32,8 +32,8 @@ export default function PrintLabelPage() {
       window.BrowserPrint.getDefaultDevice("printer", (device) => {
         device.send(zpl, () => {
           alert("Etiqueta enviada a la impresora");
-        }, (error) => {
-          alert("Error al imprimir: " + error);
+        }, (error: unknown) => {
+          alert("Error al imprimir: " + String(error));
         });
       });
     } else {

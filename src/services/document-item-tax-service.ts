@@ -1,7 +1,8 @@
 import { amplifyClient } from "@/lib/amplify-config";
+import { listAllPages } from "@/services/amplify-list-all";
 
 export async function listDocumentItemTaxes() {
-  return amplifyClient.models.DocumentItemTax.list();
+  return listAllPages(amplifyClient.models.DocumentItemTax.list);
 }
 
 export async function createDocumentItemTax(documentItemTax: any) {

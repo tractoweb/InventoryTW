@@ -369,17 +369,49 @@
     },
     "attributeDefinitions": [
      {
+      "attributeName": "stockControlId",
+      "attributeType": "N"
+     },
+     {
       "attributeName": "productId",
       "attributeType": "N"
      }
     ],
     "keySchema": [
      {
-      "attributeName": "productId",
+      "attributeName": "stockControlId",
       "keyType": "HASH"
      }
     ],
     "globalSecondaryIndexes": [
+     {
+      "indexName": "byProductId",
+      "keySchema": [
+       {
+        "attributeName": "productId",
+        "keyType": "HASH"
+       }
+      ],
+      "projection": {
+       "projectionType": "ALL"
+      },
+      "provisionedThroughput": {
+       "Fn::If": [
+        "ShouldUsePayPerRequestBilling",
+        {
+         "Ref": "AWS::NoValue"
+        },
+        {
+         "ReadCapacityUnits": {
+          "Ref": "DynamoDBModelTableReadIOPS"
+         },
+         "WriteCapacityUnits": {
+          "Ref": "DynamoDBModelTableWriteIOPS"
+         }
+        }
+       ]
+      }
+     },
      {
       "indexName": "gsi-Product.stockControls",
       "keySchema": [
@@ -643,7 +675,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "QuerygetStockControlpreAuth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/df81057c8aea46b66fe8190168c811e72c4dd2b15675bd075bd10363ad535b25.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/2d4f94318d39a0299b8d3309320bb1d64cf33222141ed935e8601990ea2ed965.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -851,7 +883,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "QuerylistStockControlspreAuth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f2344da67a6a7412ccf9dcf43047698c267b5563250dd20c6f2f1e7e21e99b7d.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/82d8e9a35cef4226c7194c0e8798b114f261e7888348c68a974abd5a03b4d4d4.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -1103,7 +1135,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "MutationcreateStockControlpreAuth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0f29f1da86984147d51e137997229532b864bc69d69fbd49cfafef72641454a6.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/968293f3c8bfca7d3c7ef0d698075133d8b3dd26a210b92295807019c8b01e39.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -1172,7 +1204,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "MutationCreateStockControlDataResolverFn",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0f88ad9ba1cf7df1503af051fe9e638bc946ddb65c19cc95ada35061c8bd035.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c008f7044127344bc0f366a7e2f5411e2a447413f329f6f4d4487d09ce8ffbb4.vtl"
     },
     "ResponseMappingTemplateS3Location": {
      "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
@@ -1345,7 +1377,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "MutationupdateStockControlpreAuth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0f29f1da86984147d51e137997229532b864bc69d69fbd49cfafef72641454a6.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/968293f3c8bfca7d3c7ef0d698075133d8b3dd26a210b92295807019c8b01e39.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -1567,7 +1599,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "MutationdeleteStockControlpreAuth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c2288ee267692bec22a9669dc919a4e668dc7456eaafa187309807e608aad7e9.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/7746a0ac617206ab3a96bd96b4b56812bf757a8cd9c4fab8821a43611d1eb42f.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -2212,10 +2244,190 @@
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/subscriptionOnDeleteStockControlResolver"
    }
   },
+  "QuerylistStockControlByProductIdauth0FunctionQuerylistStockControlByProductIdauth0FunctionAppSyncFunctionD1A55E05": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistStockControlByProductIdauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0224a3e5097427da3f4460b5d6d2b86ad4195c9cb8da7bc13e7187eead1c3ae3.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QuerylistStockControlByProductIdauth0Function/QuerylistStockControlByProductIdauth0Function.AppSyncFunction"
+   }
+  },
+  "QuerylistStockControlByProductIdpostAuth0FunctionQuerylistStockControlByProductIdpostAuth0FunctionAppSyncFunction83F51CFC": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistStockControlByProductIdpostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QuerylistStockControlByProductIdpostAuth0Function/QuerylistStockControlByProductIdpostAuth0Function.AppSyncFunction"
+   }
+  },
+  "QueryListStockControlByProductIdDataResolverFnQueryListStockControlByProductIdDataResolverFnAppSyncFunctionC4373589": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "StockControlDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryListStockControlByProductIdDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/88555e601ec58f2d375fdac07cd61cb6c8bb5aff77ed207380efd6c151b280cd.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/098c998f215c333f57348ca8912f66057ae6b574fe34013033dc54362ee2372c.vtl"
+    }
+   },
+   "DependsOn": [
+    "StockControlDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QueryListStockControlByProductIdDataResolverFn/QueryListStockControlByProductIdDataResolverFn.AppSyncFunction"
+   }
+  },
+  "QuerylistStockControlByProductIdResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "listStockControlByProductId",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerylistStockControlByProductIdauth0FunctionQuerylistStockControlByProductIdauth0FunctionAppSyncFunctionD1A55E05",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerylistStockControlByProductIdpostAuth0FunctionQuerylistStockControlByProductIdpostAuth0FunctionAppSyncFunction83F51CFC",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QueryListStockControlByProductIdDataResolverFnQueryListStockControlByProductIdDataResolverFnAppSyncFunctionC4373589",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"listStockControlByProductId\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "StockControlTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/queryListStockControlByProductIdResolver"
+   }
+  },
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOQW6DQAxFz5L9xE2hF2hAXaYVdB+ZGYMmgAeNPYkixN0rSJWqq+8nP9k/gyzP4bDDm+yt6/eDb2A+kSi5WtH2pmj5CyOOpBRXKAI7rz6wqUhCipZMkUTD+IctP2e8yXl2d8YxuAa+sRnoiELG4whzFYaHHQZaDE6T3NnCXG562ZSoWD9P/qePxHYtUQRufZcibo1+Pw9XiouR/IwipALvaxjJ4ZhsT7oWWFb3M+mU1GzrWrHz3C2GgyO4yMs1e4PXDA67i3i/j4nVjwTVI38AY5CivTYBAAA="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOwW6DMAyGn6X34LV02n2l6nGbYPfKJAalgINip1WFePcJOnXa6fcnf7L/HPLdG2w3eJPMui7rfQ3TB4mSqxRtZ4qGvzDiQEpxgSKw8+oDm5IkpGjJFEk0DH/Y8HPGm5wnd2ccgqvhG+ueDihkPA4wlaF/2KGn2eA4yp0tTMdVP9ZHVKyeJ//TKbFdShSBG9+miGuj38/9leJsZH9GEVKB9yWM7OGQbEe6FJgX9zPpmNSs60qx9dzOhoMjuMjLNX+FXQ7bzUW8z2Ji9QNB+cgf8lJHnjYBAAA="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/CDKMetadata/Default"

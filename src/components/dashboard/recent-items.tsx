@@ -6,13 +6,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
 import { Package, Terminal } from "lucide-react";
-import type { Product } from "@/lib/types";
+import type { StockInfo } from "@/lib/types";
 
 type RecentItemsProps = {
-  items: Product[] | null;
+  items: StockInfo[] | null;
   error: string | null;
 };
 
@@ -35,12 +33,14 @@ export function RecentItems({ items, error }: RecentItemsProps) {
   }
 
   // Sort by dateupdated and take the top 5
-  const recentItems =
-    items
-      ?.sort(
-        // Solo mostrar los primeros 5
-      )
-      .slice(0, 5) || [];
+  const recentItems = (items ?? [])
+    .slice()
+    .sort((a, b) => {
+      const aTime = a.dateupdated ? new Date(a.dateupdated).getTime() : 0;
+      const bTime = b.dateupdated ? new Date(b.dateupdated).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 5);
 
   return (
     <Card>
@@ -62,7 +62,7 @@ export function RecentItems({ items, error }: RecentItemsProps) {
                 <div className="flex-1">
                   <p className="text-sm font-medium">{item.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Stock: {item.totalStock ?? 0}
+                    Stock: {item.quantity ?? 0}
                   </p>
                 </div>
                 {/* Sin fecha de actualización disponible */}

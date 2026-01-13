@@ -143,14 +143,20 @@ export async function getTableData(tableName: string) {
     const modelName = MODEL_MAP[tableName.toLowerCase()] || tableName;
     const include = RELATIONS[tableName.toLowerCase()] || [];
 
+    const modelsAny = amplifyClient.models as unknown as Record<string, any>;
+    const model = modelsAny[modelName];
+    if (!model || typeof model.list !== 'function') {
+      return { error: `Model not found or unsupported: ${modelName}` };
+    }
+
     // Consulta a Amplify DataStore (Data) usando amplifyClient
     // El método es: amplifyClient.models[modelName].list({ include })
     // Si no hay relaciones, no se pasa include
     let result;
     if (include.length > 0) {
-      result = await amplifyClient.models[modelName].list({ include });
+      result = await model.list({ include });
     } else {
-      result = await amplifyClient.models[modelName].list();
+      result = await model.list();
     }
 
     // result.items es el array de datos

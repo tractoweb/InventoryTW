@@ -9,9 +9,9 @@
 import { amplifyClient, KARDEX_TYPES, formatAmplifyError } from '@/lib/amplify-config';
 
 export interface KardexEntry {
-  productId: string;
+  productId: number;
   date: Date;
-  documentId?: string;
+  documentId?: number;
   documentNumber?: string;
   type: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
   quantity: number;
@@ -19,7 +19,20 @@ export interface KardexEntry {
   unitCost?: number;
   totalCost?: number;
   note?: string;
-  userId?: string;
+  userId?: number;
+}
+
+async function nextCounterValue(counterName: string): Promise<number> {
+  const { data: existing } = await amplifyClient.models.Counter.get({ name: counterName });
+  if (!existing) {
+    const created = await amplifyClient.models.Counter.create({ name: counterName, value: 1 });
+    return (created.data as any)?.value ?? 1;
+  }
+
+  const current = Number((existing as any).value ?? 0);
+  const next = (Number.isFinite(current) ? current : 0) + 1;
+  await amplifyClient.models.Counter.update({ name: counterName, value: next });
+  return next;
 }
 
 /**
@@ -28,7 +41,7 @@ export interface KardexEntry {
  */
 export async function createKardexEntry(
   entry: KardexEntry
-): Promise<{ success: boolean; kardexId?: string; error?: string }> {
+): Promise<{ success: boolean; kardexId?: number; error?: string }> {
   try {
     // Obtener balance actual del producto
     const { data: stocks } = await amplifyClient.models.Stock.list({
@@ -39,8 +52,11 @@ export async function createKardexEntry(
 
     const currentStock = stocks?.[0]?.quantity || 0;
 
+    const kardexId = await nextCounterValue('kardexId');
+
     // Crear entrada en Kardex
     const result = await amplifyClient.models.Kardex.create({
+      kardexId,
       productId: entry.productId,
       date: entry.date.toISOString(),
       documentId: entry.documentId,
@@ -63,8 +79,10 @@ export async function createKardexEntry(
 
     // Crear historial de cambios
     if (entry.userId && result.data) {
+      const kardexHistoryId = await nextCounterValue('kardexHistoryId');
       await amplifyClient.models.KardexHistory.create({
-        kardexId: (result.data as any).id,
+        kardexHistoryId,
+        kardexId,
         productId: entry.productId,
         previousBalance: currentStock,
         newBalance: entry.balance,
@@ -76,7 +94,7 @@ export async function createKardexEntry(
 
     return {
       success: true,
-      kardexId: (result.data as any).id,
+      kardexId,
     };
   } catch (error) {
     return {
@@ -90,7 +108,7 @@ export async function createKardexEntry(
  * Obtiene el historial de kardex para un producto
  */
 export async function getProductKardexHistory(
-  productId: string,
+  productId: string | number,
   limit: number = 100
 ): Promise<{
   success: boolean;
@@ -98,9 +116,10 @@ export async function getProductKardexHistory(
   error?: string;
 }> {
   try {
+    const normalizedProductId = Number(productId);
     const { data: entries, errors } = await amplifyClient.models.Kardex.list({
       filter: {
-        productId: { eq: productId }
+        productId: { eq: normalizedProductId }
       }
     });
 
@@ -134,7 +153,7 @@ export async function getProductKardexHistory(
 export async function getKardexSummary(
   startDate: Date,
   endDate: Date,
-  productId?: string
+  productId?: string | number
 ): Promise<{
   success: boolean;
   summary?: {
@@ -146,9 +165,10 @@ export async function getKardexSummary(
   error?: string;
 }> {
   try {
+    const normalizedProductId = productId === undefined ? undefined : Number(productId);
     const filter = productId
       ? {
-          productId: { eq: productId },
+          productId: { eq: normalizedProductId },
           date: {
             between: [startDate.toISOString(), endDate.toISOString()],
           },

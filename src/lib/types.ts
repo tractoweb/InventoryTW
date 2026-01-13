@@ -11,6 +11,54 @@ export type User = {
   lastName?: string;
   email?: string;
   isEnabled: boolean;
+  avatar?: string;
+};
+
+export type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: string;
+};
+
+export type InventoryItem = {
+  id: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  location?: string;
+  category?: string;
+  dateAdded?: string;
+  manufacturer?: string;
+  status?: string;
+};
+
+// Legacy inventory table row used by the current inventory UI
+export type StockInfo = {
+  id: number;
+  name: string;
+  code?: string;
+  measurementunit?: string;
+  quantity?: number;
+  price?: number;
+  dateupdated?: string;
+  warehousename?: string;
+  taxes?: string;
+  description?: string;
+  cost?: number;
+  markup?: number;
+  lastpurchaseprice?: number;
+  currencycode?: string;
+  currencyname?: string;
+  productgroupid?: number;
+  productgroupname?: string;
+  reorderpoint?: number;
+  lowstockwarningquantity?: number;
+  islowstockwarningenabled?: boolean;
+  isenabled?: boolean;
+  istaxinclusiveprice?: boolean;
+  color?: string;
 };
 
 export type Product = {

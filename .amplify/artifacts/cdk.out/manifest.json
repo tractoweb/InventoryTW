@@ -22,7 +22,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/d1b310b4f706303d28f5207fa627efb5a57c4913187a44e5673ad8aae66d2c80.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f2a4f845bb72fd9cf1b33b235a60424baec42fee458325280126826932eb3ff9.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -6007,6 +6007,46 @@
           {
             "type": "graphqltransformer:resourceName",
             "data": "Subscription.onDeleteStockControl"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QuerylistStockControlByProductIdauth0Function/QuerylistStockControlByProductIdauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistStockControlByProductIdauth0FunctionQuerylistStockControlByProductIdauth0FunctionAppSyncFunctionD1A55E05"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistStockControlByProductIdauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QuerylistStockControlByProductIdpostAuth0Function/QuerylistStockControlByProductIdpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistStockControlByProductIdpostAuth0FunctionQuerylistStockControlByProductIdpostAuth0FunctionAppSyncFunction83F51CFC"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistStockControlByProductIdpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/QueryListStockControlByProductIdDataResolverFn/QueryListStockControlByProductIdDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListStockControlByProductIdDataResolverFnQueryListStockControlByProductIdDataResolverFnAppSyncFunctionC4373589"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListStockControlByProductIdDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/queryListStockControlByProductIdResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistStockControlByProductIdResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listStockControlByProductId"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/StockControl/CDKMetadata/Default": [
@@ -23743,6 +23783,12 @@
             "data": "DynamoDBEnableServerSideEncryption"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/LatestNodeRuntimeMap": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "LatestNodeRuntimeMap"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
           {
             "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
@@ -24112,7 +24158,7 @@
           },
           "@aws-cdk/aws-iam:importedRoleStackSafeDefaultPolicyName": {
             "recommendedValue": true,
-            "explanation": "Enable this feature to create default policy names for imported roles that depend on the stack the role is in."
+            "explanation": "Enable this feature to by default create default policy names for imported roles that depend on the stack the role is in."
           },
           "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": {
             "recommendedValue": true,
@@ -24264,6 +24310,14 @@
             "recommendedValue": true,
             "explanation": "When enabled, stack tags need to be assigned explicitly on a Stack."
           },
+          "@aws-cdk/aws-ecs:enableImdsBlockingDeprecatedFeature": {
+            "recommendedValue": false,
+            "explanation": "When set to true along with canContainersAccessInstanceRole=false in ECS cluster, new updated commands will be added to UserData to block container accessing IMDS. **Applicable to Linux only. IMPORTANT: See [details.](#aws-cdkaws-ecsenableImdsBlockingDeprecatedFeature)**"
+          },
+          "@aws-cdk/aws-ecs:disableEcsImdsBlocking": {
+            "recommendedValue": true,
+            "explanation": "When set to true, CDK synth will throw exception if canContainersAccessInstanceRole is false. **IMPORTANT: See [details.](#aws-cdkaws-ecsdisableEcsImdsBlocking)**"
+          },
           "@aws-cdk/aws-ecs:reduceEc2FargateCloudWatchPermissions": {
             "recommendedValue": true,
             "explanation": "When enabled, we will only grant the necessary permissions when users specify cloudwatch log group through logConfiguration"
@@ -24384,25 +24438,6 @@
           "@aws-cdk/aws-lambda:useCdkManagedLogGroup": {
             "recommendedValue": true,
             "explanation": "When enabled, CDK creates and manages loggroup for the lambda function"
-          },
-          "@aws-cdk/aws-elasticloadbalancingv2:networkLoadBalancerWithSecurityGroupByDefault": {
-            "recommendedValue": true,
-            "explanation": "When enabled, Network Load Balancer will be created with a security group by default."
-          },
-          "@aws-cdk/aws-stepfunctions-tasks:httpInvokeDynamicJsonPathEndpoint": {
-            "recommendedValue": true,
-            "explanation": "When enabled, allows using a dynamic apiEndpoint with JSONPath format in HttpInvoke tasks.",
-            "unconfiguredBehavesLike": {
-              "v2": true
-            }
-          },
-          "@aws-cdk/aws-ecs-patterns:uniqueTargetGroupId": {
-            "recommendedValue": true,
-            "explanation": "When enabled, ECS patterns will generate unique target group IDs to prevent conflicts during load balancer replacement"
-          },
-          "@aws-cdk/aws-route53-patterns:useDistribution": {
-            "recommendedValue": true,
-            "explanation": "Use the `Distribution` resource instead of `CloudFrontWebDistribution`"
           }
         }
       }

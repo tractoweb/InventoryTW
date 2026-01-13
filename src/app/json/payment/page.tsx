@@ -22,44 +22,61 @@ export default function UploadPayment() {
       const existingResult = (await listPayments()) ?? { data: [] };
       const existing = Array.isArray(existingResult) ? existingResult : existingResult.data ?? [];
       const existingIds = new Set(existing.map((p: any) => p.paymentId));
-      function toAmplifyPayment(row: any) {
-        // Acepta todos los formatos posibles de campo
-        const paymentId = Number(row.paymentId ?? row.PaymentId ?? row.Id);
-        const documentId = Number(row.documentId ?? row.DocumentId);
-        const paymentTypeId = Number(row.paymentTypeId ?? row.PaymentTypeId);
-        const amount = Number(row.amount ?? row.Amount);
-        const date = row.date ?? row.Date ?? null;
-        const userId = row.userId ?? row.UserId ?? null;
-        const zReportId = row.zReportId ?? row.ZReportId ?? null;
-        return { paymentId, documentId, paymentTypeId, amount, date, userId, zReportId };
+
+      function toDateOnly(value: any): string | undefined {
+        if (!value) return undefined;
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          const datePart = trimmed.split(" ")[0];
+          if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+        }
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return undefined;
+        return d.toISOString().slice(0, 10);
       }
+
       let idx = 0;
       for (const row of (paymentData ?? []) as any[]) {
         idx++;
-        // Log de depuración: mostrar valores procesados
         const paymentId = Number(row.paymentId ?? row.PaymentId ?? row.Id);
         const documentId = Number(row.documentId ?? row.DocumentId);
         const paymentTypeId = Number(row.paymentTypeId ?? row.PaymentTypeId);
         const amount = Number(row.amount ?? row.Amount);
-        const date = row.date ?? row.Date ?? null;
+        const date = toDateOnly(row.date ?? row.Date);
         const userId = row.userId ?? row.UserId ?? null;
         const zReportId = row.zReportId ?? row.ZReportId ?? null;
-        // Guardar en el log los valores que se intentan subir
-        let logMsg = `Fila ${idx}: paymentId=${paymentId}, documentId=${documentId}, paymentTypeId=${paymentTypeId}, amount=${amount}, date=${date}, userId=${userId}, zReportId=${zReportId}`;
         try {
-          if (!paymentId || !documentId) {
-            results.push({ paymentId: paymentId || -1, documentId: documentId || -1, status: "error", message: logMsg + " | paymentId o documentId faltante o inválido" });
+          if (!paymentId || !documentId || !paymentTypeId || !Number.isFinite(amount)) {
+            results.push({
+              paymentId: paymentId || -1,
+              documentId: documentId || -1,
+              status: "error",
+              message: `Fila ${idx}: paymentId, documentId, paymentTypeId y amount son obligatorios`,
+            });
             continue;
           }
           if (existingIds.has(paymentId)) {
-            results.push({ paymentId, documentId, status: "existente", message: logMsg + " | Ya existe en la base" });
+            results.push({ paymentId, documentId, status: "existente", message: "Ya existe en la base" });
           } else {
-            await createPayment({ paymentId, documentId, paymentTypeId, amount, date, userId, zReportId });
-            results.push({ paymentId, documentId, status: "nuevo", message: logMsg + " | Subido correctamente" });
+            await createPayment({
+              paymentId,
+              documentId,
+              paymentTypeId,
+              amount,
+              date,
+              userId,
+              zReportId,
+            });
+            results.push({ paymentId, documentId, status: "nuevo" });
             existingIds.add(paymentId);
           }
         } catch (e: any) {
-          results.push({ paymentId: paymentId || -1, documentId: documentId || -1, status: "error", message: logMsg + ` | Error: ${e.message}` });
+          results.push({
+            paymentId: paymentId || -1,
+            documentId: documentId || -1,
+            status: "error",
+            message: `Fila ${idx}: ${e.message}`,
+          });
         }
       }
     } catch (e: any) {

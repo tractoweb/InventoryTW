@@ -65,11 +65,11 @@ export async function authenticateUser(email: string, password: string): Promise
     }
 
     // Crear sesión
-    const sessionToken = generateSessionToken(user.id);
+    const sessionToken = generateSessionToken((user as any).userId);
 
     // Registrar sesión
     const sessionResult = await amplifyClient.models.SessionConfig.create({
-      userId: user.id,
+      userId: Number((user as any).userId),
       accessLevel: user.accessLevel || ACCESS_LEVELS.CASHIER,
       firstName: user.firstName || '',
       lastName: user.lastName || '',
@@ -90,7 +90,7 @@ export async function authenticateUser(email: string, password: string): Promise
     return {
       success: true,
       user: {
-        id: user.id,
+        id: String((user as any).userId),
         email: user.email || '',
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -109,11 +109,12 @@ export async function authenticateUser(email: string, password: string): Promise
 /**
  * Valida una sesión activa
  */
-export async function validateSession(userId: string, sessionToken: string) {
+export async function validateSession(userId: string | number, sessionToken: string) {
   try {
+    const normalizedUserId = Number(userId);
     const { data: sessions, errors } = await amplifyClient.models.SessionConfig.list({
       filter: {
-        userId: { eq: userId },
+        userId: { eq: normalizedUserId },
         sessionToken: { eq: sessionToken },
         isActive: { eq: true },
       },
@@ -127,7 +128,7 @@ export async function validateSession(userId: string, sessionToken: string) {
 
     // Actualizar lastActivityTime
     await amplifyClient.models.SessionConfig.update({
-      id: session.id,
+      userId: Number((session as any).userId),
       lastActivityTime: new Date().toISOString(),
     });
 
@@ -143,18 +144,19 @@ export async function validateSession(userId: string, sessionToken: string) {
 /**
  * Cierra la sesión de un usuario
  */
-export async function logoutUser(userId: string, sessionToken: string) {
+export async function logoutUser(userId: string | number, sessionToken: string) {
   try {
+    const normalizedUserId = Number(userId);
     const { data: sessions } = await amplifyClient.models.SessionConfig.list({
       filter: {
-        userId: { eq: userId },
+        userId: { eq: normalizedUserId },
         sessionToken: { eq: sessionToken },
       },
     });
 
     if (sessions && sessions.length > 0) {
       await amplifyClient.models.SessionConfig.update({
-        id: sessions[0].id,
+        userId: Number((sessions[0] as any).userId),
         isActive: false,
       });
     }

@@ -35,8 +35,14 @@ export default function UploadDocumentItemTax() {
         try {
           const documentItemId = Number(row.documentItemId ?? row.DocumentItemId ?? row.Id);
           const taxId = Number(row.taxId ?? row.TaxId);
-          if (!documentItemId || !taxId) {
-            results.push({ documentItemId: documentItemId || -1, taxId: taxId || -1, status: "error", message: `Fila ${idx}: documentItemId o taxId faltante o inválido` });
+          const amount = Number(row.amount ?? row.Amount);
+          if (!documentItemId || !taxId || !Number.isFinite(amount)) {
+            results.push({
+              documentItemId: documentItemId || -1,
+              taxId: taxId || -1,
+              status: "error",
+              message: `Fila ${idx}: documentItemId, taxId y amount son obligatorios`,
+            });
             continue;
           }
           const key = `${documentItemId}|${taxId}`;

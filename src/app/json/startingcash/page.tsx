@@ -19,20 +19,45 @@ export default function UploadStartingCash() {
     setLoading(true);
     const results: UploadLog[] = [];
     try {
+      if (!Array.isArray(startingCashData)) {
+        results.push({
+          startingCashId: -1,
+          userId: -1,
+          status: "error",
+          message: "StartingCash.json está vacío o no es un arreglo (actualmente es null)",
+        });
+        setLog(results);
+        setLoading(false);
+        return;
+      }
+
       const existingResult = (await listStartingCash()) ?? { data: [] };
       const existing = Array.isArray(existingResult) ? existingResult : existingResult.data ?? [];
       const existingIds = new Set(existing.map((s: any) => s.startingCashId));
       function toAmplifyStartingCash(row: any) {
         return {
-          startingCashId: row.startingCashId ?? row.StartingCashId ?? row.Id,
-          userId: row.userId ?? row.UserId,
-          // ...otros campos según modelo Amplify
+          startingCashId: Number(row.startingCashId ?? row.StartingCashId ?? row.Id),
+          userId: Number(row.userId ?? row.UserId),
+          amount: Number(row.amount ?? row.Amount),
+          description: row.description ?? row.Description ?? undefined,
+          startingCashType: Number(row.startingCashType ?? row.StartingCashType ?? 0),
+          zReportNumber: row.zReportNumber ?? row.ZReportNumber ?? undefined,
         };
       }
-      for (const row of (startingCashData ?? []) as any[]) {
-        const startingCashId = row.startingCashId ?? row.StartingCashId ?? row.Id;
-        const userId = row.userId ?? row.UserId;
+      for (const row of startingCashData as any[]) {
+        const startingCashId = Number(row.startingCashId ?? row.StartingCashId ?? row.Id);
+        const userId = Number(row.userId ?? row.UserId);
         try {
+          const amount = Number(row.amount ?? row.Amount);
+          if (!startingCashId || !userId || !Number.isFinite(amount)) {
+            results.push({
+              startingCashId: startingCashId || -1,
+              userId: userId || -1,
+              status: "error",
+              message: "startingCashId, userId y amount son obligatorios",
+            });
+            continue;
+          }
           if (existingIds.has(startingCashId)) {
             results.push({ startingCashId, userId, status: "existente", message: "Ya existe en la base" });
           } else {

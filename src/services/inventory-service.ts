@@ -17,8 +17,8 @@ export async function getProductDetails(productId: string): Promise<{
 }> {
   try {
     const product = await amplifyClient.models.Product.get({
-      id: productId,
-    });
+      idProduct: Number(productId),
+    } as any);
 
     if (!product.data) {
       return { success: false, error: 'Product not found' };
@@ -78,7 +78,7 @@ export async function searchProducts(
       // Amplify Data no soporta 'in', así que hacemos múltiples requests o filtramos en memoria
       const productsFromBarcodeArr = [];
       for (const id of productIds) {
-        const { data: prod } = await amplifyClient.models.Product.get({ id });
+        const { data: prod } = await amplifyClient.models.Product.get({ idProduct: Number(id) } as any);
         if (prod) productsFromBarcodeArr.push(prod);
       }
 
@@ -171,7 +171,8 @@ export async function getInventorySummary(warehouseId?: string): Promise<{
   error?: string;
 }> {
   try {
-    const stockFilter = warehouseId ? { warehouseId: { eq: warehouseId } } : undefined;
+    const normalizedWarehouseId = warehouseId === undefined ? undefined : Number(warehouseId);
+    const stockFilter = normalizedWarehouseId ? { warehouseId: { eq: normalizedWarehouseId } } : undefined;
     const { data: stocks } = await amplifyClient.models.Stock.list({
       filter: stockFilter as any,
     });
@@ -185,13 +186,14 @@ export async function getInventorySummary(warehouseId?: string): Promise<{
     let lowStockCount = 0;
     let outOfStockCount = 0;
     let totalUnits = 0;
-      let totalValue = 0;
-      let cost = 0; // Initialize cost variable
+    let totalValue = 0;
 
     stocks?.forEach((stock) => {
       totalUnits += stock.quantity || 0;
-        cost = typeof stock.product === 'object' && 'cost' in stock.product ? stock.product.cost : 0;
-        totalValue += (stock.quantity || 0) * cost;
+
+      const productRecord = (stock as any)?.product;
+      const cost = typeof productRecord === 'object' && productRecord ? Number(productRecord.cost ?? 0) : 0;
+      totalValue += (stock.quantity || 0) * cost;
 
       // Contar bajo stock
       const control = controls?.find((c) => c.productId === stock.productId);
@@ -237,11 +239,15 @@ export async function adjustStock(
   error?: string;
 }> {
   try {
+    const normalizedProductId = Number(productId);
+    const normalizedWarehouseId = Number(warehouseId);
+    const normalizedUserId = Number(userId);
+
     // Obtener stock actual
     const { data: stocks } = await amplifyClient.models.Stock.list({
       filter: {
-        productId: { eq: productId },
-        warehouseId: { eq: warehouseId },
+        productId: { eq: normalizedProductId },
+        warehouseId: { eq: normalizedWarehouseId },
       },
     });
 
@@ -252,13 +258,14 @@ export async function adjustStock(
     // Actualizar stock
     if (stock) {
       await amplifyClient.models.Stock.update({
-        id: stock.id,
+        productId: (stock as any).productId,
+        warehouseId: (stock as any).warehouseId,
         quantity: newQuantity,
       });
     } else {
       await amplifyClient.models.Stock.create({
-        productId,
-        warehouseId,
+        productId: normalizedProductId,
+        warehouseId: normalizedWarehouseId,
         quantity: newQuantity,
       });
     }
@@ -266,13 +273,13 @@ export async function adjustStock(
     // Crear entrada en Kardex para auditoría
     const { createKardexEntry } = await import('./kardex-service');
     await createKardexEntry({
-      productId,
+      productId: normalizedProductId,
       date: new Date(),
       type: 'AJUSTE',
       quantity: difference,
       balance: newQuantity,
       note: reason,
-      userId,
+      userId: normalizedUserId,
     });
 
     return { success: true };

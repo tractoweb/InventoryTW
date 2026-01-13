@@ -23,7 +23,13 @@ const formSchema = z.object({
   accessLevel: z.coerce.number().min(0),
   firstName: z.string().min(1, "El nombre es obligatorio."),
   lastName: z.string().min(1, "El apellido es obligatorio."),
-  email: z.string().email("Email inválido."),
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+      message: "Email inválido.",
+    }),
   isEnabled: z.boolean().default(true),
 });
 
@@ -38,7 +44,7 @@ export default function UserForm({ onSubmit }: { onSubmit?: (data: UserFormData)
       accessLevel: 0,
       firstName: "",
       lastName: "",
-      email: "",
+        email: undefined,
       isEnabled: true,
     },
   });
