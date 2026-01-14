@@ -4,8 +4,57 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
-import { allocateCounterRange } from '@/lib/allocate-counter-range';
+import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
+import { ymdToBogotaMidnightUtc } from '@/lib/datetime';
+import { listAllPages } from '@/services/amplify-list-all';
 import { createDocument } from '@/services/document-service';
+
+async function seedCounterFromExistingMax(counterName: string, entity: 'Document' | 'DocumentItem') {
+  const all =
+    entity === 'Document'
+      ? await listAllPages<any>((args) => amplifyClient.models.Document.list(args))
+      : await listAllPages<any>((args) => amplifyClient.models.DocumentItem.list(args));
+
+  if ('error' in all) {
+    const msg = typeof (all as any).error === 'string' ? (all as any).error : 'Error leyendo datos existentes';
+    throw new Error(msg);
+  }
+
+  const maxExistingId = all.data.reduce((max, row: any) => {
+    const raw = entity === 'Document' ? row?.documentId : row?.documentItemId;
+    const id = Number(raw ?? 0);
+    return Number.isFinite(id) ? Math.max(max, id) : max;
+  }, 0);
+
+  await ensureCounterAtLeast(counterName, maxExistingId);
+}
+
+async function allocateFreeDocumentId(): Promise<number> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const [candidate] = await allocateCounterRange('documentId', 1);
+    const existing = await amplifyClient.models.Document.get({ documentId: candidate } as any);
+    if (!(existing as any)?.data) return candidate;
+
+    // Counter is stale (likely due to imported data). Fast-forward once and retry.
+    await seedCounterFromExistingMax('documentId', 'Document');
+  }
+  throw new Error('No se pudo asignar un documentId libre');
+}
+
+async function allocateFreeDocumentItemIds(count: number): Promise<number[]> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidates = await allocateCounterRange('documentItemId', count);
+    const checks = await Promise.all(
+      candidates.map((id) => amplifyClient.models.DocumentItem.get({ documentItemId: id } as any))
+    );
+
+    const anyExists = checks.some((r: any) => Boolean(r?.data));
+    if (!anyExists) return candidates;
+
+    await seedCounterFromExistingMax('documentItemId', 'DocumentItem');
+  }
+  throw new Error('No se pudo asignar documentItemId(s) libres');
+}
 
 const DocumentItemInputSchema = z.object({
   productId: z.coerce.number().min(1),
@@ -41,10 +90,10 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
     const input = parsed.data;
 
     // Allocate IDs
-    const [documentId] = await allocateCounterRange('documentId', 1);
-    const itemIds = await allocateCounterRange('documentItemId', input.items.length);
+    const documentId = await allocateFreeDocumentId();
+    const itemIds = await allocateFreeDocumentItemIds(input.items.length);
 
-    const date = new Date(`${input.date}T00:00:00`);
+    const date = ymdToBogotaMidnightUtc(input.date);
 
     const result = await createDocument({
       documentId,

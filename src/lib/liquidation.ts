@@ -16,6 +16,8 @@ export type LiquidationLineInput = {
   id: string;
   productId?: number;
   name?: string;
+  purchaseReference?: string;
+  warehouseReference?: string;
   quantity: number;
   totalCost: number;
   discountPercentage: number;

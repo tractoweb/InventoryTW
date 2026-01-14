@@ -1,8 +1,8 @@
+"use server";
 
-import { inventoryService } from '@/services/inventory-service';
 import { unstable_noStore as noStore } from 'next/cache';
 
-
+import { inventoryService } from '@/services/inventory-service';
 
 export async function getProductDetails(productId: number) {
   // Siempre obtener datos frescos

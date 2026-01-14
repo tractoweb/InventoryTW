@@ -370,7 +370,7 @@ export default function InvoiceCalculator() {
   <div class="header">
     <h1>TRACTO AGRÍCOLA</h1>
     <p>Reporte de Liquidación de Facturas</p>
-    <p>Fecha: ${new Date().toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" })}</p>
+    <p>Fecha: ${new Date().toLocaleDateString("es-CO", { timeZone: "America/Bogota", year: "numeric", month: "long", day: "numeric" })}</p>
   </div>
 
   <div class="section">

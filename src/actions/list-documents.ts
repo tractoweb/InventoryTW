@@ -11,6 +11,8 @@ export type DocumentListFilters = {
   documentTypeId?: number;
   dateFrom?: string; // YYYY-MM-DD
   dateTo?: string; // YYYY-MM-DD
+  /** Force stable scan+sort pagination (recommended for correct ordering). */
+  useScan?: boolean;
   nextToken?: string | null;
   page?: number; // only used in scan-mode (q search)
   pageSize?: number;
@@ -66,13 +68,13 @@ export async function listDocuments(filters?: DocumentListFilters) {
     const pageSize = Number.isFinite(pageSizeRaw) ? Math.max(1, Math.trunc(Number(pageSizeRaw))) : 10;
 
     const qRaw = String(filters?.q ?? "").trim();
-    const scanMode = qRaw.length > 0;
+    const scanMode = Boolean(filters?.useScan) || qRaw.length > 0;
 
     let docs: any[] = [];
     let nextToken: string | null | undefined = undefined;
 
     if (scanMode) {
-      // Slow path: to support q search over multiple fields we must scan.
+      // Stable path: scan all matching docs, apply q filter (optional), sort by stockDate, then slice by page.
       const docsResult = await listAllPages<any>(
         (args) => amplifyClient.models.Document.list(args),
         Object.keys(filter).length ? { filter } : undefined
@@ -81,13 +83,15 @@ export async function listDocuments(filters?: DocumentListFilters) {
       if ("error" in docsResult) return { data: [], error: docsResult.error };
 
       docs = (docsResult.data ?? []) as any[];
-      const q = qRaw.toLowerCase();
-      docs = docs.filter((d) => {
-        const number = String(d?.number ?? "").toLowerCase();
-        const ref = String(d?.referenceDocumentNumber ?? "").toLowerCase();
-        const order = String(d?.orderNumber ?? "").toLowerCase();
-        return number.includes(q) || ref.includes(q) || order.includes(q);
-      });
+      if (qRaw.length > 0) {
+        const q = qRaw.toLowerCase();
+        docs = docs.filter((d) => {
+          const number = String(d?.number ?? "").toLowerCase();
+          const ref = String(d?.referenceDocumentNumber ?? "").toLowerCase();
+          const order = String(d?.orderNumber ?? "").toLowerCase();
+          return number.includes(q) || ref.includes(q) || order.includes(q);
+        });
+      }
 
       docs.sort((a, b) => String(b?.stockDate ?? "").localeCompare(String(a?.stockDate ?? "")));
 

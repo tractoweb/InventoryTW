@@ -49,7 +49,6 @@ import {
   CommandList,
 } from '@/components/ui/command';
 
-import { getCustomers } from '@/actions/get-customers';
 import { getWarehouses } from '@/actions/get-warehouses';
 import { getDocumentTypes } from '@/actions/get-document-types';
 import { searchProductsAction, type ProductSearchResult } from '@/actions/search-products';
@@ -57,6 +56,8 @@ import { createDocumentAction } from '@/actions/create-document';
 import { finalizeDocumentAction } from '@/actions/finalize-document';
 import { createCustomerAction } from '@/actions/create-customer';
 import { createProductAction } from '@/actions/create-product';
+import { getCountries, type CountryListItem } from '@/actions/get-countries';
+import { searchCustomersAction, type CustomerSearchResult } from '@/actions/search-customers';
 
 import {
   computeLiquidation,
@@ -100,12 +101,19 @@ export function NewDocumentForm() {
   const [confirmFinalize, setConfirmFinalize] = React.useState(false);
 
   const [customers, setCustomers] = React.useState<SelectOption[]>([]);
+  const [countries, setCountries] = React.useState<CountryListItem[]>([]);
   const [warehouses, setWarehousesState] = React.useState<SelectOption[]>([]);
   const [documentTypes, setDocumentTypesState] = React.useState<SelectOption[]>([]);
 
   const [warehouseId, setWarehouseId] = React.useState<number | ''>('');
   const [documentTypeId, setDocumentTypeId] = React.useState<number | ''>('');
   const [customerId, setCustomerId] = React.useState<number | ''>('');
+
+  // Supplier search dialog
+  const [supplierDialogOpen, setSupplierDialogOpen] = React.useState(false);
+  const [supplierQuery, setSupplierQuery] = React.useState('');
+  const [supplierResults, setSupplierResults] = React.useState<CustomerSearchResult[]>([]);
+  const [supplierSearching, setSupplierSearching] = React.useState(false);
 
   const [date, setDate] = React.useState(() => {
     const now = new Date();
@@ -135,6 +143,16 @@ export function NewDocumentForm() {
   const [createSupplierOpen, setCreateSupplierOpen] = React.useState(false);
   const [newSupplierName, setNewSupplierName] = React.useState('');
   const [newSupplierTaxNumber, setNewSupplierTaxNumber] = React.useState('');
+  const [newSupplierCode, setNewSupplierCode] = React.useState('');
+  const [newSupplierAddress, setNewSupplierAddress] = React.useState('');
+  const [newSupplierPostalCode, setNewSupplierPostalCode] = React.useState('');
+  const [newSupplierCity, setNewSupplierCity] = React.useState('');
+  const [newSupplierCountryId, setNewSupplierCountryId] = React.useState<number | ''>('');
+  const [newSupplierEmail, setNewSupplierEmail] = React.useState('');
+  const [newSupplierPhoneNumber, setNewSupplierPhoneNumber] = React.useState('');
+  const [newSupplierDueDatePeriod, setNewSupplierDueDatePeriod] = React.useState<number | ''>('');
+  const [newSupplierIsTaxExempt, setNewSupplierIsTaxExempt] = React.useState(false);
+  const [newSupplierIsCustomer, setNewSupplierIsCustomer] = React.useState(false);
 
   const [createProductOpen, setCreateProductOpen] = React.useState(false);
   const [newProductName, setNewProductName] = React.useState('');
@@ -147,6 +165,7 @@ export function NewDocumentForm() {
   const [productQuery, setProductQuery] = React.useState('');
   const [productResults, setProductResults] = React.useState<ProductSearchResult[]>([]);
   const [productSearching, setProductSearching] = React.useState(false);
+  const [onlySupplierProducts, setOnlySupplierProducts] = React.useState(false);
 
   const liquidationConfig: LiquidationConfig = React.useMemo(
     () => ({
@@ -164,6 +183,8 @@ export function NewDocumentForm() {
       id: `${it.productId}-${idx}`,
       productId: it.productId,
       name: it.productLabel,
+      purchaseReference: it.purchaseReference,
+      warehouseReference: it.warehouseReference,
       quantity: Number(it.quantity) || 0,
       totalCost: Number(it.totalCost) || 0,
       discountPercentage: Number(it.discountPercentage) || 0,
@@ -177,15 +198,16 @@ export function NewDocumentForm() {
     async function boot() {
       setLoading(true);
       try {
-        const [cust, wh, dt] = await Promise.all([
-          getCustomers({ onlyEnabled: true, onlySuppliers: true }),
+        const [countriesRes, suppliersRes, wh, dt] = await Promise.all([
+          getCountries(),
+          searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true }),
           getWarehouses({ onlyEnabled: true }),
           getDocumentTypes(),
         ]);
 
-        setCustomers(
-          (cust.data ?? []).map((c: any) => ({ value: Number(c.idCustomer), label: String(c.name) }))
-        );
+        setCountries(countriesRes.data ?? []);
+        setSupplierResults(suppliersRes.data ?? []);
+        setCustomers((suppliersRes.data ?? []).map((c) => ({ value: Number(c.idCustomer), label: String(c.name) })));
 
         setWarehousesState(
           (wh.data ?? []).map((w: any) => ({ value: Number(w.idWarehouse), label: String(w.name) }))
@@ -206,21 +228,33 @@ export function NewDocumentForm() {
 
   React.useEffect(() => {
     const handle = setTimeout(async () => {
+      if (!supplierDialogOpen) return;
+
+      const q = supplierQuery.trim();
+      setSupplierSearching(true);
+      const res = await searchCustomersAction(q, 50, { onlyEnabled: true, onlySuppliers: true });
+      setSupplierResults(res.data ?? []);
+      setSupplierSearching(false);
+    }, 200);
+
+    return () => clearTimeout(handle);
+  }, [supplierDialogOpen, supplierQuery]);
+
+  React.useEffect(() => {
+    const handle = setTimeout(async () => {
       const q = productQuery.trim();
       if (!productDialogOpen) return;
-      if (q.length < 2) {
-        setProductResults([]);
-        return;
-      }
-
       setProductSearching(true);
-      const res = await searchProductsAction(q, 30);
+      const res = await searchProductsAction(q, 30, {
+        supplierId: typeof customerId === 'number' ? customerId : undefined,
+        onlySupplierProducts: onlySupplierProducts && typeof customerId === 'number',
+      });
       setProductResults(res.data ?? []);
       setProductSearching(false);
     }, 250);
 
     return () => clearTimeout(handle);
-  }, [productQuery, productDialogOpen]);
+  }, [productQuery, productDialogOpen, customerId, onlySupplierProducts]);
 
   function addProduct(p: ProductSearchResult) {
     const label = p.code ? `${p.name} (${p.code})` : p.name;
@@ -279,15 +313,41 @@ export function NewDocumentForm() {
     const name = newSupplierName.trim();
     if (!name) return;
     try {
-      const res = await createCustomerAction({ name, taxNumber: newSupplierTaxNumber || undefined, isSupplier: true, isCustomer: false });
+      const res = await createCustomerAction({
+        name,
+        code: newSupplierCode || undefined,
+        taxNumber: newSupplierTaxNumber || undefined,
+        address: newSupplierAddress || undefined,
+        postalCode: newSupplierPostalCode || undefined,
+        city: newSupplierCity || undefined,
+        countryId: typeof newSupplierCountryId === 'number' ? newSupplierCountryId : undefined,
+        email: newSupplierEmail || undefined,
+        phoneNumber: newSupplierPhoneNumber || undefined,
+        dueDatePeriod: typeof newSupplierDueDatePeriod === 'number' ? newSupplierDueDatePeriod : undefined,
+        isTaxExempt: Boolean(newSupplierIsTaxExempt),
+        isEnabled: true,
+        isSupplier: true,
+        isCustomer: Boolean(newSupplierIsCustomer),
+      });
       if (!res.success || !res.idCustomer) throw new Error(res.error || 'No se pudo crear el proveedor');
 
-      const cust = await getCustomers({ onlyEnabled: true, onlySuppliers: true });
-      setCustomers((cust.data ?? []).map((c: any) => ({ value: Number(c.idCustomer), label: String(c.name) })));
+      const suppliersRes = await searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true });
+      setSupplierResults(suppliersRes.data ?? []);
+      setCustomers((suppliersRes.data ?? []).map((c) => ({ value: Number(c.idCustomer), label: String(c.name) })));
       setCustomerId(res.idCustomer);
       setCreateSupplierOpen(false);
       setNewSupplierName('');
       setNewSupplierTaxNumber('');
+      setNewSupplierCode('');
+      setNewSupplierAddress('');
+      setNewSupplierPostalCode('');
+      setNewSupplierCity('');
+      setNewSupplierCountryId('');
+      setNewSupplierEmail('');
+      setNewSupplierPhoneNumber('');
+      setNewSupplierDueDatePeriod('');
+      setNewSupplierIsTaxExempt(false);
+      setNewSupplierIsCustomer(false);
       toast({ title: 'Proveedor creado', description: `ID ${res.idCustomer}` });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el proveedor' });
@@ -343,6 +403,29 @@ export function NewDocumentForm() {
 
     try {
       const liqLines = liquidation.lines;
+
+      const liquidationSnapshot = {
+        version: 1,
+        config: {
+          ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
+          ivaIncludedInCost,
+          discountsEnabled,
+          useMultipleFreights,
+          freightRates,
+        },
+        lineInputs: items.map((it, idx) => ({
+          id: String(idx + 1),
+          productId: it.productId,
+          name: it.productLabel,
+          quantity: it.quantity,
+          totalCost: it.totalCost,
+          discountPercentage: it.discountPercentage,
+          marginPercentage: it.marginPercentage,
+          freightId: it.freightId,
+        })),
+        totals: liquidation.totals,
+      };
+
       const created = await createDocumentAction({
         userId: 1,
         customerId: customerId ? Number(customerId) : undefined,
@@ -352,14 +435,7 @@ export function NewDocumentForm() {
         referenceDocumentNumber: referenceDocumentNumber || undefined,
         note: note || undefined,
         internalNote: JSON.stringify({
-          liquidation: {
-            ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
-            ivaIncludedInCost,
-            discountsEnabled,
-            useMultipleFreights,
-            freightRates,
-            totals: liquidation.totals,
-          },
+          liquidation: liquidationSnapshot,
         }),
         items: items.map((it, idx) => ({
           productId: it.productId,
@@ -398,6 +474,12 @@ export function NewDocumentForm() {
   function requestSave(finalize: boolean) {
     setConfirmFinalize(finalize);
     setConfirmOpen(true);
+  }
+
+  function selectedSupplierLabel() {
+    if (typeof customerId !== 'number') return '(Opcional)';
+    const found = customers.find((c) => c.value === customerId);
+    return found?.label ?? `ID ${customerId}`;
   }
 
   return (
@@ -454,22 +536,15 @@ export function NewDocumentForm() {
 
           <div className="grid gap-2">
             <Label>Proveedor</Label>
-            <select
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value ? Number(e.target.value) : '')}
-              disabled={loading}
-            >
-              <option value="">(Opcional)</option>
-              {customers.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <Button type="button" variant="outline" onClick={() => setCreateSupplierOpen(true)} disabled={loading}>
-              Crear proveedor
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1 justify-between" onClick={() => setSupplierDialogOpen(true)} disabled={loading}>
+                <span className="truncate">{selectedSupplierLabel()}</span>
+                <span className="text-muted-foreground">▾</span>
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setCreateSupplierOpen(true)} disabled={loading}>
+                Crear
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -597,6 +672,7 @@ export function NewDocumentForm() {
                     <TableHead className="min-w-[120px] text-right">- Desc.</TableHead>
                     <TableHead className="min-w-[120px] text-right">+ IVA</TableHead>
                     <TableHead className="min-w-[120px] text-right">+ Flete</TableHead>
+                    <TableHead className="min-w-[160px]">Flete asignado</TableHead>
                     <TableHead className="min-w-[140px] text-right">Unit. Final</TableHead>
                     <TableHead className="min-w-[120px] text-right">Margen %</TableHead>
                     <TableHead className="min-w-[140px] text-right">Venta Unit.</TableHead>
@@ -648,6 +724,21 @@ export function NewDocumentForm() {
                         <TableCell className="text-right">{formatMoney(li?.unitDiscount ?? 0)}</TableCell>
                         <TableCell className="text-right">{formatMoney(li?.unitIVA ?? 0)}</TableCell>
                         <TableCell className="text-right">{formatMoney(li?.unitFreight ?? 0)}</TableCell>
+                        <TableCell>
+                          <select
+                            className="h-9 w-40 rounded-md border bg-background px-2 text-sm"
+                            value={it.freightId}
+                            onChange={(e) => updateItem(idx, { freightId: e.target.value })}
+                            disabled={!useMultipleFreights}
+                            title={useMultipleFreights ? 'Selecciona el flete para este producto' : 'Activa "Usar varios fletes" para asignar'}
+                          >
+                            {freightRates.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name}
+                              </option>
+                            ))}
+                          </select>
+                        </TableCell>
                         <TableCell className="text-right">{formatMoney(li?.unitFinalCost ?? 0)}</TableCell>
                         <TableCell className="text-right">
                           <Input
@@ -782,8 +873,12 @@ export function NewDocumentForm() {
         <CommandList>
           <CommandEmpty>
             <div className="flex flex-col gap-2">
-              <div>{productSearching ? 'Buscando…' : productQuery.trim().length < 2 ? 'Escribe al menos 2 letras.' : 'Sin resultados.'}</div>
-              {productQuery.trim().length >= 2 ? (
+              <div>
+                {productSearching
+                  ? 'Buscando…'
+                  : 'No hay resultados. Prueba con referencia (código) o nombre.'}
+              </div>
+              {productQuery.trim().length >= 1 ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -818,6 +913,74 @@ export function NewDocumentForm() {
             })}
           </CommandGroup>
         </CommandList>
+        <div className="border-t p-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={onlySupplierProducts}
+              onCheckedChange={(v) => setOnlySupplierProducts(Boolean(v))}
+              disabled={typeof customerId !== 'number'}
+            />
+            <span className="text-xs text-muted-foreground">
+              Filtrar por proveedor seleccionado
+              {typeof customerId !== 'number' ? ' (selecciona un proveedor)' : ''}
+            </span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Si no escribes nada, muestra una lista base (o del proveedor).</div>
+        </div>
+      </CommandDialog>
+
+      <CommandDialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
+        <CommandInput placeholder="Buscar proveedor (nombre, código o NIT)…" value={supplierQuery} onValueChange={setSupplierQuery} />
+        <CommandList>
+          <CommandEmpty>
+            <div className="flex flex-col gap-2">
+              <div>{supplierSearching ? 'Buscando…' : 'Sin resultados.'}</div>
+              {supplierQuery.trim().length >= 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setNewSupplierName(supplierQuery.trim());
+                    setCreateSupplierOpen(true);
+                    setSupplierDialogOpen(false);
+                  }}
+                >
+                  Crear proveedor: “{supplierQuery.trim()}”
+                </Button>
+              ) : null}
+            </div>
+          </CommandEmpty>
+          <CommandGroup heading="Proveedores">
+            <CommandItem
+              value="(opcional)"
+              onSelect={() => {
+                setCustomerId('');
+                setSupplierDialogOpen(false);
+              }}
+            >
+              (Opcional)
+            </CommandItem>
+            {supplierResults.map((s) => (
+              <CommandItem
+                key={s.idCustomer}
+                value={`${s.name} ${s.code ?? ''} ${s.taxNumber ?? ''}`}
+                onSelect={() => {
+                  setCustomerId(Number(s.idCustomer));
+                  setSupplierDialogOpen(false);
+                }}
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium">{s.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {s.code ? `Código: ${s.code}` : null}
+                    {s.code && s.taxNumber ? ' • ' : null}
+                    {s.taxNumber ? `NIT: ${s.taxNumber}` : null}
+                  </span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
       </CommandDialog>
 
       <Dialog open={createSupplierOpen} onOpenChange={setCreateSupplierOpen}>
@@ -831,9 +994,78 @@ export function NewDocumentForm() {
               <Label>Nombre</Label>
               <Input value={newSupplierName} onChange={(e) => setNewSupplierName(e.target.value)} />
             </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Código</Label>
+                <Input value={newSupplierCode} onChange={(e) => setNewSupplierCode(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>NIT / Documento</Label>
+                <Input value={newSupplierTaxNumber} onChange={(e) => setNewSupplierTaxNumber(e.target.value)} />
+              </div>
+            </div>
             <div className="grid gap-2">
-              <Label>NIT / Documento</Label>
-              <Input value={newSupplierTaxNumber} onChange={(e) => setNewSupplierTaxNumber(e.target.value)} />
+              <Label>Dirección</Label>
+              <Input value={newSupplierAddress} onChange={(e) => setNewSupplierAddress(e.target.value)} />
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2 md:col-span-2">
+                <Label>Ciudad</Label>
+                <Input value={newSupplierCity} onChange={(e) => setNewSupplierCity(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Código postal</Label>
+                <Input value={newSupplierPostalCode} onChange={(e) => setNewSupplierPostalCode(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>País</Label>
+              <select
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={newSupplierCountryId}
+                onChange={(e) => setNewSupplierCountryId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">(Opcional)</option>
+                {countries.map((c) => (
+                  <option key={c.idCountry} value={c.idCountry}>
+                    {c.name}{c.code ? ` (${c.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Email</Label>
+                <Input value={newSupplierEmail} onChange={(e) => setNewSupplierEmail(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Teléfono</Label>
+                <Input value={newSupplierPhoneNumber} onChange={(e) => setNewSupplierPhoneNumber(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Plazo vencimiento (días)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={newSupplierDueDatePeriod}
+                  onChange={(e) => setNewSupplierDueDatePeriod(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={newSupplierIsTaxExempt} onCheckedChange={(v) => setNewSupplierIsTaxExempt(Boolean(v))} />
+                  <span className="text-xs text-muted-foreground">Exento de IVA</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={newSupplierIsCustomer} onCheckedChange={(v) => setNewSupplierIsCustomer(Boolean(v))} />
+                  <span className="text-xs text-muted-foreground">También es cliente</span>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <div className="text-xs text-muted-foreground">Se guardará con `isSupplier=true` y `isEnabled=true`.</div>
             </div>
           </div>
           <DialogFooter>

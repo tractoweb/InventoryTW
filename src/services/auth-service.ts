@@ -3,8 +3,6 @@
  * Gestiona login, validación de sesión y logout
  */
 
-'use server';
-
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from '@/lib/amplify-config';
 
 export interface LoginRequest {

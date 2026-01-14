@@ -86,10 +86,19 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
             setError(result.error);
                     } else if ((result as any).data) {
                         const data: any = (result as any).data;
-                        const taxIds = data.taxes ? String(data.taxes).split(',').map((taxName: string) => {
-                const foundTax = taxes.find(t => t.name.trim() === taxName.trim());
-                return foundTax ? foundTax.id : null;
-                        }).filter((id: number | null) => id !== null) as number[] : [];
+                                                const taxIds: number[] = Array.isArray(data.taxes)
+                                                    ? data.taxes
+                                                            .map((t: any) => Number(t?.taxId))
+                                                            .filter((id: any) => Number.isFinite(id))
+                                                    : (data.taxesText || data.taxes)
+                                                            ? String(data.taxesText || data.taxes)
+                                                                    .split(',')
+                                                                    .map((taxName: string) => {
+                                                                        const foundTax = taxes.find((t) => t.name.trim() === taxName.trim());
+                                                                        return foundTax ? foundTax.id : null;
+                                                                    })
+                                                                    .filter((id: number | null) => id !== null) as number[]
+                                                            : [];
             
             form.reset({
                                 id: data.id,

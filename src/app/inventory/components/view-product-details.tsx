@@ -111,14 +111,20 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("Margen (Markup)", `${details.markup}%`)}
                     {renderDetail("Último Precio Compra", formatCurrency(details.lastpurchaseprice, details.currencycode))}
                     {renderDetail("Moneda", `${details.currencyname || 'N/A'} (${details.currencycode || 'N/A'})`)}
-                    {renderDetail("Impuestos Aplicados", details.taxes)}
+                    {renderDetail(
+                      "Impuestos Aplicados",
+                      details.taxesText ?? (Array.isArray(details.taxes) ? details.taxes.map((t: any) => t?.name).filter(Boolean).join(', ') : details.taxes)
+                    )}
                 </div>
                     <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Configuración</h3>
                     {renderDetail("Posición en Almacén", details.measurementunit)}
                     {renderBoolean("Habilitado", details.isenabled)}
                     {renderBoolean("Precio Incluye Impuestos", details.istaxinclusiveprice)}
-                    {renderDetail("Códigos de Barras", details.barcodes)}
+                    {renderDetail(
+                      "Códigos de Barras",
+                      details.barcodesText ?? (Array.isArray(details.barcodes) ? details.barcodes.map((b: any) => b?.value ?? b).filter(Boolean).join(', ') : details.barcodes)
+                    )}
                 </div>
                 <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Inventario</h3>

@@ -4,9 +4,8 @@
  * Automáticamente genera números y actualiza Ksdsdsssardex
  */
 
-'use server';
-
 import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from '@/lib/amplify-config';
+import { getBogotaYearMonth } from '@/lib/datetime';
 import { createKardexEntry } from './kardex-service';
 
 export interface DocumentCreateRequest {
@@ -52,9 +51,7 @@ export async function generateDocumentNumber(
   error?: string;
 }> {
   try {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
+    const { year, month } = getBogotaYearMonth(new Date());
 
     // Buscar o crear registro de número
     const { data: existing } = await amplifyClient.models.DocumentNumber.list({
@@ -183,8 +180,9 @@ export async function createDocument(
       paidStatus: 0,
     });
 
-    if (!docResult.data) {
-      return { success: false, error: 'Failed to create document' };
+    if (!(docResult as any).data) {
+      const msg = ((docResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document';
+      return { success: false, error: msg };
     }
 
     // Crear items del documento
@@ -224,6 +222,11 @@ export async function createDocument(
         discountApplyRule: 0,
       });
 
+      if (!(itemResult as any)?.data) {
+        const msg = ((itemResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document item';
+        return { success: false, error: `${msg} (productId: ${item.productId})` };
+      }
+
       itemIndex++;
 
       // Crear registros de impuestos si existen
@@ -246,7 +249,7 @@ export async function createDocument(
 
     return {
       success: true,
-      documentId: (docResult.data as any).id,
+      documentId: String((docResult.data as any)?.documentId ?? input.documentId),
       documentNumber: number,
     };
   } catch (error) {
@@ -293,10 +296,20 @@ export async function finalizeDocument(
       return { success: true };
     }
 
-    // Actualizar stocks y crear kardex entries
-    const docItems = docData.items || [];
+    // Cargar items del documento (no confiar en `doc.data.items` porque Amplify no los incluye por defecto)
+    const allItems: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+    do {
+      const page: any = await amplifyClient.models.DocumentItem.list({
+        filter: { documentId: { eq: Number(documentId) } },
+        limit: 100,
+        nextToken,
+      } as any);
+      if (page.data) allItems.push(...(page.data as any[]));
+      nextToken = (page as any).nextToken;
+    } while (nextToken);
 
-    for (const item of docItems as any[]) {
+    for (const item of allItems) {
       // Obtener stock actual
       const { data: stocks } = await amplifyClient.models.Stock.list({
         filter: {
