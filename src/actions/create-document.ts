@@ -4,12 +4,14 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { allocateCounterRange } from '@/lib/allocate-counter-range';
 import { createDocument } from '@/services/document-service';
 
 const DocumentItemInputSchema = z.object({
   productId: z.coerce.number().min(1),
   quantity: z.coerce.number().positive(),
   price: z.coerce.number().min(0),
+  productCost: z.coerce.number().min(0).optional(),
 });
 
 const CreateDocumentInputSchema = z.object({
@@ -24,22 +26,6 @@ const CreateDocumentInputSchema = z.object({
   orderNumber: z.string().optional(),
   items: z.array(DocumentItemInputSchema).min(1),
 });
-
-async function allocateCounterRange(counterName: string, count: number): Promise<number[]> {
-  const { data: existing } = await amplifyClient.models.Counter.get({ name: counterName });
-  const current = existing ? Number((existing as any).value ?? 0) : 0;
-  const safeCurrent = Number.isFinite(current) ? current : 0;
-  const nextValue = safeCurrent + count;
-
-  if (!existing) {
-    await amplifyClient.models.Counter.create({ name: counterName, value: nextValue });
-  } else {
-    await amplifyClient.models.Counter.update({ name: counterName, value: nextValue });
-  }
-
-  // Return (safeCurrent+1 .. safeCurrent+count)
-  return Array.from({ length: count }, (_, idx) => safeCurrent + idx + 1);
-}
 
 export type CreateDocumentInput = z.infer<typeof CreateDocumentInputSchema>;
 
@@ -76,6 +62,7 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
         productId: it.productId,
         quantity: it.quantity,
         price: it.price,
+        productCost: it.productCost,
       })),
     } as any);
 

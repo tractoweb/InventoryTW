@@ -8,7 +8,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import {
   CommandDialog,
@@ -25,6 +55,15 @@ import { getDocumentTypes } from '@/actions/get-document-types';
 import { searchProductsAction, type ProductSearchResult } from '@/actions/search-products';
 import { createDocumentAction } from '@/actions/create-document';
 import { finalizeDocumentAction } from '@/actions/finalize-document';
+import { createCustomerAction } from '@/actions/create-customer';
+import { createProductAction } from '@/actions/create-product';
+
+import {
+  computeLiquidation,
+  type LiquidationConfig,
+  type LiquidationFreightRate,
+  type LiquidationLineInput,
+} from '@/lib/liquidation';
 
 type SelectOption = { value: number; label: string };
 
@@ -32,8 +71,23 @@ type DraftItem = {
   productId: number;
   productLabel: string;
   quantity: number;
-  price: number;
+  totalCost: number;
+  discountPercentage: number;
+  marginPercentage: number;
+  freightId: string;
+  purchaseReference: string;
+  warehouseReference: string;
 };
+
+function formatMoney(amount: number) {
+  const n = Number(amount ?? 0);
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(n) ? n : 0);
+}
 
 export function NewDocumentForm() {
   const { toast } = useToast();
@@ -41,6 +95,9 @@ export function NewDocumentForm() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [finalizing, setFinalizing] = React.useState(false);
+
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [confirmFinalize, setConfirmFinalize] = React.useState(false);
 
   const [customers, setCustomers] = React.useState<SelectOption[]>([]);
   const [warehouses, setWarehousesState] = React.useState<SelectOption[]>([]);
@@ -63,15 +120,58 @@ export function NewDocumentForm() {
 
   const [items, setItems] = React.useState<DraftItem[]>([]);
 
+  // Liquidación: configuración global (basada en la calculadora)
+  const [ivaPercentage, setIvaPercentage] = React.useState<number | ''>(19);
+  const [ivaIncludedInCost, setIvaIncludedInCost] = React.useState(false);
+  const [discountsEnabled, setDiscountsEnabled] = React.useState(true);
+  const [globalMargin, setGlobalMargin] = React.useState<number | ''>(40);
+
+  const [useMultipleFreights, setUseMultipleFreights] = React.useState(false);
+  const [freightRates, setFreightRates] = React.useState<LiquidationFreightRate[]>([
+    { id: '1', name: 'Flete 1', cost: 0 },
+  ]);
+
+  // Create supplier/product dialogs
+  const [createSupplierOpen, setCreateSupplierOpen] = React.useState(false);
+  const [newSupplierName, setNewSupplierName] = React.useState('');
+  const [newSupplierTaxNumber, setNewSupplierTaxNumber] = React.useState('');
+
+  const [createProductOpen, setCreateProductOpen] = React.useState(false);
+  const [newProductName, setNewProductName] = React.useState('');
+  const [newProductCode, setNewProductCode] = React.useState('');
+  const [newProductCost, setNewProductCost] = React.useState<number | ''>('');
+  const [newProductPrice, setNewProductPrice] = React.useState<number | ''>('');
+
   // Product search dialog
   const [productDialogOpen, setProductDialogOpen] = React.useState(false);
   const [productQuery, setProductQuery] = React.useState('');
   const [productResults, setProductResults] = React.useState<ProductSearchResult[]>([]);
   const [productSearching, setProductSearching] = React.useState(false);
 
-  const total = React.useMemo(() => {
-    return items.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.price) || 0), 0);
-  }, [items]);
+  const liquidationConfig: LiquidationConfig = React.useMemo(
+    () => ({
+      ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
+      ivaIncludedInCost,
+      discountsEnabled,
+      useMultipleFreights,
+      freightRates,
+    }),
+    [discountsEnabled, freightRates, ivaIncludedInCost, ivaPercentage, useMultipleFreights]
+  );
+
+  const liquidation = React.useMemo(() => {
+    const lines: LiquidationLineInput[] = items.map((it, idx) => ({
+      id: `${it.productId}-${idx}`,
+      productId: it.productId,
+      name: it.productLabel,
+      quantity: Number(it.quantity) || 0,
+      totalCost: Number(it.totalCost) || 0,
+      discountPercentage: Number(it.discountPercentage) || 0,
+      marginPercentage: Number(it.marginPercentage) || 0,
+      freightId: it.freightId,
+    }));
+    return computeLiquidation(liquidationConfig, lines);
+  }, [items, liquidationConfig]);
 
   React.useEffect(() => {
     async function boot() {
@@ -124,13 +224,20 @@ export function NewDocumentForm() {
 
   function addProduct(p: ProductSearchResult) {
     const label = p.code ? `${p.name} (${p.code})` : p.name;
+    const unitCostSeed = Number(p.cost ?? p.price ?? 0);
+    const marginSeed = typeof globalMargin === 'number' ? globalMargin : 30;
     setItems((prev) => [
       ...prev,
       {
         productId: p.idProduct,
         productLabel: label,
         quantity: 1,
-        price: Number(p.price ?? 0),
+        totalCost: unitCostSeed,
+        discountPercentage: 0,
+        marginPercentage: marginSeed,
+        freightId: freightRates[0]?.id ?? '1',
+        purchaseReference: p.code ? String(p.code) : '',
+        warehouseReference: '',
       },
     ]);
     setProductDialogOpen(false);
@@ -144,6 +251,81 @@ export function NewDocumentForm() {
 
   function removeItem(idx: number) {
     setItems((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateFreightRate(id: string, patch: Partial<LiquidationFreightRate>) {
+    setFreightRates((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  }
+
+  function addFreightRate() {
+    setFreightRates((prev) => {
+      const nextId = String(prev.length + 1);
+      return [...prev, { id: nextId, name: `Flete ${nextId}`, cost: 0 }];
+    });
+  }
+
+  function removeFreightRate(id: string) {
+    setFreightRates((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      return next.length > 0 ? next : [{ id: '1', name: 'Flete 1', cost: 0 }];
+    });
+    setItems((prev) => {
+      const fallback = freightRates.find((f) => f.id !== id)?.id ?? '1';
+      return prev.map((it) => (it.freightId === id ? { ...it, freightId: fallback } : it));
+    });
+  }
+
+  async function handleCreateSupplier() {
+    const name = newSupplierName.trim();
+    if (!name) return;
+    try {
+      const res = await createCustomerAction({ name, taxNumber: newSupplierTaxNumber || undefined, isSupplier: true, isCustomer: false });
+      if (!res.success || !res.idCustomer) throw new Error(res.error || 'No se pudo crear el proveedor');
+
+      const cust = await getCustomers({ onlyEnabled: true, onlySuppliers: true });
+      setCustomers((cust.data ?? []).map((c: any) => ({ value: Number(c.idCustomer), label: String(c.name) })));
+      setCustomerId(res.idCustomer);
+      setCreateSupplierOpen(false);
+      setNewSupplierName('');
+      setNewSupplierTaxNumber('');
+      toast({ title: 'Proveedor creado', description: `ID ${res.idCustomer}` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el proveedor' });
+    }
+  }
+
+  async function handleCreateProduct() {
+    const name = newProductName.trim();
+    if (!name) return;
+    try {
+      const res = await createProductAction({
+        name,
+        code: newProductCode || undefined,
+        cost: typeof newProductCost === 'number' ? newProductCost : undefined,
+        price: typeof newProductPrice === 'number' ? newProductPrice : undefined,
+        isEnabled: true,
+        isService: false,
+        isTaxInclusivePrice: true,
+      });
+      if (!res.success || !res.idProduct) throw new Error(res.error || 'No se pudo crear el producto');
+
+      addProduct({
+        idProduct: res.idProduct,
+        name,
+        code: newProductCode || undefined,
+        cost: typeof newProductCost === 'number' ? newProductCost : 0,
+        price: typeof newProductPrice === 'number' ? newProductPrice : 0,
+      });
+
+      setCreateProductOpen(false);
+      setNewProductName('');
+      setNewProductCode('');
+      setNewProductCost('');
+      setNewProductPrice('');
+      toast({ title: 'Producto creado', description: `ID ${res.idProduct}` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el producto' });
+    }
   }
 
   async function handleSave(finalize: boolean) {
@@ -160,6 +342,7 @@ export function NewDocumentForm() {
     setFinalizing(finalize);
 
     try {
+      const liqLines = liquidation.lines;
       const created = await createDocumentAction({
         userId: 1,
         customerId: customerId ? Number(customerId) : undefined,
@@ -168,10 +351,21 @@ export function NewDocumentForm() {
         date,
         referenceDocumentNumber: referenceDocumentNumber || undefined,
         note: note || undefined,
-        items: items.map((it) => ({
+        internalNote: JSON.stringify({
+          liquidation: {
+            ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
+            ivaIncludedInCost,
+            discountsEnabled,
+            useMultipleFreights,
+            freightRates,
+            totals: liquidation.totals,
+          },
+        }),
+        items: items.map((it, idx) => ({
           productId: it.productId,
           quantity: it.quantity,
-          price: it.price,
+          price: liqLines[idx]?.unitFinalCost ?? 0,
+          productCost: liqLines[idx]?.unitFinalCost ?? 0,
         })),
       });
 
@@ -199,6 +393,11 @@ export function NewDocumentForm() {
       setSaving(false);
       setFinalizing(false);
     }
+  }
+
+  function requestSave(finalize: boolean) {
+    setConfirmFinalize(finalize);
+    setConfirmOpen(true);
   }
 
   return (
@@ -268,6 +467,9 @@ export function NewDocumentForm() {
                 </option>
               ))}
             </select>
+            <Button type="button" variant="outline" onClick={() => setCreateSupplierOpen(true)} disabled={loading}>
+              Crear proveedor
+            </Button>
           </div>
 
           <div className="grid gap-2">
@@ -288,10 +490,88 @@ export function NewDocumentForm() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle>Configuración Global</CardTitle>
+          <CardDescription>Parámetros que afectan a toda la liquidación.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-2">
+            <Label>IVA (%)</Label>
+            <Input
+              type="number"
+              value={ivaPercentage}
+              onChange={(e) => setIvaPercentage(e.target.value === '' ? '' : Number(e.target.value))}
+            />
+            <div className="flex items-center gap-2">
+              <Checkbox checked={ivaIncludedInCost} onCheckedChange={(v) => setIvaIncludedInCost(Boolean(v))} />
+              <span className="text-xs text-muted-foreground">IVA ya incluido en costo</span>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Margen global (%)</Label>
+            <Input
+              type="number"
+              value={globalMargin}
+              onChange={(e) => setGlobalMargin(e.target.value === '' ? '' : Number(e.target.value))}
+            />
+            <div className="text-xs text-muted-foreground">Se usa como valor inicial por item.</div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Opciones</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={discountsEnabled} onCheckedChange={(v) => setDiscountsEnabled(Boolean(v))} />
+              <span className="text-xs text-muted-foreground">Aplicar descuentos individuales</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={useMultipleFreights} onCheckedChange={(v) => setUseMultipleFreights(Boolean(v))} />
+              <span className="text-xs text-muted-foreground">Usar varios fletes diferentes</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Fletes</CardTitle>
+          <CardDescription>Configura el costo del flete que se distribuirá entre los productos.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {freightRates.map((f) => (
+            <div key={f.id} className="grid grid-cols-1 gap-2 md:grid-cols-6">
+              <div className="md:col-span-3">
+                <Label>Nombre</Label>
+                <Input value={f.name} onChange={(e) => updateFreightRate(f.id, { name: e.target.value })} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Costo</Label>
+                <Input
+                  type="number"
+                  value={String(f.cost)}
+                  onChange={(e) => updateFreightRate(f.id, { cost: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="md:col-span-1 flex items-end">
+                <Button type="button" variant="outline" className="w-full" onClick={() => removeFreightRate(f.id)} disabled={freightRates.length <= 1}>
+                  Quitar
+                </Button>
+              </div>
+            </div>
+          ))}
+          <div>
+            <Button type="button" variant="outline" onClick={addFreightRate} disabled={!useMultipleFreights}>
+              Agregar flete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
-            <CardTitle>Items</CardTitle>
-            <CardDescription>Agrega productos, cantidad y precio.</CardDescription>
+            <CardTitle>Productos</CardTitle>
+            <CardDescription>Agrega productos y liquida costos (IVA, flete, descuento, margen).</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setProductDialogOpen(true)} disabled={loading}>
@@ -303,69 +583,196 @@ export function NewDocumentForm() {
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin items todavía.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-left font-medium">Producto</th>
-                    <th className="py-2 text-right font-medium">Cantidad</th>
-                    <th className="py-2 text-right font-medium">Precio</th>
-                    <th className="py-2 text-right font-medium">Subtotal</th>
-                    <th className="py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it, idx) => (
-                    <tr key={`${it.productId}-${idx}`} className="border-b">
-                      <td className="py-2 pr-4">
-                        <div className="font-medium">{it.productLabel}</div>
-                        <div className="text-xs text-muted-foreground">ID: {it.productId}</div>
-                      </td>
-                      <td className="py-2 text-right">
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-24 text-right"
-                          value={String(it.quantity)}
-                          onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })}
-                        />
-                      </td>
-                      <td className="py-2 text-right">
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-28 text-right"
-                          value={String(it.price)}
-                          onChange={(e) => updateItem(idx, { price: Number(e.target.value) })}
-                        />
-                      </td>
-                      <td className="py-2 text-right font-medium">
-                        {((Number(it.quantity) || 0) * (Number(it.price) || 0)).toFixed(2)}
-                      </td>
-                      <td className="py-2 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => removeItem(idx)}>
-                          Quitar
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="w-full overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[260px]">Nombre</TableHead>
+                    <TableHead className="min-w-[140px]">Ref. Compra</TableHead>
+                    <TableHead className="min-w-[140px]">Ref. Bodega</TableHead>
+                    <TableHead className="min-w-[90px] text-right">Cant.</TableHead>
+                    <TableHead className="min-w-[140px] text-right">Costo Total</TableHead>
+                    <TableHead className="min-w-[90px] text-right">Desc. %</TableHead>
+                    <TableHead className="min-w-[120px] text-right">Unit. Base</TableHead>
+                    <TableHead className="min-w-[120px] text-right">- Desc.</TableHead>
+                    <TableHead className="min-w-[120px] text-right">+ IVA</TableHead>
+                    <TableHead className="min-w-[120px] text-right">+ Flete</TableHead>
+                    <TableHead className="min-w-[140px] text-right">Unit. Final</TableHead>
+                    <TableHead className="min-w-[120px] text-right">Margen %</TableHead>
+                    <TableHead className="min-w-[140px] text-right">Venta Unit.</TableHead>
+                    <TableHead className="min-w-[140px] text-right">Total Final</TableHead>
+                    <TableHead className="w-[90px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((it, idx) => {
+                    const li = liquidation.lines[idx];
+                    return (
+                      <TableRow key={`${it.productId}-${idx}`}>
+                        <TableCell className="font-medium">{it.productLabel}</TableCell>
+                        <TableCell>
+                          <Input value={it.purchaseReference} onChange={(e) => updateItem(idx, { purchaseReference: e.target.value })} />
+                        </TableCell>
+                        <TableCell>
+                          <Input value={it.warehouseReference} onChange={(e) => updateItem(idx, { warehouseReference: e.target.value })} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-24 text-right"
+                            value={String(it.quantity)}
+                            onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) || 0 })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-32 text-right"
+                            value={String(it.totalCost)}
+                            onChange={(e) => updateItem(idx, { totalCost: Number(e.target.value) || 0 })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-24 text-right"
+                            value={String(it.discountPercentage)}
+                            onChange={(e) => updateItem(idx, { discountPercentage: Number(e.target.value) || 0 })}
+                            disabled={!discountsEnabled}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitCost ?? 0)}</TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitDiscount ?? 0)}</TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitIVA ?? 0)}</TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitFreight ?? 0)}</TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitFinalCost ?? 0)}</TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-24 text-right"
+                            value={String(it.marginPercentage)}
+                            onChange={(e) => updateItem(idx, { marginPercentage: Number(e.target.value) || 0 })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.unitSalePrice ?? 0)}</TableCell>
+                        <TableCell className="text-right">{formatMoney(li?.totalFinalCost ?? 0)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => removeItem(idx)}>
+                            Quitar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
 
           <div className="flex items-center justify-end gap-6 pt-2">
-            <div className="text-sm text-muted-foreground">Total</div>
-            <div className="text-lg font-semibold">{total.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">Total (costo final)</div>
+            <div className="text-lg font-semibold">{formatMoney(liquidation.totals.totalFinalCost)}</div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => handleSave(false)} disabled={saving || finalizing || loading}>
+            <Button variant="outline" onClick={() => requestSave(false)} disabled={saving || finalizing || loading}>
               {saving ? 'Guardando…' : 'Guardar borrador'}
             </Button>
-            <Button onClick={() => handleSave(true)} disabled={saving || finalizing || loading}>
+            <Button onClick={() => requestSave(true)} disabled={saving || finalizing || loading}>
               {finalizing ? 'Finalizando…' : 'Finalizar (Stock + Kardex)'}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmFinalize ? 'Confirmar finalización' : 'Confirmar guardado'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmFinalize
+                ? 'Esta acción impacta Stock y genera Kardex. Verifica cantidades y costos antes de continuar.'
+                : 'Se guardará como borrador (no afecta Stock ni Kardex).'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-muted-foreground">Items</div>
+              <div className="font-medium">{items.length}</div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-muted-foreground">Costo final</div>
+              <div className="font-medium">{formatMoney(liquidation.totals.totalFinalCost)}</div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-muted-foreground">IVA</div>
+              <div className="font-medium">{formatMoney(liquidation.totals.totalIVA)}</div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-muted-foreground">Flete</div>
+              <div className="font-medium">{formatMoney(liquidation.totals.totalFreight)}</div>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving || finalizing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                handleSave(confirmFinalize);
+              }}
+              disabled={saving || finalizing || loading}
+            >
+              {confirmFinalize ? 'Finalizar' : 'Guardar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumen financiero</CardTitle>
+          <CardDescription>Basado en la liquidación (costo, IVA, fletes, margen).</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="text-sm">
+            <div className="text-muted-foreground">Compra (Costo total)</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalPurchaseCost)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Descuento total</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalDiscount)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">IVA total</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalIVA)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Flete total</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalFreight)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Costo final</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalFinalCost)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Venta estimada</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalSalePrice)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Ganancia estimada</div>
+            <div className="font-semibold">{formatMoney(liquidation.totals.totalProfit)}</div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground">Margen ganancia</div>
+            <div className="font-semibold">{liquidation.totals.profitMarginPercentage.toFixed(1)}%</div>
           </div>
         </CardContent>
       </Card>
@@ -374,7 +781,21 @@ export function NewDocumentForm() {
         <CommandInput placeholder="Buscar producto (min 2 letras)…" value={productQuery} onValueChange={setProductQuery} />
         <CommandList>
           <CommandEmpty>
-            {productSearching ? 'Buscando…' : productQuery.trim().length < 2 ? 'Escribe al menos 2 letras.' : 'Sin resultados.'}
+            <div className="flex flex-col gap-2">
+              <div>{productSearching ? 'Buscando…' : productQuery.trim().length < 2 ? 'Escribe al menos 2 letras.' : 'Sin resultados.'}</div>
+              {productQuery.trim().length >= 2 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setNewProductName(productQuery.trim());
+                    setCreateProductOpen(true);
+                  }}
+                >
+                  Crear producto: “{productQuery.trim()}”
+                </Button>
+              ) : null}
+            </div>
           </CommandEmpty>
           <CommandGroup heading="Productos">
             {productResults.map((p) => {
@@ -398,6 +819,70 @@ export function NewDocumentForm() {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+
+      <Dialog open={createSupplierOpen} onOpenChange={setCreateSupplierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear proveedor</DialogTitle>
+            <DialogDescription>Agrega un proveedor rápido sin salir del documento.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-2">
+              <Label>Nombre</Label>
+              <Input value={newSupplierName} onChange={(e) => setNewSupplierName(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>NIT / Documento</Label>
+              <Input value={newSupplierTaxNumber} onChange={(e) => setNewSupplierTaxNumber(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreateSupplierOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleCreateSupplier}>
+              Crear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createProductOpen} onOpenChange={setCreateProductOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear producto</DialogTitle>
+            <DialogDescription>Agrega un producto rápido y selecciónalo.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-2">
+              <Label>Nombre</Label>
+              <Input value={newProductName} onChange={(e) => setNewProductName(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Código / Referencia</Label>
+              <Input value={newProductCode} onChange={(e) => setNewProductCode(e.target.value)} />
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Costo</Label>
+                <Input type="number" value={newProductCost} onChange={(e) => setNewProductCost(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Precio venta</Label>
+                <Input type="number" value={newProductPrice} onChange={(e) => setNewProductPrice(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreateProductOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleCreateProduct}>
+              Crear y agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

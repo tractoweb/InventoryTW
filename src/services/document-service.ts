@@ -36,6 +36,8 @@ export interface DocumentItemInput {
   discount?: number;
   discountType?: number;
   taxIds?: number[];
+  /** Optional unit cost to store on DocumentItem.productCost and use in Kardex. */
+  productCost?: number;
 }
 
 /**
@@ -214,7 +216,7 @@ export async function createDocument(
         priceBeforeTax: itemPrice,
         discount: item.discount || 0,
         discountType: item.discountType || 0,
-        productCost: (product.data as any)?.cost || 0,
+        productCost: Number.isFinite(Number(item.productCost)) ? Number(item.productCost) : (product.data as any)?.cost || 0,
         priceBeforeTaxAfterDiscount: priceAfterDiscount,
         priceAfterDiscount: priceAfterDiscount,
         total: itemTotal,
