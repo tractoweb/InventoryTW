@@ -4,9 +4,10 @@
  */
 
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from '@/lib/amplify-config';
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -27,15 +28,27 @@ export interface LoginResponse {
  * Autentica un usuario contra la base de datos
  * En producción, esto debería usar hashing y validaciones más robustas
  */
-export async function authenticateUser(email: string, password: string): Promise<LoginResponse> {
+export async function authenticateUser(usernameOrEmail: string, password: string): Promise<LoginResponse> {
   try {
-    // Buscar usuario por email
+    const identifier = String(usernameOrEmail ?? "").trim();
+    if (!identifier) {
+      return { success: false, error: 'Invalid username or password' };
+    }
+
+    // Buscar usuario por username (y opcionalmente email por compatibilidad)
     const { data: users, errors } = await amplifyClient.models.User.list({
       filter: {
-        email: { eq: email },
-        isEnabled: { eq: true },
+        and: [
+          { isEnabled: { eq: true } },
+          {
+            or: [
+              { username: { eq: identifier } },
+              { email: { eq: identifier } },
+            ],
+          },
+        ],
       },
-    });
+    } as any);
 
     if (errors) {
       return {
@@ -53,21 +66,37 @@ export async function authenticateUser(email: string, password: string): Promise
 
     const user = users[0];
 
-    // En producción: usar bcrypt o similar para validar hash
-    // Por ahora comparación simple (TODO: implementar hash)
-    if (user.password !== password) {
+    const storedPassword = String((user as any).password ?? '');
+    const passwordOk = verifyPassword(password, storedPassword);
+
+    if (!passwordOk) {
       return {
         success: false,
         error: 'Invalid email or password',
       };
     }
 
+    // Migración suave: si aún está en texto plano, hashear y guardar.
+    if (storedPassword && !storedPassword.startsWith('scrypt$')) {
+      try {
+        await amplifyClient.models.User.update({
+          userId: Number((user as any).userId),
+          password: hashPassword(password),
+        } as any);
+      } catch {
+        // Best-effort: no bloquear login.
+      }
+    }
+
     // Crear sesión
     const sessionToken = generateSessionToken((user as any).userId);
 
-    // Registrar sesión
-    const sessionResult = await amplifyClient.models.SessionConfig.create({
-      userId: Number((user as any).userId),
+    // Registrar sesión (SessionConfig tiene PK userId: upsert)
+    const normalizedUserId = Number((user as any).userId);
+    const existing = await amplifyClient.models.SessionConfig.get({ userId: normalizedUserId } as any).catch(() => null);
+
+    const sessionPayload: any = {
+      userId: normalizedUserId,
       accessLevel: user.accessLevel || ACCESS_LEVELS.CASHIER,
       firstName: user.firstName || '',
       lastName: user.lastName || '',
@@ -76,9 +105,13 @@ export async function authenticateUser(email: string, password: string): Promise
       lastActivityTime: new Date().toISOString(),
       isActive: true,
       sessionToken: sessionToken,
-    });
+    };
 
-    if (!sessionResult.data) {
+    const sessionResult = (existing as any)?.data
+      ? await amplifyClient.models.SessionConfig.update(sessionPayload)
+      : await amplifyClient.models.SessionConfig.create(sessionPayload);
+
+    if (!sessionResult?.data) {
       return {
         success: false,
         error: 'Failed to create session',
@@ -102,6 +135,10 @@ export async function authenticateUser(email: string, password: string): Promise
       error: formatAmplifyError(error),
     };
   }
+}
+
+export function hashPasswordForStorage(password: string): string {
+  return hashPassword(password);
 }
 
 /**
@@ -176,4 +213,34 @@ function generateSessionToken(userId: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 15);
   return `${userId}-${timestamp}-${random}`;
+}
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  const derived = scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
+  return `scrypt$16384$8$1$${salt.toString('base64')}$${derived.toString('base64')}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  // Legacy: plain text
+  if (!stored.startsWith('scrypt$')) return stored === password;
+
+  // Format: scrypt$N$r$p$<saltB64>$<hashB64>
+  const parts = stored.split('$');
+  if (parts.length < 6) return false;
+  const N = Number(parts[1]);
+  const r = Number(parts[2]);
+  const p = Number(parts[3]);
+  const saltB64 = parts[4];
+  const hashB64 = parts[5];
+  if (![N, r, p].every((n) => Number.isFinite(n) && n > 0)) return false;
+
+  try {
+    const salt = Buffer.from(saltB64, 'base64');
+    const expected = Buffer.from(hashB64, 'base64');
+    const derived = scryptSync(password, salt, expected.length, { N, r, p });
+    return timingSafeEqual(expected, derived);
+  } catch {
+    return false;
+  }
 }

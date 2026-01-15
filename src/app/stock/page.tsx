@@ -5,7 +5,11 @@ import { Terminal } from "lucide-react";
 import { getWarehouses } from "@/actions/get-warehouses";
 import { getTaxes } from "@/actions/get-taxes";
 
-export default async function StockPage() {
+export default async function StockPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const { data: items, error: itemsError } = await getStockData();
   const { data: warehouses, error: warehousesError } = await getWarehouses();
   // Los taxes y productGroups no son estrictamente necesarios para la página de stock, 
@@ -31,6 +35,7 @@ export default async function StockPage() {
         warehouses={warehouses || []}
         productGroups={[]} // No se necesita en la página de stock
         taxes={taxes || []}
+        initialSearch={Array.isArray(searchParams?.q) ? searchParams?.q?.[0] : (searchParams?.q as string | undefined)}
         pageType="stock" 
       />
     </div>

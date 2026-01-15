@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LabelData } from "@/types/label.types";
 import { generateProductLabel } from "@/utils/zplGenerator";
+import { getDefaultPrinter, loadBrowserPrintSdk, sendZplWithRetry } from "@/lib/browserprint-client";
 
 export default function PrintLabelPage() {
   // Ejemplo de datos de etiqueta
@@ -14,30 +15,24 @@ export default function PrintLabelPage() {
   };
 
   useEffect(() => {
-    // Inyecta el script de Browser Print si no está presente
-    if (!document.getElementById('zebra-browser-print')) {
-      const script = document.createElement('script');
-      script.id = 'zebra-browser-print';
-      script.src = 'http://localhost:9100/BrowserPrint-3.0.216.min.js';
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    // Carga el SDK vía helper (usa NEXT_PUBLIC_BROWSERPRINT_PORT, default 9101)
+    loadBrowserPrintSdk().catch(() => {
+      // Error is handled on print attempt
+    });
   }, []);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const zpl = generateProductLabel(exampleLabel);
-    // @ts-ignore
-    if (window.BrowserPrint) {
-      // @ts-ignore
-      window.BrowserPrint.getDefaultDevice("printer", (device) => {
-        device.send(zpl, () => {
-          alert("Etiqueta enviada a la impresora");
-        }, (error: unknown) => {
-          alert("Error al imprimir: " + String(error));
-        });
-      });
-    } else {
-      alert("Zebra Browser Print no está disponible. ¿Está instalado y corriendo?");
+    try {
+      const device = await getDefaultPrinter();
+      await sendZplWithRetry(device, zpl, { timeoutMs: 6000, retries: 2, retryDelayMs: 250 });
+      alert("Etiqueta enviada a la impresora");
+    } catch (e: unknown) {
+      alert(
+        e instanceof Error
+          ? `Error al imprimir: ${e.message}`
+          : `Error al imprimir: ${String(e)}`
+      );
     }
   };
 

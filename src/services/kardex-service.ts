@@ -10,12 +10,19 @@ export interface KardexEntry {
   productId: number;
   date: Date;
   documentId?: number;
+  documentItemId?: number;
   documentNumber?: string;
+  warehouseId?: number;
   type: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
   quantity: number;
   balance: number;
+  /** Balance right before applying this movement (for accurate audit trails). */
+  previousBalance?: number;
   unitCost?: number;
   totalCost?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  totalPriceAfterDiscount?: number;
   note?: string;
   userId?: number;
 }
@@ -41,14 +48,30 @@ export async function createKardexEntry(
   entry: KardexEntry
 ): Promise<{ success: boolean; kardexId?: number; error?: string }> {
   try {
-    // Obtener balance actual del producto
-    const { data: stocks } = await amplifyClient.models.Stock.list({
-      filter: {
-        productId: { eq: entry.productId },
-      },
-    });
+    // Obtener balance previo (por bodega cuando aplique)
+    // NOTE: if the caller already knows it, trust it (prevents "previous" being computed after Stock update).
+    let previousBalance = Number.isFinite(Number(entry.previousBalance)) ? Number(entry.previousBalance) : 0;
+    const hasExplicitPrevious = Number.isFinite(Number(entry.previousBalance));
 
-    const currentStock = stocks?.[0]?.quantity || 0;
+    if (!hasExplicitPrevious) {
+    if (Number.isFinite(Number(entry.warehouseId)) && Number(entry.warehouseId) > 0) {
+      const { data: stocks } = await amplifyClient.models.Stock.list({
+        filter: {
+          productId: { eq: entry.productId },
+          warehouseId: { eq: Number(entry.warehouseId) },
+        },
+        limit: 1,
+      } as any);
+      previousBalance = Number((stocks?.[0] as any)?.quantity ?? 0) || 0;
+    } else {
+      const { data: stocks } = await amplifyClient.models.Stock.list({
+        filter: {
+          productId: { eq: entry.productId },
+        },
+      } as any);
+      previousBalance = (stocks ?? []).reduce((sum: number, s: any) => sum + (Number(s?.quantity ?? 0) || 0), 0);
+    }
+    }
 
     const kardexId = await nextCounterValue('kardexId');
 
@@ -58,12 +81,17 @@ export async function createKardexEntry(
       productId: entry.productId,
       date: entry.date.toISOString(),
       documentId: entry.documentId,
+      documentItemId: entry.documentItemId,
       documentNumber: entry.documentNumber,
+      warehouseId: entry.warehouseId,
       type: entry.type,
       quantity: entry.quantity,
       balance: entry.balance,
       unitCost: entry.unitCost,
       totalCost: entry.totalCost,
+      unitPrice: entry.unitPrice,
+      totalPrice: entry.totalPrice,
+      totalPriceAfterDiscount: entry.totalPriceAfterDiscount,
       note: entry.note,
       userId: entry.userId,
     });
@@ -82,7 +110,7 @@ export async function createKardexEntry(
         kardexHistoryId,
         kardexId,
         productId: entry.productId,
-        previousBalance: currentStock,
+        previousBalance,
         newBalance: entry.balance,
         modifiedBy: entry.userId,
         modifiedDate: new Date().toISOString(),

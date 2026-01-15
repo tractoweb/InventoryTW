@@ -4,9 +4,12 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { ACCESS_LEVELS } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { ymdToBogotaMidnightUtc } from '@/lib/datetime';
+import { requireSession } from '@/lib/session';
 import { listAllPages } from '@/services/amplify-list-all';
+import { writeAuditLog } from '@/services/audit-log-service';
 import { createDocument } from '@/services/document-service';
 
 async function seedCounterFromExistingMax(counterName: string, entity: 'Document' | 'DocumentItem') {
@@ -82,6 +85,8 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
   noStore();
 
   try {
+    const session = await requireSession(ACCESS_LEVELS.CASHIER);
+
     const parsed = CreateDocumentInputSchema.safeParse(raw);
     if (!parsed.success) {
       return { success: false, error: 'Datos inválidos' };
@@ -97,7 +102,7 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
 
     const result = await createDocument({
       documentId,
-      userId: input.userId,
+      userId: session.userId,
       customerId: input.customerId,
       orderNumber: input.orderNumber,
       documentTypeId: input.documentTypeId,
@@ -118,6 +123,23 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
     if (!result.success) {
       return { success: false, error: result.error || 'No se pudo crear el documento' };
     }
+
+    // Best-effort audit trail
+    writeAuditLog({
+      userId: session.userId,
+      action: 'CREATE',
+      tableName: 'Document',
+      recordId: documentId,
+      newValues: {
+        documentId,
+        documentNumber: result.documentNumber,
+        customerId: input.customerId ?? null,
+        warehouseId: input.warehouseId,
+        documentTypeId: input.documentTypeId,
+        date: input.date,
+        itemsCount: input.items.length,
+      },
+    }).catch(() => {});
 
     return {
       success: true,

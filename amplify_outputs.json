@@ -642,6 +642,22 @@
                 ]
               }
             },
+            "kardexEntries": {
+              "name": "kardexEntries",
+              "isArray": true,
+              "type": {
+                "model": "Kardex"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "warehouseId"
+                ]
+              }
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -1627,10 +1643,24 @@
               "isRequired": false,
               "attributes": []
             },
+            "documentItemId": {
+              "name": "documentItemId",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
             "documentNumber": {
               "name": "documentNumber",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "warehouseId": {
+              "name": "warehouseId",
+              "isArray": false,
+              "type": "Int",
               "isRequired": false,
               "attributes": []
             },
@@ -1669,6 +1699,27 @@
               "isRequired": false,
               "attributes": []
             },
+            "unitPrice": {
+              "name": "unitPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "totalPrice": {
+              "name": "totalPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "totalPriceAfterDiscount": {
+              "name": "totalPriceAfterDiscount",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
             "note": {
               "name": "note",
               "isArray": false,
@@ -1695,6 +1746,51 @@
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
                   "productId"
+                ]
+              }
+            },
+            "document": {
+              "name": "document",
+              "isArray": false,
+              "type": {
+                "model": "Document"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "documentId"
+                ]
+              }
+            },
+            "documentItem": {
+              "name": "documentItem",
+              "isArray": false,
+              "type": {
+                "model": "DocumentItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "documentItemId"
+                ]
+              }
+            },
+            "warehouse": {
+              "name": "warehouse",
+              "isArray": false,
+              "type": {
+                "model": "Warehouse"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "warehouseId"
                 ]
               }
             },
@@ -1727,6 +1823,36 @@
               "properties": {
                 "fields": [
                   "kardexId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "byProductId",
+                "queryField": "listKardexByProductId",
+                "fields": [
+                  "productId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "byDocumentId",
+                "queryField": "listKardexByDocumentId",
+                "fields": [
+                  "documentId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "byWarehouseId",
+                "queryField": "listKardexByWarehouseId",
+                "fields": [
+                  "warehouseId"
                 ]
               }
             },
@@ -2815,6 +2941,22 @@
                 ]
               }
             },
+            "kardexEntries": {
+              "name": "kardexEntries",
+              "isArray": true,
+              "type": {
+                "model": "Kardex"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "documentId"
+                ]
+              }
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -3023,6 +3165,22 @@
               "isArray": true,
               "type": {
                 "model": "DocumentItemTax"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "documentItemId"
+                ]
+              }
+            },
+            "kardexEntries": {
+              "name": "kardexEntries",
+              "isArray": true,
+              "type": {
+                "model": "Kardex"
               },
               "isRequired": false,
               "attributes": [],

@@ -1,6 +1,8 @@
 "use server";
-import { amplifyClient } from '@/lib/amplify-config';
 import { unstable_noStore as noStore } from 'next/cache';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { listProductGroups } from '@/services/product-group-service';
+
 export type ProductGroup = {
   id: number;
   name: string;
@@ -11,11 +13,17 @@ export async function getProductGroups(): Promise<{ data?: ProductGroup[], error
   noStore();
   
   try {
-    // TODO: Implement product group fetching from Amplify
-    const groups: ProductGroup[] = [];
-    return { data: groups };
+    const groups = await listProductGroups();
+    const data: ProductGroup[] = (groups ?? [])
+      .map((g: any) => ({
+        id: Number(g?.idProductGroup),
+        name: String(g?.name ?? ''),
+      }))
+      .filter((g) => Number.isFinite(g.id) && g.id > 0 && g.name.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return { data };
   } catch (error: any) {
-    console.error('Error fetching product groups:', error);
-    return { error: 'Could not load product groups.' };
+    return { error: formatAmplifyError(error) || 'No se pudieron cargar los grupos.' };
   }
 }

@@ -14,8 +14,9 @@
 1. [README_PROYECTO.md](README_PROYECTO.md) (20 min) - Visión general técnica
 2. [ANALISIS_COMPLETO.md](ANALISIS_COMPLETO.md) (40 min) - Análisis detallado
 3. [PLAN_MODULOS.md](PLAN_MODULOS.md) (30 min) - Plan de implementación
-4. [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md) (20 min) - Tareas específicas
-5. [RECOMENDACIONES.md](RECOMENDACIONES.md) (30 min) - Best practices
+4. [PLAN_MAESTRO.md](PLAN_MAESTRO.md) (45-90 min) - Backlog completo (módulos/lógicas/templates)
+5. [PROXIMOS_PASOS.md](PROXIMOS_PASOS.md) (20 min) - Tareas específicas
+6. [RECOMENDACIONES.md](RECOMENDACIONES.md) (30 min) - Best practices
 
 **Tiempo total**: 2 horas (léelo completo la primera vez)
 
@@ -24,7 +25,8 @@
 1. [ANALISIS_COMPLETO.md](ANALISIS_COMPLETO.md) (40 min)
 2. [COMPARATIVA_TECNICA.md](COMPARATIVA_TECNICA.md) (20 min)
 3. [PLAN_MODULOS.md](PLAN_MODULOS.md) (30 min)
-4. [RECOMENDACIONES.md](RECOMENDACIONES.md) (30 min)
+4. [PLAN_MAESTRO.md](PLAN_MAESTRO.md) (45-90 min)
+5. [RECOMENDACIONES.md](RECOMENDACIONES.md) (30 min)
 
 **Tiempo total**: 2 horas
 

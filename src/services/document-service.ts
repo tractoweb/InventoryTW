@@ -284,6 +284,11 @@ export async function finalizeDocument(
 
     const docData = doc.data as any;
 
+    // Idempotency: avoid double-posting stock/kardex.
+    if (docData?.isClockedOut === true) {
+      return { success: true };
+    }
+
     // Obtener tipo de documento
     const docType = await amplifyClient.models.DocumentType.get({
       documentTypeId: docData.documentTypeId
@@ -292,7 +297,12 @@ export async function finalizeDocument(
     const stockDirection = (docType.data as any)?.stockDirection || DOCUMENT_STOCK_DIRECTION.NONE;
 
     if (stockDirection === DOCUMENT_STOCK_DIRECTION.NONE) {
-      // No afecta stock
+      // No afecta stock, but still finalize the document.
+      await amplifyClient.models.Document.update({
+        documentId: Number(documentId),
+        isClockedOut: true,
+      });
+
       return { success: true };
     }
 
@@ -309,7 +319,148 @@ export async function finalizeDocument(
       nextToken = (page as any).nextToken;
     } while (nextToken);
 
+    // Settings: allow negative stock (best-effort; default to allow to preserve current behavior)
+    let allowNegativeStock = true;
+    try {
+      const companies: any = await amplifyClient.models.Company.list({ limit: 1 } as any);
+      const companyId = Number((companies?.data?.[0] as any)?.idCompany ?? 1);
+      const settings: any = await amplifyClient.models.ApplicationSettings.get({ companyId } as any);
+      if (settings?.data && (settings.data as any).allowNegativeStock !== undefined && (settings.data as any).allowNegativeStock !== null) {
+        allowNegativeStock = Boolean((settings.data as any).allowNegativeStock);
+      }
+    } catch {
+      // ignore
+    }
+
+    // Load product flags once (we skip inventory posting for service products)
+    const uniqueProductIds = Array.from(
+      new Set(allItems.map((i) => Number(i?.productId)).filter((id) => Number.isFinite(id) && id > 0))
+    ) as number[];
+
+    const productGets = await Promise.all(
+      uniqueProductIds.map((idProduct) => amplifyClient.models.Product.get({ idProduct } as any))
+    );
+
+    const productById = new Map<number, any>();
+    for (let i = 0; i < uniqueProductIds.length; i++) {
+      const p = (productGets[i] as any)?.data;
+      if (p) productById.set(uniqueProductIds[i], p);
+    }
+
+    const lastEntradaCostCache = new Map<string, number>();
+    async function getLastEntradaUnitCostFromKardex(args: { productId: number; warehouseId?: number | null }): Promise<number> {
+      const pid = Number(args.productId);
+      const wid = args.warehouseId !== undefined && args.warehouseId !== null ? Number(args.warehouseId) : null;
+      const key = `${pid}:${wid ?? 0}`;
+
+      if (!Number.isFinite(pid) || pid <= 0) return 0;
+      if (lastEntradaCostCache.has(key)) return lastEntradaCostCache.get(key) ?? 0;
+
+      try {
+        const and: any[] = [{ productId: { eq: pid } }, { type: { eq: 'ENTRADA' } }];
+        if (wid && Number.isFinite(wid)) and.push({ warehouseId: { eq: wid } });
+        const filter = and.length === 1 ? and[0] : { and };
+
+        const res: any = await amplifyClient.models.Kardex.list({
+          filter,
+          limit: 200,
+        } as any);
+
+        const rows: any[] = (res?.data ?? []) as any[];
+        if (rows.length === 0) {
+          lastEntradaCostCache.set(key, 0);
+          return 0;
+        }
+
+        const best = rows
+          .map((k) => {
+            const dateMs = new Date(String(k?.date ?? '')).getTime();
+            return {
+              dateMs: Number.isFinite(dateMs) ? dateMs : 0,
+              kardexId: Number(k?.kardexId ?? 0) || 0,
+              unitCost: Number(k?.unitCost ?? 0) || 0,
+              totalCost: Number(k?.totalCost ?? 0) || 0,
+              quantity: Number(k?.quantity ?? 0) || 0,
+            };
+          })
+          .sort((a, b) => (b.dateMs - a.dateMs) || (b.kardexId - a.kardexId))[0];
+
+        let unitCost = 0;
+        if (best) {
+          if (best.unitCost > 0) unitCost = best.unitCost;
+          else if (best.totalCost > 0 && best.quantity > 0) unitCost = best.totalCost / best.quantity;
+        }
+
+        lastEntradaCostCache.set(key, unitCost > 0 && Number.isFinite(unitCost) ? unitCost : 0);
+        return lastEntradaCostCache.get(key) ?? 0;
+      } catch {
+        lastEntradaCostCache.set(key, 0);
+        return 0;
+      }
+    }
+
+    // Pre-validate stock updates to avoid partial posting.
+    // We validate per (productId, warehouseId) for this document warehouse.
+    const inventoryItems = allItems
+      .filter((it) => {
+        const pid = Number(it?.productId);
+        if (!Number.isFinite(pid) || pid <= 0) return false;
+        const product = productById.get(pid);
+        return product?.isService !== true;
+      })
+      .map((it) => ({
+        productId: Number(it?.productId),
+        quantity: Number(it?.quantity ?? 0) || 0,
+      }));
+
+    if (!allowNegativeStock && stockDirection === DOCUMENT_STOCK_DIRECTION.OUT) {
+      const productIdsToCheck = Array.from(new Set(inventoryItems.map((i) => i.productId)));
+      const stocksRes: any = await amplifyClient.models.Stock.list({
+        filter: {
+          and: [
+            { warehouseId: { eq: Number(docData.warehouseId) } },
+            { or: productIdsToCheck.map((pid) => ({ productId: { eq: pid } })) },
+          ],
+        },
+        limit: 500,
+      } as any);
+
+      const currentByProduct = new Map<number, number>();
+      for (const s of (stocksRes?.data ?? []) as any[]) {
+        const pid = Number((s as any)?.productId);
+        if (!Number.isFinite(pid) || pid <= 0) continue;
+        currentByProduct.set(pid, Number((s as any)?.quantity ?? 0) || 0);
+      }
+
+      const deltaByProduct = new Map<number, number>();
+      for (const it of inventoryItems) {
+        const delta = -Math.abs(Number(it.quantity) || 0);
+        deltaByProduct.set(it.productId, (deltaByProduct.get(it.productId) ?? 0) + delta);
+      }
+
+      for (const pid of productIdsToCheck) {
+        const current = currentByProduct.get(pid) ?? 0;
+        const next = current + (deltaByProduct.get(pid) ?? 0);
+        if (next < 0) {
+          const p = productById.get(pid);
+          const name = String(p?.name ?? pid);
+          const code = p?.code ? String(p.code) : '';
+          return {
+            success: false,
+            error: `Stock insuficiente para ${name}${code ? ` (${code})` : ''} en la bodega. Stock actual: ${current}, requerido: ${Math.abs(
+              deltaByProduct.get(pid) ?? 0
+            )}`,
+          };
+        }
+      }
+    }
+
     for (const item of allItems) {
+      const product = productById.get(Number(item?.productId));
+      if (product?.isService === true) {
+        continue;
+      }
+
       // Obtener stock actual
       const { data: stocks } = await amplifyClient.models.Stock.list({
         filter: {
@@ -327,6 +478,26 @@ export async function finalizeDocument(
         : -item.quantity;
       const newQuantity = currentQuantity + quantityChange;
 
+      // Determine effective cost to record ("último costo")
+      const rawItemCost = Number(item?.productCost ?? 0) || 0;
+      const productLastPurchase = Number(product?.lastPurchasePrice ?? 0) || 0;
+      const productCost = Number(product?.cost ?? 0) || 0;
+      let effectiveUnitCost =
+        stockDirection === DOCUMENT_STOCK_DIRECTION.IN
+          ? (rawItemCost > 0 ? rawItemCost : productCost)
+          : (rawItemCost > 0 ? rawItemCost : (productLastPurchase > 0 ? productLastPurchase : productCost));
+
+      // Fallback: if SALIDA has no cost info, try last Kardex ENTRADA cost (per product + warehouse)
+      if (stockDirection === DOCUMENT_STOCK_DIRECTION.OUT && (!(effectiveUnitCost > 0) || !Number.isFinite(effectiveUnitCost))) {
+        const fallback = await getLastEntradaUnitCostFromKardex({
+          productId: Number(item.productId),
+          warehouseId: Number(docData.warehouseId),
+        });
+        if (fallback > 0 && Number.isFinite(fallback)) {
+          effectiveUnitCost = fallback;
+        }
+      }
+
       // Actualizar o crear stock
       if (stock) {
         await amplifyClient.models.Stock.update({
@@ -342,17 +513,40 @@ export async function finalizeDocument(
         });
       }
 
+      // Keep DocumentItem.productCost consistent with the cost we used for posting (helps later reports)
+      if (effectiveUnitCost > 0 && Number.isFinite(Number(item?.documentItemId)) && Number(item?.documentItemId) > 0) {
+        await amplifyClient.models.DocumentItem.update({
+          documentItemId: Number(item.documentItemId),
+          productCost: effectiveUnitCost,
+        } as any);
+      }
+
+      // If it's an ENTRADA, update lastPurchasePrice/cost on Product (best-effort)
+      if (stockDirection === DOCUMENT_STOCK_DIRECTION.IN && effectiveUnitCost > 0) {
+        await amplifyClient.models.Product.update({
+          idProduct: Number(item.productId),
+          lastPurchasePrice: effectiveUnitCost,
+          cost: effectiveUnitCost,
+        } as any);
+      }
+
       // Crear entrada en Kardex
       await createKardexEntry({
         productId: item.productId,
         date: new Date(docData.stockDate || new Date()),
         documentId: Number(documentId),
+        documentItemId: Number(item?.documentItemId),
         documentNumber: docData.number,
+        warehouseId: Number(docData.warehouseId),
         type: stockDirection === DOCUMENT_STOCK_DIRECTION.IN ? 'ENTRADA' : 'SALIDA',
         quantity: item.quantity,
         balance: newQuantity,
-        unitCost: item.productCost,
-        totalCost: (item.productCost || 0) * item.quantity,
+        previousBalance: currentQuantity,
+        unitCost: effectiveUnitCost,
+        totalCost: (effectiveUnitCost || 0) * item.quantity,
+        unitPrice: item.price,
+        totalPrice: item.total,
+        totalPriceAfterDiscount: item.priceAfterDiscount,
         userId: Number(userId),
         note: `From document ${docData.number}`,
       });

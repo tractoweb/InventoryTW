@@ -5,9 +5,16 @@ import { getProductDetails } from "@/actions/get-product-details";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Terminal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import Link from "next/link";
 
 type ViewProductDetailsProps = {
   productId: number | null;
@@ -17,6 +24,7 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
   const [details, setDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const [pdfPreviewDocumentId, setPdfPreviewDocumentId] = useState<number | null>(null);
 
   useEffect(() => {
     if (productId) {
@@ -78,6 +86,23 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
 
   return (
     <div className="py-4 space-y-6">
+        <Dialog open={pdfPreviewDocumentId !== null} onOpenChange={(open) => !open && setPdfPreviewDocumentId(null)}>
+            <DialogContent className="max-w-5xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {pdfPreviewDocumentId ? `Documento #${pdfPreviewDocumentId} (PDF)` : "Vista previa PDF"}
+                    </DialogTitle>
+                </DialogHeader>
+                {pdfPreviewDocumentId ? (
+                    <iframe
+                        title={`PDF Documento ${pdfPreviewDocumentId}`}
+                        src={`/documents/${pdfPreviewDocumentId}/pdf/file`}
+                        className="h-[80vh] w-full rounded border"
+                    />
+                ) : null}
+            </DialogContent>
+        </Dialog>
+
         {isLoading && (
             <div className="space-y-4">
                 <Skeleton className="h-8 w-3/4" />
@@ -139,6 +164,61 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                                 </ul>
                             ) : <p className="text-sm">Sin ubicaciones de stock registradas.</p>}
                         </div>
+                </div>
+
+                <div className="space-y-3 md:col-span-2">
+                    <h3 className="font-semibold text-lg border-b pb-2">Stock Control</h3>
+                    {Array.isArray(details.stockControls) && details.stockControls.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {details.stockControls.map((sc: any) => (
+                                <div key={String(sc.stockControlId)} className="rounded-lg border p-4">
+                                    <div className="text-sm font-medium">
+                                        {sc.customerName ? `Cliente: ${sc.customerName}` : "General"}
+                                    </div>
+                                    <div className="mt-2 space-y-2">
+                                        {renderDetail("Reorder Point", sc.reorderPoint)}
+                                        {renderDetail("Preferred Qty", sc.preferredQuantity)}
+                                        {renderBoolean("Low Stock Warning", sc.isLowStockWarningEnabled)}
+                                        {renderDetail("Warning Qty", sc.lowStockWarningQuantity)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Sin reglas de stock control.</p>
+                    )}
+                </div>
+
+                <div className="space-y-3 md:col-span-2">
+                    <h3 className="font-semibold text-lg border-b pb-2">Documentos relacionados</h3>
+                    {Array.isArray(details.relatedDocuments) && details.relatedDocuments.length > 0 ? (
+                        <ul className="list-disc pl-5 text-sm space-y-1">
+                            {details.relatedDocuments.slice(0, 15).map((d: any) => (
+                                <li key={String(d.documentId)}>
+                                    <span className="font-medium">{d.number ? `${d.number}` : `Documento #${d.documentId}`}</span>
+                                    <span className="ml-2 text-muted-foreground">
+                                        <button
+                                            type="button"
+                                            className="underline"
+                                            onClick={() => setPdfPreviewDocumentId(Number(d.documentId))}
+                                        >
+                                            Ver PDF
+                                        </button>
+                                        <span className="mx-2">·</span>
+                                        <Link className="underline" href={`/documents?documentId=${d.documentId}`}>
+                                            Ver documento
+                                        </Link>
+                                    </span>
+                                    {d.stockDate ? ` — ${d.stockDate}` : d.createdAt ? ` — ${d.createdAt}` : ""}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Sin documentos asociados (o no cargados).</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                        Nota: se muestran los documentos más recientes (máx. 15).
+                    </p>
                 </div>
                     <div className="space-y-3 md:col-span-2">
                     <h3 className="font-semibold text-lg border-b pb-2">Fechas</h3>

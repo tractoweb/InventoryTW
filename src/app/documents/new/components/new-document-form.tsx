@@ -58,6 +58,9 @@ import { createCustomerAction } from '@/actions/create-customer';
 import { createProductAction } from '@/actions/create-product';
 import { getCountries, type CountryListItem } from '@/actions/get-countries';
 import { searchCustomersAction, type CustomerSearchResult } from '@/actions/search-customers';
+import { getProductGroups, type ProductGroup } from '@/actions/get-product-groups';
+import { getTaxes, type Tax } from '@/actions/get-taxes';
+import { getCurrencies, type CurrencyListItem } from '@/actions/get-currencies';
 
 import {
   computeLiquidation,
@@ -102,6 +105,9 @@ export function NewDocumentForm() {
 
   const [customers, setCustomers] = React.useState<SelectOption[]>([]);
   const [countries, setCountries] = React.useState<CountryListItem[]>([]);
+  const [productGroups, setProductGroups] = React.useState<ProductGroup[]>([]);
+  const [taxes, setTaxes] = React.useState<Tax[]>([]);
+  const [currencies, setCurrencies] = React.useState<CurrencyListItem[]>([]);
   const [warehouses, setWarehousesState] = React.useState<SelectOption[]>([]);
   const [documentTypes, setDocumentTypesState] = React.useState<SelectOption[]>([]);
 
@@ -159,6 +165,19 @@ export function NewDocumentForm() {
   const [newProductCode, setNewProductCode] = React.useState('');
   const [newProductCost, setNewProductCost] = React.useState<number | ''>('');
   const [newProductPrice, setNewProductPrice] = React.useState<number | ''>('');
+  const [newProductGroupId, setNewProductGroupId] = React.useState<number | ''>('');
+  const [newProductCurrencyId, setNewProductCurrencyId] = React.useState<number | ''>('');
+  const [newProductMeasurementUnit, setNewProductMeasurementUnit] = React.useState('');
+  const [newProductPlu, setNewProductPlu] = React.useState<number | ''>('');
+  const [newProductMarkup, setNewProductMarkup] = React.useState<number | ''>('');
+  const [newProductDescription, setNewProductDescription] = React.useState('');
+  const [newProductIsEnabled, setNewProductIsEnabled] = React.useState(true);
+  const [newProductIsService, setNewProductIsService] = React.useState(false);
+  const [newProductIsTaxInclusivePrice, setNewProductIsTaxInclusivePrice] = React.useState(true);
+  const [newProductIsPriceChangeAllowed, setNewProductIsPriceChangeAllowed] = React.useState(false);
+  const [newProductIsUsingDefaultQuantity, setNewProductIsUsingDefaultQuantity] = React.useState(true);
+  const [newProductBarcodesText, setNewProductBarcodesText] = React.useState('');
+  const [newProductTaxIds, setNewProductTaxIds] = React.useState<number[]>([]);
 
   // Product search dialog
   const [productDialogOpen, setProductDialogOpen] = React.useState(false);
@@ -198,14 +217,24 @@ export function NewDocumentForm() {
     async function boot() {
       setLoading(true);
       try {
-        const [countriesRes, suppliersRes, wh, dt] = await Promise.all([
+        const [countriesRes, suppliersRes, wh, dt, pgRes, taxesRes, curRes] = await Promise.all([
           getCountries(),
           searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true }),
           getWarehouses({ onlyEnabled: true }),
           getDocumentTypes(),
+          getProductGroups(),
+          getTaxes(),
+          getCurrencies(),
         ]);
 
         setCountries(countriesRes.data ?? []);
+        setProductGroups(pgRes.data ?? []);
+        setTaxes(taxesRes.data ?? []);
+        setCurrencies(curRes.data ?? []);
+
+        // Default currency to COP if available.
+        const cop = (curRes.data ?? []).find((c) => String(c?.code ?? '').toUpperCase() === 'COP');
+        if (cop && newProductCurrencyId === '') setNewProductCurrencyId(Number(cop.idCurrency));
         setSupplierResults(suppliersRes.data ?? []);
         setCustomers((suppliersRes.data ?? []).map((c) => ({ value: Number(c.idCustomer), label: String(c.name) })));
 
@@ -358,14 +387,29 @@ export function NewDocumentForm() {
     const name = newProductName.trim();
     if (!name) return;
     try {
+      const barcodes = newProductBarcodesText
+        .split(/\r?\n|,|;|\t/g)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
       const res = await createProductAction({
         name,
         code: newProductCode || undefined,
         cost: typeof newProductCost === 'number' ? newProductCost : undefined,
         price: typeof newProductPrice === 'number' ? newProductPrice : undefined,
-        isEnabled: true,
-        isService: false,
-        isTaxInclusivePrice: true,
+        productGroupId: typeof newProductGroupId === 'number' ? newProductGroupId : undefined,
+        currencyId: typeof newProductCurrencyId === 'number' ? newProductCurrencyId : undefined,
+        measurementUnit: newProductMeasurementUnit || undefined,
+        plu: typeof newProductPlu === 'number' ? newProductPlu : undefined,
+        description: newProductDescription || undefined,
+        markup: typeof newProductMarkup === 'number' ? newProductMarkup : undefined,
+        isPriceChangeAllowed: Boolean(newProductIsPriceChangeAllowed),
+        isUsingDefaultQuantity: Boolean(newProductIsUsingDefaultQuantity),
+        isEnabled: Boolean(newProductIsEnabled),
+        isService: Boolean(newProductIsService),
+        isTaxInclusivePrice: Boolean(newProductIsTaxInclusivePrice),
+        barcodes: barcodes.length ? barcodes : undefined,
+        taxIds: newProductTaxIds.length ? newProductTaxIds : undefined,
       });
       if (!res.success || !res.idProduct) throw new Error(res.error || 'No se pudo crear el producto');
 
@@ -382,6 +426,18 @@ export function NewDocumentForm() {
       setNewProductCode('');
       setNewProductCost('');
       setNewProductPrice('');
+      setNewProductGroupId('');
+      setNewProductMeasurementUnit('');
+      setNewProductPlu('');
+      setNewProductMarkup('');
+      setNewProductDescription('');
+      setNewProductIsEnabled(true);
+      setNewProductIsService(false);
+      setNewProductIsTaxInclusivePrice(true);
+      setNewProductIsPriceChangeAllowed(false);
+      setNewProductIsUsingDefaultQuantity(true);
+      setNewProductBarcodesText('');
+      setNewProductTaxIds([]);
       toast({ title: 'Producto creado', description: `ID ${res.idProduct}` });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el producto' });
@@ -417,6 +473,8 @@ export function NewDocumentForm() {
           id: String(idx + 1),
           productId: it.productId,
           name: it.productLabel,
+          purchaseReference: it.purchaseReference,
+          warehouseReference: it.warehouseReference,
           quantity: it.quantity,
           totalCost: it.totalCost,
           discountPercentage: it.discountPercentage,
@@ -1080,12 +1138,12 @@ export function NewDocumentForm() {
       </Dialog>
 
       <Dialog open={createProductOpen} onOpenChange={setCreateProductOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Crear producto</DialogTitle>
             <DialogDescription>Agrega un producto rápido y selecciónalo.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3">
+          <div className="grid gap-3 max-h-[70vh] overflow-auto pr-1">
             <div className="grid gap-2">
               <Label>Nombre</Label>
               <Input value={newProductName} onChange={(e) => setNewProductName(e.target.value)} />
@@ -1093,6 +1151,67 @@ export function NewDocumentForm() {
             <div className="grid gap-2">
               <Label>Código / Referencia</Label>
               <Input value={newProductCode} onChange={(e) => setNewProductCode(e.target.value)} />
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Grupo de producto</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={newProductGroupId}
+                  onChange={(e) => setNewProductGroupId(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <option value="">(Sin grupo)</option>
+                  {productGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Moneda</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={newProductCurrencyId}
+                  onChange={(e) => setNewProductCurrencyId(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <option value="">(Sin moneda)</option>
+                  {currencies.map((c) => (
+                    <option key={c.idCurrency} value={c.idCurrency}>
+                      {c.code ? `${c.name} (${c.code})` : c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2">
+                <Label>Unidad de medida</Label>
+                <Input
+                  value={newProductMeasurementUnit}
+                  onChange={(e) => setNewProductMeasurementUnit(e.target.value)}
+                  placeholder="Ej: UND"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>PLU</Label>
+                <Input
+                  type="number"
+                  value={newProductPlu}
+                  onChange={(e) => setNewProductPlu(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Markup (%)</Label>
+                <Input
+                  type="number"
+                  value={newProductMarkup}
+                  onChange={(e) => setNewProductMarkup(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              </div>
             </div>
             <div className="grid gap-2 md:grid-cols-2">
               <div className="grid gap-2">
@@ -1102,6 +1221,87 @@ export function NewDocumentForm() {
               <div className="grid gap-2">
                 <Label>Precio venta</Label>
                 <Input type="number" value={newProductPrice} onChange={(e) => setNewProductPrice(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Descripción</Label>
+              <Textarea value={newProductDescription} onChange={(e) => setNewProductDescription(e.target.value)} placeholder="(Opcional)" />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Códigos de barras (uno por línea o separados por coma)</Label>
+              <Textarea
+                value={newProductBarcodesText}
+                onChange={(e) => setNewProductBarcodesText(e.target.value)}
+                placeholder="7701234567890\n7700000000000"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Impuestos</Label>
+              {taxes.length === 0 ? (
+                <div className="text-xs text-muted-foreground">No hay impuestos cargados.</div>
+              ) : (
+                <div className="max-h-32 overflow-auto rounded-md border p-2">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {taxes.map((t) => {
+                      const checked = newProductTaxIds.includes(t.id);
+                      return (
+                        <label key={t.id} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const on = Boolean(v);
+                              setNewProductTaxIds((prev) =>
+                                on ? Array.from(new Set([...prev, t.id])) : prev.filter((x) => x !== t.id)
+                              );
+                            }}
+                          />
+                          <span>
+                            {t.name} ({Number(t.rate ?? 0)}%)
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={newProductIsEnabled} onCheckedChange={(v) => setNewProductIsEnabled(Boolean(v))} />
+                  Activo
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={newProductIsService} onCheckedChange={(v) => setNewProductIsService(Boolean(v))} />
+                  Es servicio
+                </label>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={newProductIsTaxInclusivePrice}
+                    onCheckedChange={(v) => setNewProductIsTaxInclusivePrice(Boolean(v))}
+                  />
+                  Precio incluye impuestos
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={newProductIsPriceChangeAllowed}
+                    onCheckedChange={(v) => setNewProductIsPriceChangeAllowed(Boolean(v))}
+                  />
+                  Permitir cambiar precio
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={newProductIsUsingDefaultQuantity}
+                    onCheckedChange={(v) => setNewProductIsUsingDefaultQuantity(Boolean(v))}
+                  />
+                  Usar cantidad por defecto
+                </label>
               </div>
             </div>
           </div>

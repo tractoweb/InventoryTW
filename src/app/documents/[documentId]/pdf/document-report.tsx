@@ -108,7 +108,22 @@ function pct(value: number) {
   return `${Number.isFinite(n) ? n.toFixed(2) : "0.00"}%`;
 }
 
+function formatInternalNote(note: unknown): { kind: "empty" | "text" | "json"; value: string } {
+  const raw = String(note ?? "").trim();
+  if (!raw) return { kind: "empty", value: "" };
+  const looksJson = raw.startsWith("{") || raw.startsWith("[");
+  if (!looksJson) return { kind: "text", value: raw };
+  try {
+    JSON.parse(raw);
+    return { kind: "json", value: raw };
+  } catch {
+    return { kind: "text", value: raw };
+  }
+}
+
 export function DocumentReportPdf({ details }: { details: DocumentDetails }) {
+  const templateKey = String(details.documenttypeprinttemplate ?? "").trim();
+
   const cfg: any = details.liquidation?.config ?? {};
   const totals: any = details.liquidation?.result?.totals ?? {};
   const lines: any[] = details.liquidation?.result?.lines ?? [];
@@ -120,23 +135,17 @@ export function DocumentReportPdf({ details }: { details: DocumentDetails }) {
 
   const headerDate = details.stockdate ? String(details.stockdate) : details.date;
 
+  const internalNote = formatInternalNote((details as any).internalnote);
+
   const hasDiscounts = Boolean(cfg.discountsEnabled) && (lines ?? []).some((l) => Number(l.discountPercentage ?? 0) > 0);
 
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.sub}>{new Date().toLocaleString("es-CO")}</Text>
-          <Text style={styles.sub}>Reporte de Liquidación - Tracto Agrícola</Text>
-          <Text style={styles.h1}>TRACTO AGRÍCOLA</Text>
-          <Text style={styles.h2}>Reporte de Liquidación de Documentos</Text>
-          <Text style={styles.sub}>Documento: {details.number} · Fecha: {headerDate}</Text>
-        </View>
-
+  function InfoHeader() {
+    return (
+      <>
         <Text style={styles.sectionTitle}>Información</Text>
         <View style={styles.grid}>
           <View style={styles.box}>
-            <Text style={styles.boxLabel}>Proveedor</Text>
+            <Text style={styles.boxLabel}>Tercero</Text>
             <Text style={styles.boxValue}>{details.customername ?? "—"}</Text>
           </View>
           <View style={styles.box}>
@@ -148,7 +157,13 @@ export function DocumentReportPdf({ details }: { details: DocumentDetails }) {
             <Text style={styles.boxValue}>{details.warehousename}</Text>
           </View>
         </View>
+      </>
+    );
+  }
 
+  function PurchaseLiquidationSection() {
+    return (
+      <>
         <Text style={styles.sectionTitle}>Configuración General</Text>
         <View style={styles.grid}>
           <View style={styles.box}>
@@ -309,6 +324,133 @@ export function DocumentReportPdf({ details }: { details: DocumentDetails }) {
             <Text style={styles.bold}>{money(Number(totals.totalProfit ?? 0))}</Text>
           </View>
         </View>
+      </>
+    );
+  }
+
+  function InternalNoteSection() {
+    if (internalNote.kind === "empty") return null;
+    return (
+      <>
+        <Text style={styles.sectionTitle}>InternalNote</Text>
+        <View style={styles.box}>
+          <Text style={styles.boxLabel}>
+            {internalNote.kind === "json" ? "Snapshot interno guardado (JSON)." : "Nota interna"}
+          </Text>
+          {internalNote.kind === "json" ? (
+            <Text>Ver detalle en el sistema.</Text>
+          ) : (
+            <Text>{internalNote.value}</Text>
+          )}
+        </View>
+      </>
+    );
+  }
+
+  function GenericItemsSection(opts: { title: string }) {
+    const items = details.items ?? [];
+    const hasTax = items.some((it) => Number(it.taxamount ?? 0) > 0);
+
+    return (
+      <>
+        <Text style={styles.sectionTitle}>{opts.title}</Text>
+        <View style={styles.table}>
+          <View style={[styles.tr, styles.th]}>
+            <View style={[styles.cell, { width: 18 }]}>
+              <Text>#</Text>
+            </View>
+            <View style={[styles.cell, { width: 220 }]}>
+              <Text>Producto</Text>
+            </View>
+            <View style={[styles.cell, { width: 40 }]}>
+              <Text>Cant.</Text>
+            </View>
+            <View style={[styles.cell, { width: 70 }]}>
+              <Text>Unit</Text>
+            </View>
+            {hasTax && (
+              <View style={[styles.cell, { width: 70 }]}>
+                <Text>IVA</Text>
+              </View>
+            )}
+            <View style={[styles.cell, { width: 80 }, styles.lastCell]}>
+              <Text>Total</Text>
+            </View>
+          </View>
+
+          {items.map((it, idx) => (
+            <View key={String(it.id ?? idx)} style={styles.tr}>
+              <View style={[styles.cell, { width: 18 }]}>
+                <Text style={styles.right}>{idx + 1}</Text>
+              </View>
+              <View style={[styles.cell, { width: 220 }]}>
+                <Text>{String(it.productname ?? "")}</Text>
+              </View>
+              <View style={[styles.cell, { width: 40 }]}>
+                <Text style={styles.right}>{String(Number(it.quantity ?? 0))}</Text>
+              </View>
+              <View style={[styles.cell, { width: 70 }]}>
+                <Text style={styles.right}>{money(Number(it.price ?? 0))}</Text>
+              </View>
+              {hasTax && (
+                <View style={[styles.cell, { width: 70 }]}>
+                  <Text style={styles.right}>{money(Number(it.taxamount ?? 0))}</Text>
+                </View>
+              )}
+              <View style={[styles.cell, { width: 80 }, styles.lastCell]}>
+                <Text style={styles.right}>{money(Number(it.total ?? 0))}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.footerTotals}>
+          <View style={styles.totalsRow}>
+            <Text style={styles.bold}>TOTAL:</Text>
+            <Text style={styles.bold}>{money(Number(details.total ?? 0))}</Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  function BodyByTemplate() {
+    switch (templateKey) {
+      case "Purchase":
+        return PurchaseLiquidationSection();
+      case "Invoice":
+        return GenericItemsSection({ title: "Detalle de Productos" });
+      case "Proforma":
+        return GenericItemsSection({ title: "Detalle de Productos" });
+      case "Refund":
+        return GenericItemsSection({ title: "Detalle de Productos (Devolución)" });
+      case "InventoryCount":
+        return GenericItemsSection({ title: "Detalle de Productos (Conteo)" });
+      case "LossAndDamage":
+        return GenericItemsSection({ title: "Detalle de Productos (Merma/Daño)" });
+      case "StockReturn":
+        return GenericItemsSection({ title: "Detalle de Productos (Devolución de stock)" });
+      default:
+        // If the document has liquidation info, prefer that view.
+        if (details.liquidation?.result?.lines?.length) return PurchaseLiquidationSection();
+        return GenericItemsSection({ title: "Detalle de Productos" });
+    }
+  }
+
+  return (
+    <Document>
+      <Page size="LETTER" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.sub}>{new Date().toLocaleString("es-CO")}</Text>
+          <Text style={styles.sub}>Reporte - Tracto Agrícola</Text>
+          <Text style={styles.h1}>TRACTO AGRÍCOLA</Text>
+          <Text style={styles.h2}>{details.documenttypename}</Text>
+          <Text style={styles.sub}>Documento: {details.number} · Fecha: {headerDate}</Text>
+        </View>
+
+        <InfoHeader />
+        <BodyByTemplate />
+        <InternalNoteSection />
       </Page>
     </Document>
   );

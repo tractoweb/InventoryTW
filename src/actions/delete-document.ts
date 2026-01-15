@@ -5,6 +5,8 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { listAllPages } from '@/services/amplify-list-all';
+import { getCurrentSession } from '@/lib/session';
+import { writeAuditLog } from '@/services/audit-log-service';
 
 const DeleteDocumentSchema = z.object({
   documentId: z.coerce.number().min(1),
@@ -69,6 +71,26 @@ export async function deleteDocumentAction(raw: z.infer<typeof DeleteDocumentSch
 
     // Delete document
     await amplifyClient.models.Document.delete({ documentId } as any);
+
+    const sessionRes = await getCurrentSession();
+    if (sessionRes.data?.userId) {
+      writeAuditLog({
+        userId: sessionRes.data.userId,
+        action: 'DELETE',
+        tableName: 'Document',
+        recordId: Number(documentId),
+        oldValues: {
+          documentId: Number(doc.documentId ?? documentId),
+          number: doc.number ?? null,
+          date: doc.date ?? null,
+          stockDate: doc.stockDate ?? null,
+          customerId: doc.customerId ?? null,
+          warehouseId: doc.warehouseId ?? null,
+          documentTypeId: doc.documentTypeId ?? null,
+          total: doc.total ?? null,
+        },
+      }).catch(() => {});
+    }
 
     return { success: true };
   } catch (error) {

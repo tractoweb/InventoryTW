@@ -6,6 +6,42 @@
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { listAllPages } from '@/services/amplify-list-all';
 
+async function listDocumentItemsForProduct(productId: number, maxItems = 25): Promise<{ data: any[] } | { data: any[]; error: string }> {
+  // NOTE:
+  // Amplify/AppSync + DynamoDB filtering can apply the filter AFTER scanning a page.
+  // If we request a small `limit`, we might evaluate N items and get 0 matches even
+  // though matches exist later. So we paginate until we collect some matches.
+  try {
+    const collected: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+
+    const pageLimit = 250;
+    const maxPages = 40;
+    let pages = 0;
+
+    do {
+      const res = (await amplifyClient.models.DocumentItem.list({
+        filter: { productId: { eq: productId } },
+        limit: pageLimit,
+        nextToken,
+      } as any)) as any;
+
+      const pageData = (res?.data ?? []) as any[];
+      if (pageData.length) collected.push(...pageData);
+
+      nextToken = res?.nextToken;
+      pages++;
+
+      if (collected.length >= maxItems) break;
+      if (pages >= maxPages) break;
+    } while (nextToken);
+
+    return { data: collected.slice(0, maxItems) };
+  } catch (error) {
+    return { data: [], error: formatAmplifyError(error) };
+  }
+}
+
 function normalizeForSearch(value: unknown): string {
   // - trim/collapse whitespace
   // - remove diacritics
@@ -70,6 +106,24 @@ export async function getProductDetails(productId: string): Promise<{
   taxes?: Array<{ taxId: number; name: string; rate: number; code?: string | null }>;
   stocks?: Array<{ warehouseId: number; warehouseName?: string | null; quantity: number }>;
   stockControls?: Array<any>;
+  recentDocumentItems?: Array<{
+    documentId: number;
+    documentItemId: number;
+    quantity?: number | null;
+    price?: number | null;
+    total?: number | null;
+    createdAt?: string | null;
+  }>;
+  relatedDocuments?: Array<{
+    documentId: number;
+    number?: string | null;
+    stockDate?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    warehouseId?: number | null;
+    documentTypeId?: number | null;
+    documentCategoryId?: number | null;
+  }>;
   // Back-compat flattened fields used by existing UI
   id?: number;
   name?: string;
@@ -149,7 +203,7 @@ export async function getProductDetails(productId: string): Promise<{
       updatedAt: productData?.updatedAt ? String(productData.updatedAt) : null,
     };
 
-    const [barcodesRes, productTaxesRes, stocksRes, stockControlsRes] = await Promise.all([
+    const [barcodesRes, productTaxesRes, stocksRes, stockControlsRes, documentItemsRes] = await Promise.all([
       listAllPages<any>((args) => amplifyClient.models.Barcode.list(args), {
         filter: { productId: { eq: Number(productId) } },
       }),
@@ -162,6 +216,7 @@ export async function getProductDetails(productId: string): Promise<{
       listAllPages<any>((args) => amplifyClient.models.StockControl.list(args), {
         filter: { productId: { eq: Number(productId) } },
       }),
+      listDocumentItemsForProduct(Number(productId), 25),
     ]);
 
     const barcodes = (
@@ -175,6 +230,40 @@ export async function getProductDetails(productId: string): Promise<{
     const productTaxes = 'error' in productTaxesRes ? [] : (productTaxesRes.data ?? []);
     const rawStocks = 'error' in stocksRes ? [] : (stocksRes.data ?? []);
     const rawStockControls = 'error' in stockControlsRes ? [] : (stockControlsRes.data ?? []);
+
+    const rawDocItems = (('error' in (documentItemsRes as any) ? [] : (documentItemsRes as any)?.data) ?? []) as any[];
+    const recentDocumentItems = rawDocItems
+      .map((di: any) => ({
+        documentId: Number(di?.documentId ?? 0),
+        documentItemId: Number(di?.documentItemId ?? 0),
+        quantity: di?.quantity !== undefined && di?.quantity !== null ? Number(di.quantity) : null,
+        price: di?.price !== undefined && di?.price !== null ? Number(di.price) : null,
+        total: di?.total !== undefined && di?.total !== null ? Number(di.total) : null,
+        createdAt: di?.createdAt ? String(di.createdAt) : null,
+      }))
+      .filter((x: any) => Number.isFinite(x.documentId) && x.documentId > 0 && Number.isFinite(x.documentItemId) && x.documentItemId > 0);
+
+    const docIds = Array.from(new Set(recentDocumentItems.map((x) => x.documentId))).slice(0, 25);
+    const docGets = await Promise.all(docIds.map((documentId) => amplifyClient.models.Document.get({ documentId } as any)));
+    const relatedDocuments = docGets
+      .map((r: any) => r?.data)
+      .filter(Boolean)
+      .map((d: any) => ({
+        documentId: Number(d.documentId ?? 0),
+        number: d?.number ? String(d.number) : null,
+        stockDate: d?.stockDate ? String(d.stockDate) : null,
+        createdAt: d?.createdAt ? String(d.createdAt) : null,
+        updatedAt: d?.updatedAt ? String(d.updatedAt) : null,
+        warehouseId: d?.warehouseId !== undefined && d?.warehouseId !== null ? Number(d.warehouseId) : null,
+        documentTypeId: d?.documentTypeId !== undefined && d?.documentTypeId !== null ? Number(d.documentTypeId) : null,
+        documentCategoryId: d?.documentCategoryId !== undefined && d?.documentCategoryId !== null ? Number(d.documentCategoryId) : null,
+      }))
+      .filter((d: any) => Number.isFinite(d.documentId) && d.documentId > 0)
+      .sort((a: any, b: any) => {
+        const ad = String(a.stockDate ?? a.createdAt ?? '');
+        const bd = String(b.stockDate ?? b.createdAt ?? '');
+        return bd.localeCompare(ad);
+      });
 
     const taxIds = Array.from(
       new Set(productTaxes.map((pt: any) => Number(pt?.taxId)).filter((id: any) => Number.isFinite(id)))
@@ -268,6 +357,8 @@ export async function getProductDetails(productId: string): Promise<{
       taxes,
       stocks,
       stockControls,
+      recentDocumentItems,
+      relatedDocuments,
       id: productPlain.idProduct,
       name: productPlain.name,
       code: productPlain.code,
@@ -438,41 +529,50 @@ export async function getLowStockAlerts(): Promise<{
   error?: string;
 }> {
   try {
-    // Obtener todos los stock controls habilitados
-    const { data: controls } = await amplifyClient.models.StockControl.list({
-      filter: {
-        isLowStockWarningEnabled: { eq: true },
-      },
-    });
+    const [controlsRes, stocksRes, productsRes] = await Promise.all([
+      listAllPages<any>((args) => amplifyClient.models.StockControl.list(args), {
+        filter: { isLowStockWarningEnabled: { eq: true } },
+      }),
+      listAllPages<any>((args) => amplifyClient.models.Stock.list(args)),
+      listAllPages<any>((args) => amplifyClient.models.Product.list(args)),
+    ]);
 
-    if (!controls || controls.length === 0) {
-      return { success: true, alerts: [] };
+    if ('error' in controlsRes) return { success: false, error: controlsRes.error };
+    if ('error' in stocksRes) return { success: false, error: stocksRes.error };
+    if ('error' in productsRes) return { success: false, error: productsRes.error };
+
+    const productNameById = new Map<number, string>();
+    for (const p of productsRes.data ?? []) {
+      const id = Number((p as any)?.idProduct);
+      if (Number.isFinite(id) && id > 0) productNameById.set(id, String((p as any)?.name ?? ''));
     }
 
-    const alerts: any[] = [];
-
-    for (const control of controls) {
-      // Obtener stocks del producto
-      const { data: stocks } = await amplifyClient.models.Stock.list({
-        filter: {
-          productId: { eq: control.productId },
-        },
-      });
-
-      const totalStock = stocks?.reduce((sum, s) => sum + (s.quantity || 0), 0) || 0;
-
-      // Si stock es menor al mínimo, agregar alerta
-      if (totalStock <= (control.lowStockWarningQuantity || 0)) {
-        alerts.push({
-          productId: control.productId,
-          productName: control.product?.name || 'Unknown',
-          currentStock: totalStock,
-          warningQuantity: control.lowStockWarningQuantity,
-          warehouseName: stocks?.[0]?.warehouse?.name || 'Unknown',
-        });
-      }
+    const stockTotalByProductId = new Map<number, number>();
+    for (const s of stocksRes.data ?? []) {
+      const productId = Number((s as any)?.productId);
+      const qty = Number((s as any)?.quantity ?? 0);
+      if (!Number.isFinite(productId) || productId <= 0) continue;
+      stockTotalByProductId.set(productId, (stockTotalByProductId.get(productId) ?? 0) + (Number.isFinite(qty) ? qty : 0));
     }
 
+    const alerts = (controlsRes.data ?? [])
+      .map((control: any) => {
+        const productIdNum = Number(control?.productId);
+        if (!Number.isFinite(productIdNum) || productIdNum <= 0) return null;
+        const warningQuantity = Number(control?.lowStockWarningQuantity ?? 0);
+        const currentStock = Number(stockTotalByProductId.get(productIdNum) ?? 0);
+        if (currentStock > (Number.isFinite(warningQuantity) ? warningQuantity : 0)) return null;
+        return {
+          productId: String(productIdNum),
+          productName: productNameById.get(productIdNum) ?? `#${productIdNum}`,
+          currentStock: Number.isFinite(currentStock) ? currentStock : 0,
+          warningQuantity: Number.isFinite(warningQuantity) ? warningQuantity : 0,
+          warehouseName: 'Total',
+        };
+      })
+      .filter(Boolean) as any[];
+
+    alerts.sort((a, b) => Number(a.currentStock) - Number(b.currentStock));
     return { success: true, alerts };
   } catch (error) {
     return {
@@ -499,44 +599,63 @@ export async function getInventorySummary(warehouseId?: string): Promise<{
   try {
     const normalizedWarehouseId = warehouseId === undefined ? undefined : Number(warehouseId);
     const stockFilter = normalizedWarehouseId ? { warehouseId: { eq: normalizedWarehouseId } } : undefined;
-    const { data: stocks } = await amplifyClient.models.Stock.list({
-      filter: stockFilter as any,
-    });
 
-    const { data: controls } = await amplifyClient.models.StockControl.list({
-      filter: {
-        isLowStockWarningEnabled: { eq: true },
-      },
-    });
+    const [stocksRes, controlsRes, productsRes] = await Promise.all([
+      listAllPages<any>((args) => amplifyClient.models.Stock.list(args), stockFilter ? { filter: stockFilter as any } : undefined),
+      listAllPages<any>((args) => amplifyClient.models.StockControl.list(args), {
+        filter: { isLowStockWarningEnabled: { eq: true } },
+      }),
+      listAllPages<any>((args) => amplifyClient.models.Product.list(args)),
+    ]);
+
+    if ('error' in stocksRes) return { success: false, error: stocksRes.error };
+    if ('error' in controlsRes) return { success: false, error: controlsRes.error };
+    if ('error' in productsRes) return { success: false, error: productsRes.error };
+
+    const productCostById = new Map<number, number>();
+    for (const p of productsRes.data ?? []) {
+      const id = Number((p as any)?.idProduct);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      const cost = Number((p as any)?.cost ?? 0);
+      productCostById.set(id, Number.isFinite(cost) ? cost : 0);
+    }
+
+    const stockTotalByProductId = new Map<number, number>();
+    for (const s of stocksRes.data ?? []) {
+      const productId = Number((s as any)?.productId);
+      const qty = Number((s as any)?.quantity ?? 0);
+      if (!Number.isFinite(productId) || productId <= 0) continue;
+      stockTotalByProductId.set(productId, (stockTotalByProductId.get(productId) ?? 0) + (Number.isFinite(qty) ? qty : 0));
+    }
+
+    const warningByProductId = new Map<number, number>();
+    for (const c of controlsRes.data ?? []) {
+      const productId = Number((c as any)?.productId);
+      const warning = Number((c as any)?.lowStockWarningQuantity ?? 0);
+      if (!Number.isFinite(productId) || productId <= 0) continue;
+      warningByProductId.set(productId, Number.isFinite(warning) ? warning : 0);
+    }
 
     let lowStockCount = 0;
     let outOfStockCount = 0;
     let totalUnits = 0;
     let totalValue = 0;
 
-    stocks?.forEach((stock) => {
-      totalUnits += stock.quantity || 0;
+    for (const [productId, qty] of stockTotalByProductId.entries()) {
+      totalUnits += qty;
+      const cost = productCostById.get(productId) ?? 0;
+      totalValue += qty > 0 ? qty * cost : 0;
 
-      const productRecord = (stock as any)?.product;
-      const cost = typeof productRecord === 'object' && productRecord ? Number(productRecord.cost ?? 0) : 0;
-      totalValue += (stock.quantity || 0) * cost;
+      if (qty <= 0) outOfStockCount++;
 
-      // Contar bajo stock
-      const control = controls?.find((c) => c.productId === stock.productId);
-      if (control && (stock.quantity || 0) <= (control.lowStockWarningQuantity || 0)) {
-        lowStockCount++;
-      }
-
-      // Contar sin stock
-      if (!stock.quantity || stock.quantity === 0) {
-        outOfStockCount++;
-      }
-    });
+      const warning = warningByProductId.get(productId);
+      if (warning !== undefined && qty <= warning) lowStockCount++;
+    }
 
     return {
       success: true,
       summary: {
-        totalProducts: stocks?.length || 0,
+        totalProducts: stockTotalByProductId.size,
         totalUnits,
         totalValue,
         lowStockCount,
@@ -604,6 +723,8 @@ export async function adjustStock(
       type: 'AJUSTE',
       quantity: difference,
       balance: newQuantity,
+      warehouseId: normalizedWarehouseId,
+      previousBalance: currentQuantity,
       note: reason,
       userId: normalizedUserId,
     });

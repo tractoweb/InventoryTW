@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     ColumnDef,
     flexRender,
@@ -18,8 +19,10 @@ import {
     getPaginationRowModel,
     useReactTable,
     getExpandedRowModel,
+  getSortedRowModel,
     Row,
     Table as TanstackTable,
+  SortingState,
 } from "@tanstack/react-table";
 import { EditProductForm } from './edit-product-form';
 import { ViewProductDetails } from './view-product-details';
@@ -40,12 +43,15 @@ export function DataTable<TData extends { id: number }, TValue>({
   meta,
 }: DataTableProps<TData, TValue>) {
     const [expandedRows, setExpandedRows] = useState({});
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [jumpTo, setJumpTo] = useState<string>("");
 
     const table = useReactTable({
         data: initialData,
         columns,
         state: {
             expanded: expandedRows,
+        sorting,
         },
         meta: {
             ...meta,
@@ -57,9 +63,11 @@ export function DataTable<TData extends { id: number }, TValue>({
             }
         },
         onExpandedChange: setExpandedRows,
+        onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getExpandedRowModel: getExpandedRowModel(),
+        getSortedRowModel: getSortedRowModel(),
         getRowId: (row) => String(row.id),
         initialState: {
             pagination: {
@@ -78,14 +86,25 @@ export function DataTable<TData extends { id: number }, TValue>({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const sortDir = header.column.getIsSorted();
                 return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                  <TableHead
+                    key={header.id}
+                    onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    className={canSort ? "select-none cursor-pointer" : undefined}
+                    title={canSort ? "Ordenar" : undefined}
+                  >
+                    <div className="flex items-center gap-2">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {canSort ? (
+                        <span className="text-xs text-muted-foreground">
+                          {sortDir === "asc" ? "▲" : sortDir === "desc" ? "▼" : ""}
+                        </span>
+                      ) : null}
+                    </div>
                   </TableHead>
                 );
               })}
@@ -146,6 +165,27 @@ export function DataTable<TData extends { id: number }, TValue>({
         <span className="text-sm">
           Página {currentPage} de {pageCount}
         </span>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Ir a…"
+            value={jumpTo}
+            onChange={(e) => setJumpTo(e.target.value)}
+            className="h-8 w-[90px]"
+            inputMode="numeric"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const n = Number(jumpTo);
+              if (!Number.isFinite(n) || n < 1 || n > pageCount) return;
+              table.setPageIndex(Math.trunc(n) - 1);
+            }}
+            disabled={!jumpTo.trim()}
+          >
+            Ir
+          </Button>
+        </div>
         <Button
           variant="outline"
           size="sm"

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, LogOut, Search, Settings, User as UserIcon } from "lucide-react";
 import {
@@ -31,14 +32,13 @@ const pageTitles: { [key: string]: string } = {
   '/': 'Panel de Control',
   '/inventory': 'Inventario',
   '/stock': 'Stock',
-  '/documentation': 'Documentación',
   '/financing-calculator': 'Calculadora de Financiación',
-  '/tables': 'Tablas',
 };
 
 
 export function AppHeader() {
   const pathname = usePathname() ?? "/";
+  if (pathname === "/login") return null;
   const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const unreadNotifications = notifications.filter((n) => !n.read).length;
@@ -136,9 +136,11 @@ export function AppHeader() {
               <span>Configuración</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Cerrar sesión</span>
+            <DropdownMenuItem asChild>
+              <Link href="/logout">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

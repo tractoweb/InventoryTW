@@ -4,6 +4,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppShell from '@/components/layout/app-shell';
 import { ThemeProvider } from '@/components/theme-provider';
+import { ProductsCatalogProvider } from '@/components/catalog/products-catalog-provider';
+import { DocumentsCatalogProvider } from '@/components/catalog/documents-catalog-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -21,7 +23,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} font-body antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AppShell>{children}</AppShell>
+          <ProductsCatalogProvider>
+            <DocumentsCatalogProvider>
+              <AppShell>{children}</AppShell>
+            </DocumentsCatalogProvider>
+          </ProductsCatalogProvider>
           <Toaster />
         </ThemeProvider>
       </body>

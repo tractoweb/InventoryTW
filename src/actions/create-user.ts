@@ -1,7 +1,11 @@
 "use server";
 
 import { amplifyClient } from "@/lib/amplify-config";
+import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { requireSession } from "@/lib/session";
 import { listAllPages } from "@/services/amplify-list-all";
+import { hashPasswordForStorage } from "@/services/auth-service";
+import { writeAuditLog } from "@/services/audit-log-service";
 
 export interface CreateUserInput {
   username: string;
@@ -30,6 +34,8 @@ async function getNextUserId(): Promise<number> {
 
 export async function createUser(input: CreateUserInput) {
   try {
+    const session = await requireSession(ACCESS_LEVELS.ADMIN);
+
     const normalizedUsername = String(input.username).trim();
     const normalizedPassword = String(input.password);
     const normalizedEmail = input.email?.trim();
@@ -41,13 +47,29 @@ export async function createUser(input: CreateUserInput) {
     const result = await amplifyClient.models.User.create({
       userId,
       username: normalizedUsername,
-      password: normalizedPassword,
+      password: hashPasswordForStorage(normalizedPassword),
       accessLevel: input.accessLevel ?? 0,
       firstName: normalizedFirstName || undefined,
       lastName: normalizedLastName || undefined,
       email: normalizedEmail ? normalizedEmail : undefined,
       isEnabled: input.isEnabled ?? true,
     });
+
+    writeAuditLog({
+      userId: session.userId,
+      action: "CREATE",
+      tableName: "User",
+      recordId: userId,
+      newValues: {
+        userId,
+        username: normalizedUsername,
+        accessLevel: input.accessLevel ?? 0,
+        firstName: normalizedFirstName || null,
+        lastName: normalizedLastName || null,
+        email: normalizedEmail || null,
+        isEnabled: input.isEnabled ?? true,
+      },
+    }).catch(() => {});
 
     return { success: true, user: result.data };
   } catch (error: any) {

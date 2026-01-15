@@ -1,10 +1,15 @@
 import Link from "next/link";
 
 import UserForm from "@/components/users/UserForm";
+import ApplicationSettingsForm from "@/components/settings/application-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { requireSession } from "@/lib/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireSession(ACCESS_LEVELS.ADMIN);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -37,25 +42,9 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="app" className="pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferencias de Aplicación</CardTitle>
-              <CardDescription>
-                Aquí iremos agregando temas/colores, formatos, moneda y almacén por defecto.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Sugerencia: empezar por <strong>ApplicationSettings</strong> (color primario, logo,
-                formatos de fecha/hora, porcentaje de impuesto, allowNegativeStock).
-              </p>
-              <div className="mt-3">
-                <Link className="text-sm underline" href="/tables">
-                  Ver tablas (modo admin)
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4">
+            <ApplicationSettingsForm />
+          </div>
         </TabsContent>
 
         <TabsContent value="catalogs" className="pt-4">
@@ -71,11 +60,6 @@ export default function SettingsPage() {
                 Esto normalmente mapea a: <strong>Tax</strong>, <strong>PaymentType</strong>,
                 <strong>Warehouse</strong>, <strong>DocumentType</strong>, <strong>DocumentCategory</strong>.
               </p>
-              <div className="mt-3">
-                <Link className="text-sm underline" href="/tables">
-                  Ver tablas (modo admin)
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -93,11 +77,6 @@ export default function SettingsPage() {
                 Recomendado: configurar <strong>Counter</strong> para secuencias de IDs y
                 <strong>Template</strong>/<strong>ApplicationProperty</strong>.
               </p>
-              <div className="mt-3">
-                <Link className="text-sm underline" href="/tables">
-                  Ver tablas (modo admin)
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

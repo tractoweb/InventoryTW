@@ -3,6 +3,8 @@
 
 import { z } from 'zod';
 import { amplifyClient } from '@/lib/amplify-config';
+import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { requireSession } from "@/lib/session";
 const AddProductSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
@@ -43,6 +45,8 @@ export type AddProductInput = z.infer<typeof AddProductSchema>;
  * 6. Si se provee, inserta el stock inicial en `stock`.
  */
 export async function addProduct(input: AddProductInput) {
+  await requireSession(ACCESS_LEVELS.ADMIN);
+
   const validation = AddProductSchema.safeParse(input);
 
   if (!validation.success) {

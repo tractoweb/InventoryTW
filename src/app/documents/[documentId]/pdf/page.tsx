@@ -61,7 +61,7 @@ export default function DocumentPdfPage() {
             {details ? (
               <PDFDownloadLink
                 document={<DocumentReportPdf details={details} />}
-                fileName={`documento-${details.number || documentId}.pdf`}
+                fileName={`documento-${String(details.documenttypename || "documento").replace(/\s+/g, "-")}-${details.number || documentId}.pdf`}
               >
                 {({ loading: dlLoading }) => (
                   <Button disabled={dlLoading}>{dlLoading ? "Generando…" : "Descargar PDF"}</Button>

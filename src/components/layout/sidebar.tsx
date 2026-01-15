@@ -21,12 +21,11 @@ import {
   BarChart3,
   Users,
   Shield,
+  History,
   CreditCard,
-  Globe,
   Percent,
   Building2,
   FileText,
-  Table,
   Calculator,
   Settings,
 } from "lucide-react";
@@ -60,6 +59,11 @@ const menuItems = [
     icon: Warehouse,
   },
   {
+    href: "/warehouses",
+    label: "Almacenes",
+    icon: Warehouse,
+  },
+  {
     href: "/reports",
     label: "Informes",
     icon: BarChart3,
@@ -75,19 +79,19 @@ const menuItems = [
     icon: BarChart3,
   },
   {
-    href: "/user-security",
+    href: "/users",
     label: "Usuario & Seguridad",
     icon: Shield,
+  },
+  {
+    href: "/audit",
+    label: "Auditoría",
+    icon: History,
   },
   {
     href: "/payment-methods",
     label: "Formas de pago",
     icon: CreditCard,
-  },
-  {
-    href: "/paises",
-    label: "Países",
-    icon: Globe,
   },
   {
     href: "/taxes",
@@ -107,16 +111,6 @@ const menuItems = [
   {
     href: "/print-labels/products",
     label: "Imprimir Etiquetas",
-    icon: FileText,
-  },
-  {
-    href: "/tables",
-    label: "Tablas (Admin)",
-    icon: Table,
-  },
-  {
-    href: "/documentation",
-    label: "Documentación",
     icon: FileText,
   },
   {

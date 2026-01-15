@@ -22,7 +22,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a15c04ea4fc341e0a12f47e02687e70e014ee0511c46ef5a3a0aa925cf7ee71b.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/031af83eb2c90fb6025e7ba652f9c0693b4ca23d9112560d9d4b6927637eb0de.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -7187,6 +7187,126 @@
           {
             "type": "graphqltransformer:resourceName",
             "data": "Subscription.onDeleteKardex"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByProductIdauth0Function/QuerylistKardexByProductIdauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByProductIdauth0FunctionQuerylistKardexByProductIdauth0FunctionAppSyncFunction3AFC3C69"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByProductIdauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByProductIdpostAuth0Function/QuerylistKardexByProductIdpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByProductIdpostAuth0FunctionQuerylistKardexByProductIdpostAuth0FunctionAppSyncFunction4E1B5894"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByProductIdpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QueryListKardexByProductIdDataResolverFn/QueryListKardexByProductIdDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListKardexByProductIdDataResolverFnQueryListKardexByProductIdDataResolverFnAppSyncFunction797C3D67"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListKardexByProductIdDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/queryListKardexByProductIdResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByProductIdResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listKardexByProductId"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByDocumentIdauth0Function/QuerylistKardexByDocumentIdauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByDocumentIdauth0FunctionQuerylistKardexByDocumentIdauth0FunctionAppSyncFunction3D0AAF6B"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByDocumentIdauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByDocumentIdpostAuth0Function/QuerylistKardexByDocumentIdpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByDocumentIdpostAuth0FunctionQuerylistKardexByDocumentIdpostAuth0FunctionAppSyncFunction994973E7"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByDocumentIdpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QueryListKardexByDocumentIdDataResolverFn/QueryListKardexByDocumentIdDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListKardexByDocumentIdDataResolverFnQueryListKardexByDocumentIdDataResolverFnAppSyncFunction4051E0F2"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListKardexByDocumentIdDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/queryListKardexByDocumentIdResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByDocumentIdResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listKardexByDocumentId"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByWarehouseIdauth0Function/QuerylistKardexByWarehouseIdauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByWarehouseIdauth0FunctionQuerylistKardexByWarehouseIdauth0FunctionAppSyncFunction1F012EDA"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByWarehouseIdauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QuerylistKardexByWarehouseIdpostAuth0Function/QuerylistKardexByWarehouseIdpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByWarehouseIdpostAuth0FunctionQuerylistKardexByWarehouseIdpostAuth0FunctionAppSyncFunction98C92624"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistKardexByWarehouseIdpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/QueryListKardexByWarehouseIdDataResolverFn/QueryListKardexByWarehouseIdDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListKardexByWarehouseIdDataResolverFnQueryListKardexByWarehouseIdDataResolverFnAppSyncFunction479F1239"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListKardexByWarehouseIdDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/queryListKardexByWarehouseIdResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistKardexByWarehouseIdResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listKardexByWarehouseId"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/Kardex/CDKMetadata/Default": [
@@ -21701,6 +21821,36 @@
             "data": "Warehouse.documentTypes"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/WarehousekardexEntriesauth0Function/WarehousekardexEntriesauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WarehousekardexEntriesauth0FunctionWarehousekardexEntriesauth0FunctionAppSyncFunction399BA08C"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "WarehousekardexEntriesauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/WarehouseKardexEntriesDataResolverFn/WarehouseKardexEntriesDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WarehouseKardexEntriesDataResolverFnWarehouseKardexEntriesDataResolverFnAppSyncFunction0AA25615"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "WarehouseKardexEntriesDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/warehouseKardexEntriesResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WarehousekardexEntriesResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Warehouse.kardexEntries"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/ProductGroupproductsauth0Function/ProductGroupproductsauth0Function.AppSyncFunction": [
           {
             "type": "aws:cdk:logicalId",
@@ -22211,6 +22361,36 @@
             "data": "Document.itemPriceViews"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/DocumentkardexEntriesauth0Function/DocumentkardexEntriesauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentkardexEntriesauth0FunctionDocumentkardexEntriesauth0FunctionAppSyncFunction31B6D072"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DocumentkardexEntriesauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/DocumentKardexEntriesDataResolverFn/DocumentKardexEntriesDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentKardexEntriesDataResolverFnDocumentKardexEntriesDataResolverFnAppSyncFunction88FB808A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DocumentKardexEntriesDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/documentKardexEntriesResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentkardexEntriesResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Document.kardexEntries"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/DocumentItemtaxesauth0Function/DocumentItemtaxesauth0Function.AppSyncFunction": [
           {
             "type": "aws:cdk:logicalId",
@@ -22239,6 +22419,36 @@
           {
             "type": "graphqltransformer:resourceName",
             "data": "DocumentItem.taxes"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/DocumentItemkardexEntriesauth0Function/DocumentItemkardexEntriesauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentItemkardexEntriesauth0FunctionDocumentItemkardexEntriesauth0FunctionAppSyncFunction735B00E9"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DocumentItemkardexEntriesauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/DocumentItemKardexEntriesDataResolverFn/DocumentItemKardexEntriesDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentItemKardexEntriesDataResolverFnDocumentItemKardexEntriesDataResolverFnAppSyncFunction1E83B337"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DocumentItemKardexEntriesDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/documentItemKardexEntriesResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DocumentItemkardexEntriesResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "DocumentItem.kardexEntries"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/TaxproductTaxesauth0Function/TaxproductTaxesauth0Function.AppSyncFunction": [
@@ -22629,6 +22839,96 @@
           {
             "type": "graphqltransformer:resourceName",
             "data": "Kardex.product"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/Kardexdocumentauth0Function/Kardexdocumentauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "Kardexdocumentauth0FunctionKardexdocumentauth0FunctionAppSyncFunction4248B964"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Kardexdocumentauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/KardexDocumentDataResolverFn/KardexDocumentDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexDocumentDataResolverFnKardexDocumentDataResolverFnAppSyncFunction09B72C4A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "KardexDocumentDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/kardexDocumentResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexdocumentResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Kardex.document"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/KardexdocumentItemauth0Function/KardexdocumentItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexdocumentItemauth0FunctionKardexdocumentItemauth0FunctionAppSyncFunction4FCD2C52"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "KardexdocumentItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/KardexDocumentItemDataResolverFn/KardexDocumentItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexDocumentItemDataResolverFnKardexDocumentItemDataResolverFnAppSyncFunction2B726F03"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "KardexDocumentItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/kardexDocumentItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexdocumentItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Kardex.documentItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/Kardexwarehouseauth0Function/Kardexwarehouseauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "Kardexwarehouseauth0FunctionKardexwarehouseauth0FunctionAppSyncFunctionBFF38EC3"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Kardexwarehouseauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/KardexWarehouseDataResolverFn/KardexWarehouseDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexWarehouseDataResolverFnKardexWarehouseDataResolverFnAppSyncFunction04727A41"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "KardexWarehouseDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/kardexWarehouseResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "KardexwarehouseResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Kardex.warehouse"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/KardexHistoryproductauth0Function/KardexHistoryproductauth0Function.AppSyncFunction": [
@@ -23465,6 +23765,18 @@
             "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataDocumentTypeNestedStackDocumentTypeNestedStackResourceCB849148OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataDocumentTypeDocumentTypeTable34B5EEFFTableArn"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataProductNestedStackProductNestedStackResource667C45A6Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataProductProductDataSourceD6BBE37FName": [
           {
             "type": "aws:cdk:logicalId",
@@ -23535,18 +23847,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataProductTaxNestedStackProductTaxNestedStackResource0C7A4F07OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataProductTaxProductTaxTable5070532DTableArn"
-          }
-        ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name"
-          }
-        ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexHistoryNestedStackKardexHistoryNestedStackResource26B5430EOutputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexHistoryKardexHistoryDataSource36F715A8Name": [
@@ -23781,12 +24081,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "DynamoDBEnableServerSideEncryption"
-          }
-        ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/LatestNodeRuntimeMap": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "LatestNodeRuntimeMap"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
@@ -24158,7 +24452,7 @@
           },
           "@aws-cdk/aws-iam:importedRoleStackSafeDefaultPolicyName": {
             "recommendedValue": true,
-            "explanation": "Enable this feature to by default create default policy names for imported roles that depend on the stack the role is in."
+            "explanation": "Enable this feature to create default policy names for imported roles that depend on the stack the role is in."
           },
           "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": {
             "recommendedValue": true,
@@ -24310,14 +24604,6 @@
             "recommendedValue": true,
             "explanation": "When enabled, stack tags need to be assigned explicitly on a Stack."
           },
-          "@aws-cdk/aws-ecs:enableImdsBlockingDeprecatedFeature": {
-            "recommendedValue": false,
-            "explanation": "When set to true along with canContainersAccessInstanceRole=false in ECS cluster, new updated commands will be added to UserData to block container accessing IMDS. **Applicable to Linux only. IMPORTANT: See [details.](#aws-cdkaws-ecsenableImdsBlockingDeprecatedFeature)**"
-          },
-          "@aws-cdk/aws-ecs:disableEcsImdsBlocking": {
-            "recommendedValue": true,
-            "explanation": "When set to true, CDK synth will throw exception if canContainersAccessInstanceRole is false. **IMPORTANT: See [details.](#aws-cdkaws-ecsdisableEcsImdsBlocking)**"
-          },
           "@aws-cdk/aws-ecs:reduceEc2FargateCloudWatchPermissions": {
             "recommendedValue": true,
             "explanation": "When enabled, we will only grant the necessary permissions when users specify cloudwatch log group through logConfiguration"
@@ -24438,6 +24724,25 @@
           "@aws-cdk/aws-lambda:useCdkManagedLogGroup": {
             "recommendedValue": true,
             "explanation": "When enabled, CDK creates and manages loggroup for the lambda function"
+          },
+          "@aws-cdk/aws-elasticloadbalancingv2:networkLoadBalancerWithSecurityGroupByDefault": {
+            "recommendedValue": true,
+            "explanation": "When enabled, Network Load Balancer will be created with a security group by default."
+          },
+          "@aws-cdk/aws-stepfunctions-tasks:httpInvokeDynamicJsonPathEndpoint": {
+            "recommendedValue": true,
+            "explanation": "When enabled, allows using a dynamic apiEndpoint with JSONPath format in HttpInvoke tasks.",
+            "unconfiguredBehavesLike": {
+              "v2": true
+            }
+          },
+          "@aws-cdk/aws-ecs-patterns:uniqueTargetGroupId": {
+            "recommendedValue": true,
+            "explanation": "When enabled, ECS patterns will generate unique target group IDs to prevent conflicts during load balancer replacement"
+          },
+          "@aws-cdk/aws-route53-patterns:useDistribution": {
+            "recommendedValue": true,
+            "explanation": "Use the `Distribution` resource instead of `CloudFrontWebDistribution`"
           }
         }
       }

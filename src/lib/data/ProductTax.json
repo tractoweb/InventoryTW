@@ -4,10 +4,6 @@
         "TaxId": 2
     },
     {
-        "ProductId": 745,
-        "TaxId": 2
-    },
-    {
         "ProductId": 1952,
         "TaxId": 2
     },
@@ -21,6 +17,10 @@
     },
     {
         "ProductId": 2811,
+        "TaxId": 2
+    },
+    {
+        "ProductId": 745,
         "TaxId": 2
     }
 ]

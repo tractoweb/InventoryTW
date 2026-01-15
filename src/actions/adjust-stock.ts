@@ -1,6 +1,8 @@
 'use server';
 
 import { z } from 'zod';
+import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { requireSession } from "@/lib/session";
 
 const AdjustStockSchema = z.object({
   productId: z.coerce.number().min(1, "Debe seleccionar un producto."),
@@ -19,6 +21,8 @@ export type AdjustStockInput = z.infer<typeof AdjustStockSchema>;
  * ON DUPLICATE KEY UPDATE quantity = VALUES(quantity);
  */
 export async function adjustStock(input: AdjustStockInput) {
+  await requireSession(ACCESS_LEVELS.ADMIN);
+
   const validation = AdjustStockSchema.safeParse(input);
 
   if (!validation.success) {

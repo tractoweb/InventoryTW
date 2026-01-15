@@ -60,6 +60,7 @@ const schema = a.schema({
     stocks: a.hasMany('Stock', 'warehouseId'),
     documents: a.hasMany('Document', 'warehouseId'),
     documentTypes: a.hasMany('DocumentType', 'warehouseId'),
+    kardexEntries: a.hasMany('Kardex', 'warehouseId'),
   }).identifier(['idWarehouse']).authorization((allow) => [allow.publicApiKey()]),
 
   ProductGroup: a.model({
@@ -147,16 +148,31 @@ const schema = a.schema({
     productId: a.integer().required(),
     date: a.datetime().required(),
     documentId: a.integer(),
+    documentItemId: a.integer(),
     documentNumber: a.string(),
+    warehouseId: a.integer(),
     type: a.string().required(),
     quantity: a.float().required(),
     balance: a.float().required(),
     unitCost: a.float(),
     totalCost: a.float(),
+    unitPrice: a.float(),
+    totalPrice: a.float(),
+    totalPriceAfterDiscount: a.float(),
     note: a.string(),
     userId: a.integer(),
     product: a.belongsTo('Product', 'productId'),
-  }).identifier(['kardexId']).authorization((allow) => [allow.publicApiKey()]),
+    document: a.belongsTo('Document', 'documentId'),
+    documentItem: a.belongsTo('DocumentItem', 'documentItemId'),
+    warehouse: a.belongsTo('Warehouse', 'warehouseId'),
+  })
+    .identifier(['kardexId'])
+    .secondaryIndexes((index) => [
+      index('productId').name('byProductId'),
+      index('documentId').name('byDocumentId'),
+      index('warehouseId').name('byWarehouseId'),
+    ])
+    .authorization((allow) => [allow.publicApiKey()]),
 
   KardexHistory: a.model({
     kardexHistoryId: a.integer().required(),
@@ -259,6 +275,7 @@ const schema = a.schema({
     items: a.hasMany('DocumentItem', 'documentId'),
     payments: a.hasMany('Payment', 'documentId'),
     itemPriceViews: a.hasMany('DocumentItemPriceView', 'documentId'),
+    kardexEntries: a.hasMany('Kardex', 'documentId'),
   }).identifier(['documentId']).authorization((allow) => [allow.publicApiKey()]),
 
   DocumentItem: a.model({
@@ -280,6 +297,7 @@ const schema = a.schema({
     document: a.belongsTo('Document', 'documentId'),
     product: a.belongsTo('Product', 'productId'),
     taxes: a.hasMany('DocumentItemTax', 'documentItemId'),
+    kardexEntries: a.hasMany('Kardex', 'documentItemId'),
     documentItemId: a.integer().required() 
   }).identifier(['documentItemId']).authorization((allow) => [allow.publicApiKey()]),
 

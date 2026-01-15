@@ -1,5 +1,5 @@
 "use client";
-import UploadCountry from "../../paises/upload-country";
+import UploadCountry from "./upload-country";
 
 export default function JsonPaisesPage() {
   return <UploadCountry />;

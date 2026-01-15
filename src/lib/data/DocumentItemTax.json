@@ -18188,5 +18188,360 @@
         "Amount": 13390.3155,
         "DocumentItemId": 4028,
         "TaxId": 2
+    },
+    {
+        "Amount": 24714.3697,
+        "DocumentItemId": 4029,
+        "TaxId": 2
+    },
+    {
+        "Amount": 30414.3697,
+        "DocumentItemId": 4030,
+        "TaxId": 2
+    },
+    {
+        "Amount": 64044.3697,
+        "DocumentItemId": 4031,
+        "TaxId": 2
+    },
+    {
+        "Amount": 52644.3697,
+        "DocumentItemId": 4032,
+        "TaxId": 2
+    },
+    {
+        "Amount": 66932.3697,
+        "DocumentItemId": 4033,
+        "TaxId": 2
+    },
+    {
+        "Amount": 116686.9513,
+        "DocumentItemId": 4034,
+        "TaxId": 2
+    },
+    {
+        "Amount": 76448.3713,
+        "DocumentItemId": 4035,
+        "TaxId": 2
+    },
+    {
+        "Amount": 56156.9748,
+        "DocumentItemId": 4036,
+        "TaxId": 2
+    },
+    {
+        "Amount": 32900.9748,
+        "DocumentItemId": 4037,
+        "TaxId": 2
+    },
+    {
+        "Amount": 398225.4019,
+        "DocumentItemId": 4038,
+        "TaxId": 2
+    },
+    {
+        "Amount": 596585.4019,
+        "DocumentItemId": 4039,
+        "TaxId": 2
+    },
+    {
+        "Amount": 66485.4019,
+        "DocumentItemId": 4040,
+        "TaxId": 2
+    },
+    {
+        "Amount": 189605.4019,
+        "DocumentItemId": 4041,
+        "TaxId": 2
+    },
+    {
+        "Amount": 63065.4019,
+        "DocumentItemId": 4042,
+        "TaxId": 2
+    },
+    {
+        "Amount": 9200.4019,
+        "DocumentItemId": 4043,
+        "TaxId": 2
+    },
+    {
+        "Amount": 7490.4019,
+        "DocumentItemId": 4044,
+        "TaxId": 2
+    },
+    {
+        "Amount": 26710.4874,
+        "DocumentItemId": 4045,
+        "TaxId": 2
+    },
+    {
+        "Amount": 31498.4874,
+        "DocumentItemId": 4046,
+        "TaxId": 2
+    },
+    {
+        "Amount": 14911.4874,
+        "DocumentItemId": 4047,
+        "TaxId": 2
+    },
+    {
+        "Amount": 57148.4874,
+        "DocumentItemId": 4048,
+        "TaxId": 2
+    },
+    {
+        "Amount": 35153.1933,
+        "DocumentItemId": 4049,
+        "TaxId": 2
+    },
+    {
+        "Amount": 9870.5,
+        "DocumentItemId": 4050,
+        "TaxId": 2
+    },
+    {
+        "Amount": 7626.6,
+        "DocumentItemId": 4051,
+        "TaxId": 2
+    },
+    {
+        "Amount": 28245.4,
+        "DocumentItemId": 4052,
+        "TaxId": 2
+    },
+    {
+        "Amount": 17796.16,
+        "DocumentItemId": 4053,
+        "TaxId": 2
+    },
+    {
+        "Amount": 20320.12,
+        "DocumentItemId": 4054,
+        "TaxId": 2
+    },
+    {
+        "Amount": 56498.4,
+        "DocumentItemId": 4055,
+        "TaxId": 2
+    },
+    {
+        "Amount": 14109.4,
+        "DocumentItemId": 4056,
+        "TaxId": 2
+    },
+    {
+        "Amount": 25961.22,
+        "DocumentItemId": 4057,
+        "TaxId": 2
+    },
+    {
+        "Amount": 58845.28,
+        "DocumentItemId": 4058,
+        "TaxId": 2
+    },
+    {
+        "Amount": 7337.99,
+        "DocumentItemId": 4059,
+        "TaxId": 2
+    },
+    {
+        "Amount": 34628.64,
+        "DocumentItemId": 4060,
+        "TaxId": 2
+    },
+    {
+        "Amount": 407533.5546,
+        "DocumentItemId": 4061,
+        "TaxId": 2
+    },
+    {
+        "Amount": 142426.5546,
+        "DocumentItemId": 4062,
+        "TaxId": 2
+    },
+    {
+        "Amount": 36784.958,
+        "DocumentItemId": 4063,
+        "TaxId": 2
+    },
+    {
+        "Amount": 44194.958,
+        "DocumentItemId": 4064,
+        "TaxId": 2
+    },
+    {
+        "Amount": 94924.958,
+        "DocumentItemId": 4065,
+        "TaxId": 2
+    },
+    {
+        "Amount": 7334.958,
+        "DocumentItemId": 4066,
+        "TaxId": 2
+    },
+    {
+        "Amount": 66462.958,
+        "DocumentItemId": 4067,
+        "TaxId": 2
+    },
+    {
+        "Amount": 38472.605,
+        "DocumentItemId": 4068,
+        "TaxId": 2
+    },
+    {
+        "Amount": 84110.605,
+        "DocumentItemId": 4069,
+        "TaxId": 2
+    },
+    {
+        "Amount": 20802.605,
+        "DocumentItemId": 4070,
+        "TaxId": 2
+    },
+    {
+        "Amount": 23538.605,
+        "DocumentItemId": 4071,
+        "TaxId": 2
+    },
+    {
+        "Amount": 37066.605,
+        "DocumentItemId": 4072,
+        "TaxId": 2
+    },
+    {
+        "Amount": 12366.605,
+        "DocumentItemId": 4073,
+        "TaxId": 2
+    },
+    {
+        "Amount": 34216.605,
+        "DocumentItemId": 4074,
+        "TaxId": 2
+    },
+    {
+        "Amount": 28174.605,
+        "DocumentItemId": 4075,
+        "TaxId": 2
+    },
+    {
+        "Amount": 56997.605,
+        "DocumentItemId": 4076,
+        "TaxId": 2
+    },
+    {
+        "Amount": 180972.605,
+        "DocumentItemId": 4077,
+        "TaxId": 2
+    },
+    {
+        "Amount": 19916.825,
+        "DocumentItemId": 4078,
+        "TaxId": 2
+    },
+    {
+        "Amount": 16986.2267,
+        "DocumentItemId": 4079,
+        "TaxId": 2
+    },
+    {
+        "Amount": 28293.47,
+        "DocumentItemId": 4080,
+        "TaxId": 2
+    },
+    {
+        "Amount": 39544.7559,
+        "DocumentItemId": 4081,
+        "TaxId": 2
+    },
+    {
+        "Amount": 44502.1513,
+        "DocumentItemId": 4082,
+        "TaxId": 2
+    },
+    {
+        "Amount": 51252.1008,
+        "DocumentItemId": 4083,
+        "TaxId": 2
+    },
+    {
+        "Amount": 400596.6387,
+        "DocumentItemId": 4084,
+        "TaxId": 2
+    },
+    {
+        "Amount": 98953.2773,
+        "DocumentItemId": 4085,
+        "TaxId": 2
+    },
+    {
+        "Amount": 28637.3109,
+        "DocumentItemId": 4086,
+        "TaxId": 2
+    },
+    {
+        "Amount": 527976.4706,
+        "DocumentItemId": 4087,
+        "TaxId": 2
+    },
+    {
+        "Amount": 51896.0779,
+        "DocumentItemId": 4088,
+        "TaxId": 2
+    },
+    {
+        "Amount": 5954.0779,
+        "DocumentItemId": 4089,
+        "TaxId": 2
+    },
+    {
+        "Amount": 10058.0779,
+        "DocumentItemId": 4090,
+        "TaxId": 2
+    },
+    {
+        "Amount": 10590.0779,
+        "DocumentItemId": 4091,
+        "TaxId": 2
+    },
+    {
+        "Amount": 77546.0779,
+        "DocumentItemId": 4092,
+        "TaxId": 2
+    },
+    {
+        "Amount": 98978.0779,
+        "DocumentItemId": 4093,
+        "TaxId": 2
+    },
+    {
+        "Amount": 54100.0779,
+        "DocumentItemId": 4094,
+        "TaxId": 2
+    },
+    {
+        "Amount": 60446.0779,
+        "DocumentItemId": 4095,
+        "TaxId": 2
+    },
+    {
+        "Amount": 36506.0779,
+        "DocumentItemId": 4096,
+        "TaxId": 2
+    },
+    {
+        "Amount": 12908.0779,
+        "DocumentItemId": 4097,
+        "TaxId": 2
+    },
+    {
+        "Amount": 29096.0779,
+        "DocumentItemId": 4098,
+        "TaxId": 2
+    },
+    {
+        "Amount": 156776.0779,
+        "DocumentItemId": 4099,
+        "TaxId": 2
     }
 ]

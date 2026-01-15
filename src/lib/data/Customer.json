@@ -1998,5 +1998,30 @@
         "PostalCode": null,
         "StreetName": null,
         "TaxNumber": null
+    },
+    {
+        "AdditionalStreetName": null,
+        "Address": null,
+        "BuildingNumber": null,
+        "City": "VILLAVICENCIO",
+        "CitySubdivisionName": null,
+        "Code": "",
+        "CountryId": 47,
+        "CountrySubentity": null,
+        "DateCreated": "2026-01-08 10:31:13.2746386",
+        "DateUpdated": "2026-01-08 10:31:13.2746386",
+        "DueDatePeriod": 0,
+        "Email": null,
+        "Id": 82,
+        "IsCustomer": 1,
+        "IsEnabled": 1,
+        "IsSupplier": 1,
+        "IsTaxExempt": 0,
+        "Name": "TRACTOCENTRO",
+        "PhoneNumber": null,
+        "PlotIdentification": null,
+        "PostalCode": null,
+        "StreetName": null,
+        "TaxNumber": "900329625-1"
     }
 ]

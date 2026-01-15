@@ -11,6 +11,19 @@ function money(amount: number) {
   }).format(Number.isFinite(n) ? n : 0);
 }
 
+function formatInternalNote(note: unknown): { kind: 'empty' | 'text' | 'json'; value: string } {
+  const raw = String(note ?? '').trim();
+  if (!raw) return { kind: 'empty', value: '' };
+  const looksJson = raw.startsWith('{') || raw.startsWith('[');
+  if (!looksJson) return { kind: 'text', value: raw };
+  try {
+    JSON.parse(raw);
+    return { kind: 'json', value: raw };
+  } catch {
+    return { kind: 'text', value: raw };
+  }
+}
+
 export default async function DocumentPrintPage({ params }: { params: { documentId: string } }) {
   const documentId = Number(params.documentId);
   const res: any = await getDocumentDetails(documentId);
@@ -36,6 +49,7 @@ export default async function DocumentPrintPage({ params }: { params: { document
 
   const totals = d?.liquidation?.result?.totals;
   const lines = d?.liquidation?.result?.lines ?? [];
+  const internalNote = formatInternalNote(d?.internalnote);
 
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui', color: '#111' }}>
@@ -81,6 +95,17 @@ export default async function DocumentPrintPage({ params }: { params: { document
           <div>{money(totals?.totalSalePrice ?? 0)}</div>
         </div>
       </div>
+
+      {internalNote.kind !== 'empty' && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="muted">InternalNote</div>
+          {internalNote.kind === 'json' ? (
+            <div>Snapshot interno guardado (JSON). Ver detalle en el sistema.</div>
+          ) : (
+            <div style={{ whiteSpace: 'pre-wrap' }}>{internalNote.value}</div>
+          )}
+        </div>
+      )}
 
       <h2>Artículos</h2>
       <table>

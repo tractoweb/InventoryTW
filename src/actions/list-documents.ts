@@ -3,6 +3,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
+import { documentTypeLabelEs } from "@/lib/document-type-label";
 
 export type DocumentListFilters = {
   q?: string;
@@ -40,7 +41,7 @@ export type DocumentListRow = {
 type Customer = { idCustomer: number; name: string };
 type User = { userId: number; username: string };
 type Warehouse = { idWarehouse: number; name: string };
-type DocumentType = { documentTypeId: number; name: string };
+type DocumentType = { documentTypeId: number; name: string; printTemplate?: string | null; languageKey?: string | null };
 
 export async function listDocuments(filters?: DocumentListFilters) {
   noStore();
@@ -172,7 +173,15 @@ export async function listDocuments(filters?: DocumentListFilters) {
       documentTypes
         .map((r: any) => r?.data)
         .filter(Boolean)
-        .map((dt: any) => [Number(dt?.documentTypeId), String(dt?.name ?? "")])
+        .map((dt: any) => [
+          Number(dt?.documentTypeId),
+          documentTypeLabelEs({
+            name: dt?.name ?? null,
+            printTemplate: dt?.printTemplate ?? null,
+            code: dt?.code ?? null,
+            languageKey: dt?.languageKey ?? null,
+          }),
+        ])
     );
 
     const rows: DocumentListRow[] = docs.map((d) => {

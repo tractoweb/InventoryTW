@@ -13,9 +13,6 @@ export default function PartnersPage() {
             En esta migración, el modelo Customer representa principalmente proveedores (y opcionalmente clientes).
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/tables">Ver datos (Admin)</Link>
-        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -25,8 +22,8 @@ export default function PartnersPage() {
             <CardDescription>Alta/edición, estado, datos fiscales, contacto.</CardDescription>
           </CardHeader>
           <CardContent className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href="/tables">Abrir tabla Customer</Link>
+            <Button asChild>
+              <Link href="/partners/manage">Administrar</Link>
             </Button>
             <Button asChild variant="ghost">
               <Link href="/json/customer">Importar proveedores</Link>

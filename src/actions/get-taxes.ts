@@ -1,7 +1,9 @@
 
 'use server';
 
-import { amplifyClient } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { listTaxes } from '@/services/tax-service';
+
 export type Tax = {
   id: number;
   name: string;
@@ -10,11 +12,18 @@ export type Tax = {
 
 export async function getTaxes(): Promise<{ data?: Tax[], error?: string }> {
   try {
-    // TODO: Implement tax fetching from Amplify
-    const taxes: Tax[] = [];
-    return { data: taxes };
+    const taxes = await listTaxes();
+    const data: Tax[] = (taxes ?? [])
+      .map((t: any) => ({
+        id: Number(t?.idTax),
+        name: String(t?.name ?? ''),
+        rate: Number(t?.rate ?? 0),
+      }))
+      .filter((t) => Number.isFinite(t.id) && t.id > 0 && t.name.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return { data };
   } catch (error: any) {
-    console.error('Error fetching taxes:', error);
-    return { error: 'Could not load taxes.' };
+    return { error: formatAmplifyError(error) || 'No se pudieron cargar los impuestos.' };
   }
 }

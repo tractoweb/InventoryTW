@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { SessionGuard } from "@/components/auth/session-guard";
+
 import {
   SidebarProvider,
   Sidebar,
@@ -9,8 +12,15 @@ import { AppSidebar } from "@/components/layout/sidebar";
 import { AppHeader } from "@/components/layout/header";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  if (pathname === "/login") {
+    return <div className="min-h-svh p-6">{children}</div>;
+  }
+
   return (
     <SidebarProvider>
+      <SessionGuard />
       <AppSidebar />
       <SidebarInset>
         <div className="flex min-h-svh flex-col">

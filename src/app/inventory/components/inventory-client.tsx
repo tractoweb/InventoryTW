@@ -22,12 +22,13 @@ type InventoryClientProps = {
   productGroups: ProductGroup[];
   warehouses: Warehouse[];
   taxes: Tax[];
+  initialSearch?: string;
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items: initialItems, productGroups, warehouses, taxes, pageType }: InventoryClientProps) {
+export function InventoryClient({ items: initialItems, productGroups, warehouses, taxes, initialSearch, pageType }: InventoryClientProps) {
   const [items, setItems] = useState(initialItems);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(String(initialSearch ?? ""));
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const { toast } = useToast();
   

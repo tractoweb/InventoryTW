@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -47,14 +47,14 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Loader2, Terminal } from "lucid
 import { cn } from "@/lib/utils";
 
 import { useDebounce } from "@/hooks/use-debounce";
-import { listDocuments, type DocumentListRow } from "@/actions/list-documents";
-import { countDocuments } from "@/actions/count-documents";
 import { getDocumentDetails, type DocumentDetails } from "@/actions/get-document-details";
 import { getProductDetails } from "@/actions/get-product-details";
 import { deleteDocumentAction } from "@/actions/delete-document";
 import { getCustomers, type CustomerListItem } from "@/actions/get-customers";
 import { getWarehouses, type WarehouseListItem } from "@/actions/get-warehouses";
 import { getDocumentTypes, type DocumentTypeListItem } from "@/actions/get-document-types";
+import { useDocumentsCatalog } from "@/components/catalog/documents-catalog-provider";
+import type { DocumentsCatalogRow } from "@/actions/list-documents-for-browser-all";
 
 type Option = { value: string; label: string };
 
@@ -78,7 +78,7 @@ function todayISODate() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function DocumentsBrowser() {
+export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: number | null }) {
   const pageSize = 10;
 
   const router = useRouter();
@@ -87,17 +87,14 @@ export function DocumentsBrowser() {
   const debouncedQ = useDebounce(q, 250);
 
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [pageTokens, setPageTokens] = useState<Record<number, string | null>>({ 1: null });
-  const [pageNextToken, setPageNextToken] = useState<string | null>(null);
   const [jumpTo, setJumpTo] = useState<string>("");
-  const [isScanMode, setIsScanMode] = useState<boolean>(true);
 
   const [sortBy, setSortBy] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [dateFrom, setDateFrom] = useState<string>(todayISODate);
   const [dateTo, setDateTo] = useState<string>(todayISODate);
+  const [dateFilterEnabled, setDateFilterEnabled] = useState(false);
 
   const [customerId, setCustomerId] = useState<string>("all");
   const [warehouseId, setWarehouseId] = useState<string>("all");
@@ -107,11 +104,15 @@ export function DocumentsBrowser() {
   const [warehouses, setWarehouses] = useState<WarehouseListItem[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeListItem[]>([]);
 
-  const [docs, setDocs] = useState<DocumentListRow[]>([]);
+  const catalog = useDocumentsCatalog();
+
+  const didApplyInitialSelection = useRef(false);
+
+  const allDocs = catalog.documents as DocumentsCatalogRow[];
+
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [details, setDetails] = useState<DocumentDetails | null>(null);
 
-  const [loadingDocs, setLoadingDocs] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -181,7 +182,54 @@ export function DocumentsBrowser() {
     ];
   }, [documentTypes]);
 
+  const filteredDocs = useMemo(() => {
+    const qTerm = String(debouncedQ ?? "").trim().toLowerCase();
+    const cid = customerId === "all" ? null : Number(customerId);
+    const wid = warehouseId === "all" ? null : Number(warehouseId);
+    const dtid = documentTypeId === "all" ? null : Number(documentTypeId);
+
+    return allDocs.filter((d) => {
+      if (cid && Number.isFinite(cid) && Number(d.customerId ?? 0) !== cid) return false;
+      if (wid && Number.isFinite(wid) && Number(d.warehouseId ?? 0) !== wid) return false;
+      if (dtid && Number.isFinite(dtid) && Number(d.documentTypeId ?? 0) !== dtid) return false;
+
+      const date = String(d.date ?? "");
+      if (dateFilterEnabled) {
+        if (dateFrom && date && date < dateFrom) return false;
+        if (dateTo && date && date > dateTo) return false;
+        if ((dateFrom || dateTo) && !date) return false;
+      }
+
+      if (qTerm) {
+        const number = String(d.number ?? "").toLowerCase();
+        const ref = String(d.referenceDocumentNumber ?? "").toLowerCase();
+        const order = String(d.orderNumber ?? "").toLowerCase();
+        if (!number.includes(qTerm) && !ref.includes(qTerm) && !order.includes(qTerm)) return false;
+      }
+
+      return true;
+    });
+  }, [allDocs, debouncedQ, customerId, warehouseId, documentTypeId, dateFrom, dateTo, dateFilterEnabled]);
+
+  const sortedFilteredDocs = useMemo(() => {
+    const copy = filteredDocs.slice();
+    const dir = sortDir === "asc" ? 1 : -1;
+    copy.sort((a, b) => {
+      if (sortBy === "number") return String(a.number).localeCompare(String(b.number)) * dir;
+      if (sortBy === "supplier") return String(a.customerName ?? "").localeCompare(String(b.customerName ?? "")) * dir;
+      if (sortBy === "total") return (Number(a.total ?? 0) - Number(b.total ?? 0)) * dir;
+      return String(a.stockDate ?? a.date ?? "").localeCompare(String(b.stockDate ?? b.date ?? "")) * dir;
+    });
+    return copy;
+  }, [filteredDocs, sortBy, sortDir]);
+
+  const total = sortedFilteredDocs.length;
   const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0;
+
+  const pageDocs = useMemo(() => {
+    const startIdx = (page - 1) * pageSize;
+    return sortedFilteredDocs.slice(startIdx, startIdx + pageSize);
+  }, [sortedFilteredDocs, page, pageSize]);
 
   // Clamp page when total changes to avoid states like "Página 4 de 1".
   useEffect(() => {
@@ -191,18 +239,6 @@ export function DocumentsBrowser() {
     }
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
-
-  const sortedDocs = useMemo(() => {
-    const copy = docs.slice();
-    const dir = sortDir === "asc" ? 1 : -1;
-    copy.sort((a, b) => {
-      if (sortBy === "number") return String(a.number).localeCompare(String(b.number)) * dir;
-      if (sortBy === "supplier") return String(a.customerName ?? "").localeCompare(String(b.customerName ?? "")) * dir;
-      if (sortBy === "total") return (Number(a.total ?? 0) - Number(b.total ?? 0)) * dir;
-      return String(a.stockDate ?? a.date ?? "").localeCompare(String(b.stockDate ?? b.date ?? "")) * dir;
-    });
-    return copy;
-  }, [docs, sortBy, sortDir]);
 
   const toggleSort = (field: SortField) => {
     if (sortBy !== field) {
@@ -258,57 +294,21 @@ export function DocumentsBrowser() {
   const filtersKey = useMemo(() => {
     return JSON.stringify({
       q: debouncedQ,
-      dateFrom,
-      dateTo,
+      dateFrom: dateFilterEnabled ? dateFrom : "",
+      dateTo: dateFilterEnabled ? dateTo : "",
+      dateFilterEnabled,
       customerId,
       warehouseId,
       documentTypeId,
     });
-  }, [debouncedQ, dateFrom, dateTo, customerId, warehouseId, documentTypeId]);
+  }, [debouncedQ, dateFrom, dateTo, dateFilterEnabled, customerId, warehouseId, documentTypeId]);
+
+  const loadingDocs = catalog.status === "loading" || catalog.status === "idle";
+  const catalogError = catalog.status === "error" ? catalog.error : null;
 
   const refreshDocs = async () => {
-    setLoadingDocs(true);
     setError(null);
-    try {
-      const result = await listDocuments({
-        q: debouncedQ,
-        dateFrom,
-        dateTo,
-        customerId: customerId === "all" ? undefined : Number(customerId),
-        warehouseId: warehouseId === "all" ? undefined : Number(warehouseId),
-        documentTypeId: documentTypeId === "all" ? undefined : Number(documentTypeId),
-        // Use scan-mode pagination to keep ordering stable and avoid token-related page glitches.
-        useScan: true,
-        nextToken: undefined,
-        page,
-        pageSize,
-      });
-
-      if (result.error) {
-        setDocs([]);
-        setPageNextToken(null);
-        setIsScanMode(true);
-        setError(result.error);
-      } else {
-        setDocs(result.data ?? []);
-        const scan = Boolean((result as any).scanMode);
-        setIsScanMode(scan);
-
-        // Token paging is not used in scan mode.
-        const nt = scan ? null : (String((result as any).nextToken ?? "") || null);
-        setPageNextToken(nt);
-        if (!scan) {
-          setPageTokens((prev) => {
-            const next = { ...prev };
-            if (nt) next[page + 1] = nt;
-            else delete next[page + 1];
-            return next;
-          });
-        }
-      }
-    } finally {
-      setLoadingDocs(false);
-    }
+    await catalog.refresh();
   };
 
   useEffect(() => {
@@ -328,36 +328,36 @@ export function DocumentsBrowser() {
   }, []);
 
   useEffect(() => {
-    // Count is heavier, so only on filter changes.
-    countDocuments({
-      q: debouncedQ,
-      dateFrom,
-      dateTo,
-      customerId: customerId === "all" ? undefined : Number(customerId),
-      warehouseId: warehouseId === "all" ? undefined : Number(warehouseId),
-      documentTypeId: documentTypeId === "all" ? undefined : Number(documentTypeId),
-    })
-      .then((res) => {
-        if (res.error) setTotal(0);
-        else setTotal(Number(res.total ?? 0));
-      })
-      .catch(() => setTotal(0));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey]);
+    // Load documents catalog once (cache across navigation).
+    catalog.ensureLoaded().catch(() => {
+      // handled via catalog.status
+    });
+  }, [catalog.ensureLoaded]);
 
   useEffect(() => {
-    // Reset token paging when filters change
+    // Reset paging when filters change (local filtering)
     setPage(1);
-    setPageTokens({ 1: null });
-    setPageNextToken(null);
     setJumpTo("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSelectedDocumentId(null);
+    setDetails(null);
   }, [filtersKey]);
 
   useEffect(() => {
-    refreshDocs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQ, dateFrom, dateTo, customerId, warehouseId, documentTypeId, page]);
+    if (catalogError) setError(catalogError);
+  }, [catalogError]);
+
+  useEffect(() => {
+    if (didApplyInitialSelection.current) return;
+    const id = initialDocumentId ?? null;
+    if (!id) return;
+    if (catalog.status !== "ready") return;
+
+    didApplyInitialSelection.current = true;
+    const match = allDocs.find((d) => d.documentId === id);
+    if (match?.number) setQ(match.number);
+    setSelectedDocumentId(id);
+    setPage(1);
+  }, [initialDocumentId, catalog.status, allDocs]);
 
   useEffect(() => {
     if (!selectedDocumentId) {
@@ -388,8 +388,7 @@ export function DocumentsBrowser() {
     setCustomerId("all");
     setWarehouseId("all");
     setDocumentTypeId("all");
-    setPageTokens({ 1: null });
-    setPageNextToken(null);
+    setDateFilterEnabled(false);
     setPage(1);
   };
 
@@ -398,48 +397,6 @@ export function DocumentsBrowser() {
     if (!Number.isFinite(requested) || requested < 1) return;
     const target = totalPages > 0 ? Math.min(requested, totalPages) : requested;
     if (target === page) return;
-
-    // In scan mode, jumping is just setting the page.
-    if (isScanMode) {
-      setPage(target);
-      return;
-    }
-
-    // In token-based pagination we may need to learn tokens up to target.
-    if (pageTokens[target] === undefined) {
-      setLoadingDocs(true);
-      try {
-        const tokens: Record<number, string | null> = { ...pageTokens };
-        const maxKnown = Math.max(...Object.keys(tokens).map((k) => Number(k)).filter((n) => Number.isFinite(n)));
-        let current = Number.isFinite(maxKnown) ? maxKnown : 1;
-        while (current < target) {
-          const tokenForCurrent = tokens[current] ?? null;
-          if (tokens[current + 1] !== undefined) {
-            current += 1;
-            continue;
-          }
-          const res = await listDocuments({
-            q: debouncedQ,
-            dateFrom,
-            dateTo,
-            customerId: customerId === "all" ? undefined : Number(customerId),
-            warehouseId: warehouseId === "all" ? undefined : Number(warehouseId),
-            documentTypeId: documentTypeId === "all" ? undefined : Number(documentTypeId),
-            nextToken: tokenForCurrent,
-            page: current,
-            pageSize,
-          });
-          const nt = String((res as any).nextToken ?? "") || null;
-          tokens[current + 1] = nt;
-          if (!nt) break;
-          current += 1;
-        }
-        setPageTokens(tokens);
-      } finally {
-        setLoadingDocs(false);
-      }
-    }
-
     setPage(target);
   }
 
@@ -550,10 +507,26 @@ export function DocumentsBrowser() {
             </Select>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground mb-1">Desde</div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="text-sm text-muted-foreground">Desde</div>
+              <Button
+                type="button"
+                variant={dateFilterEnabled ? "default" : "outline"}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  setDateFilterEnabled((v) => !v);
+                  setPage(1);
+                }}
+                title="Activar/desactivar filtro por fecha"
+              >
+                Fecha: {dateFilterEnabled ? "Sí" : "No"}
+              </Button>
+            </div>
             <Input
               type="date"
               value={dateFrom}
+              disabled={!dateFilterEnabled}
               onChange={(e) => {
                 setDateFrom(e.target.value);
                 setPage(1);
@@ -565,6 +538,7 @@ export function DocumentsBrowser() {
             <Input
               type="date"
               value={dateTo}
+              disabled={!dateFilterEnabled}
               onChange={(e) => {
                 setDateTo(e.target.value);
                 setPage(1);
@@ -605,19 +579,20 @@ export function DocumentsBrowser() {
                     <SortableHead field="number" label="Número" className="w-[110px]" />
                     <TableHead>Tipo</TableHead>
                     <SortableHead field="supplier" label="Proveedor" />
+                    <TableHead>Usuario</TableHead>
                     <SortableHead field="date" label="Fecha" />
                     <SortableHead field="total" label="Total" align="right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {docs.length === 0 ? (
+                  {total === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
+                      <TableCell colSpan={6} className="text-muted-foreground">
                         Sin resultados.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sortedDocs.map((d) => (
+                    pageDocs.map((d) => (
                       <TableRow
                         key={d.documentId}
                         className={
@@ -637,6 +612,7 @@ export function DocumentsBrowser() {
                         </TableCell>
                         <TableCell>{d.documentTypeName ?? d.documentTypeId}</TableCell>
                         <TableCell>{d.customerName ?? "-"}</TableCell>
+                        <TableCell>{d.userName ?? String(d.userId ?? "-")}</TableCell>
                         <TableCell>{d.date}</TableCell>
                         <TableCell className="text-right">{formatMoney(d.total)}</TableCell>
                       </TableRow>
@@ -676,7 +652,7 @@ export function DocumentsBrowser() {
                   <Button
                     variant="outline"
                     onClick={() => setPage((p) => p + 1)}
-                    disabled={loadingDocs || (isScanMode ? (totalPages > 0 ? page >= totalPages : true) : !pageNextToken)}
+                    disabled={loadingDocs || totalPages === 0 || page >= totalPages}
                   >
                     Siguiente
                   </Button>
@@ -754,6 +730,29 @@ export function DocumentsBrowser() {
                   <div className="text-muted-foreground">Total</div>
                   <div>{formatMoney(details.total)}</div>
                 </div>
+              </div>
+
+              <div className="rounded-md border p-3">
+                <div className="text-sm text-muted-foreground">InternalNote</div>
+                {(() => {
+                  const raw = String(details.internalnote ?? "").trim();
+                  if (!raw) return <div className="text-sm">-</div>;
+
+                  const looksJson = raw.startsWith("{") || raw.startsWith("[");
+                  if (!looksJson) return <div className="text-sm whitespace-pre-wrap">{raw}</div>;
+
+                  try {
+                    JSON.parse(raw);
+                    return (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-sm underline">Ver contenido (JSON)</summary>
+                        <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2 text-xs">{raw}</pre>
+                      </details>
+                    );
+                  } catch {
+                    return <div className="text-sm whitespace-pre-wrap">{raw}</div>;
+                  }
+                })()}
               </div>
 
               {details.liquidation?.result?.totals && (

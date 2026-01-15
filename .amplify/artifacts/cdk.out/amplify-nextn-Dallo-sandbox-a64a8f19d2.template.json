@@ -240,7 +240,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/d134476cd17ae7f2766c9a6228a9cccaf718f32ba60c2219707b2c6bf612061d.json"
+       "/b116b86ea214fd74f052ad869aa0c5a7d93136fa26c06e430bc3b6c4afaa2750.json"
       ]
      ]
     }
@@ -308,7 +308,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/6e450fce8dfaff9af08ec58f1ea88c8fe98046932d35b218e255e5d6f5faa427.json"
+       "/7641d5c28823da205e2c2601f74de987af340ee203271ddcd722bb01b7d542de.json"
       ]
      ]
     }
@@ -324,7 +324,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/zPSMzI00zNQTCwv1k1OydbNyUzSqw4uSUzO1nFOy/MvLSkoLQGxwEK1Onn5Kal6WcX6ZUYmeoZGegaKWcWZmbpFpXklmbmpekEQGgBt4rA/VAAAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/zPSMzI21jNQTCwv1k1OydbNyUzSqw4uSUzO1nFOy/MvLSkoLQGxwEK1Onn5Kal6WcX6ZUYmeoZGegaKWcWZmbpFpXklmbmpekEQGgDKnIqIVAAAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/CDKMetadata/Default"

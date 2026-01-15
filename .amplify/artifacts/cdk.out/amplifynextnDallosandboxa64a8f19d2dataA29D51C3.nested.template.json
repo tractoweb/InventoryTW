@@ -53,7 +53,7 @@
      ]
     },
     "DefinitionS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e957b90ba7fd9902bc176df2f48a9e1de00fa02c15954b6c548a1b034c2a5e58.graphql"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/35adec7f21641df083868e009c3594ecb0cac4b96379c7cc8c12baa7cabb03b3.graphql"
     }
    },
    "UpdateReplacePolicy": "Delete",
@@ -71,7 +71,7 @@
       "ApiId"
      ]
     },
-    "Expires": 1768942989
+    "Expires": 1769039555
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
@@ -139,7 +139,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/7022fb87be44c8f18530ed04479a0ad221c9154aba1341428a5035bb1f4dc06f.json"
+       "/5f6d4b775b45db0dc350a13eeb3e6ac91448ddb0224d886d8de946fcdd3c34c2.json"
       ]
      ]
     }
@@ -229,7 +229,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/43ef93ef98fe089577c10604c7eea8d034a1bbd2206ab255974acd6e9616c6d8.json"
+       "/9065b1261782a2cb4189e4bc732ab2e464a7da73be3d0c3bf3571cbd4d659812.json"
       ]
      ]
     }
@@ -322,7 +322,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/a68253a94d1c430733f1202f1f53472188d068242e2dfbabfcb115dad89cecc3.json"
+       "/2720d8c4b26c920dde703ece9ae32f4b9bb4150590cf2bb01110c04bc9fbb536.json"
       ]
      ]
     }
@@ -415,7 +415,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/60fe534481cc60d5e1bc85d19c88b9a4d0c4bdb8311c030b71f5c1f98ba43934.json"
+       "/3545a828a1b41f92c237cb382c1bc2862ea969f4ec4f15675009a377c6aad81e.json"
       ]
      ]
     }
@@ -508,7 +508,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/742eaa420b2dc8a8e7dd1c3e9442e6554a77c91239b14a9ec024429569333a93.json"
+       "/a57f963d6fc76c5e744455384c59bffa99d31da478743103ba049aee4d03442e.json"
       ]
      ]
     }
@@ -601,7 +601,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/42d51d22095a6bffd31a745241411a7b3b6011e73ff8c00a93daa91825e78bec.json"
+       "/9bee0e7d1c43c423dcbfa689682ec03408a1e2ca2795e71a3c6f705d771caec3.json"
       ]
      ]
     }
@@ -694,7 +694,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/2bd7d9224c06a51109d0251503d73cefdfd5bc36f69dbedfd8dc1ffae3c1788b.json"
+       "/a75d86780c7bab5fdeb51be3dd16891823fcf18e116ca6984e8107fafb64d00f.json"
       ]
      ]
     }
@@ -787,7 +787,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/c85ee125e5d83e79715cf48655187f38769327a8626b901fb2deee6a3a5f6162.json"
+       "/6413b99774bdf53f758a018ac59f2bea03e73c2fc6b2ad3ed920492fae38391a.json"
       ]
      ]
     }
@@ -880,7 +880,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/501bde68ced68d546386ad3d1b9122f24d111999603bed6444bcfbbb2c207f3e.json"
+       "/e64abb97be2dd441b0d34ddc61751b63e9c98978ea052ff6036275173c4d1328.json"
       ]
      ]
     }
@@ -973,7 +973,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/7e61991639599e4e9e8148c79a1f2aea09a61cc5e3b90dddbbbedd213226d859.json"
+       "/c5733202087cf9c7f0bc6b6b4863813801b6ed15020f1601560c4affd7a851fc.json"
       ]
      ]
     }
@@ -1066,7 +1066,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/c5725ec171a312107c6c85fa2df7355d1623a2fefcd66767149a5f5ad4afb848.json"
+       "/5d158427232015b198dbc15418c397961835002a0c5bffb8fc7834c1e0d83013.json"
       ]
      ]
     }
@@ -1159,7 +1159,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/fb34134e7024281601b8dff117b55c8c30bf9c9038d8ca4d9ff96c37445ee0a0.json"
+       "/0b4899d3dd52e3aebb305f90991ab253d3a4bc7dad56e503fbf463f97bdb427f.json"
       ]
      ]
     }
@@ -1252,7 +1252,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/e63660d087719f40e6c324b8a187a746b7d5ed85065044e4f989524500ac5cfc.json"
+       "/9fc423ce772d187aace1d7ec3e751145f5633023ef260d80bc95fe63cc43c1c3.json"
       ]
      ]
     }
@@ -1345,7 +1345,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/79208fca41e62e3254c15b40e0b66f043682eea8dbd6aa39c270c0eda8a6c771.json"
+       "/2643d081fa555cc89321e6d64233a096a610ee8517abb4ac7029d6a5712d0f61.json"
       ]
      ]
     }
@@ -1438,7 +1438,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/3d16a77abf406426a5fbaa8b383097793c0f3a10d8094954b05cf7abfe30f4fb.json"
+       "/213488f09ce50cf4580ae7fc01d0b7e2710c0cf723122ddf98bf29b03c83f448.json"
       ]
      ]
     }
@@ -1531,7 +1531,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/155746c839798cdd521623b381abfb082669593a26b4eba60474de625b6566c8.json"
+       "/0dbd1ae0bc19f1ce23d00d50b77a83b968534f00d2710633fb1db2af3edf595e.json"
       ]
      ]
     }
@@ -1624,7 +1624,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/f8167bac3ca3897ede12d49540ad92766af0be3905e29844ffb527a8afcd8a76.json"
+       "/c3c5d37ac22a09d716d329c0b540162824a7846aaa7054a25b38123650d9e832.json"
       ]
      ]
     }
@@ -1717,7 +1717,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/d5115b7867c76e282a17d44d1970995e8f05032798d0cdb00bdbcf537d2edd04.json"
+       "/bf79cece88b4f1537a36823da62e3e6eec2ce299590776ce00d10d62dfc44946.json"
       ]
      ]
     }
@@ -1810,7 +1810,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/f49fd08d656dba3033bed22c73b75b409305e0e4e0686fe7c261714aa791107e.json"
+       "/f8f369975dde33a6ed0db7e07947d83a0dc28b8c9a6c284bb61ea19224025952.json"
       ]
      ]
     }
@@ -1903,7 +1903,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/053fed02fa7f37d377bc4dc0a09253f2a74c74a17cffe6305d1541d018dd1d9e.json"
+       "/11c3b044518d55d85c7cc212d49287839a55332f9c3baf55488e3cefa04b97f7.json"
       ]
      ]
     }
@@ -1996,7 +1996,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/84ccc40efbddc0ef35c397a5ea9f93ee14955e464e62e46ad186d1d408f28c86.json"
+       "/5693d4a3066446442135a28367e890f7ddfa8056955ca0bf11957eef5fb70ef9.json"
       ]
      ]
     }
@@ -2089,7 +2089,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/4f3e13c9c10d46bc34ddb977bcf4f5ca1ebf3ca4d8eca56954b7f34990671f12.json"
+       "/61d0c43798f7dc6174e92dccde01244b227fcba7c6ae1d04de21ef8408dfec61.json"
       ]
      ]
     }
@@ -2182,7 +2182,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/8168272b920dc96df46aaecdab66f98ea83e3df630f51b024734884bf37c177d.json"
+       "/8f6316e17407c5df48af86e3c5ebb916dfca49199ab37bb708ba4ce96e24f8d7.json"
       ]
      ]
     }
@@ -2275,7 +2275,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/be7a69b2b3a0588a87712a658ce29b23199150673b82578fabd715bc34a9b84a.json"
+       "/3a2cecab3cb3eb41305f32b11f5468a9edb77b065ace8b6110bd32c3d350855c.json"
       ]
      ]
     }
@@ -2368,7 +2368,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/cd3f752b33fea35626d463eb45576930cbf451b62ea4b4c0f05ef1723fbb0597.json"
+       "/258cecf4606a18dd3a0e7e1fc97b840106838a1ae4ec8abcf974e115575c88b6.json"
       ]
      ]
     }
@@ -2461,7 +2461,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/f5e902b336397eb3f1a1873ceda3ea67bdc145ae2f64aee2db567cef2db96f4f.json"
+       "/a3144f620708c6d6f10cc5145478425ee875747f20187e76a9fdf67a1bead6c1.json"
       ]
      ]
     }
@@ -2554,7 +2554,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/e52cd1ee32cf087f8892b4b8a4bc91d45e50528eb29b02e546ea9ea54821ed4d.json"
+       "/5d3677a982217b87f9b7edf2e8612998298e46b5c1d803a59a672162b8e5f6dd.json"
       ]
      ]
     }
@@ -2647,7 +2647,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/ded7bf5507a04c472dc00ab0c4a97bebec851dd687c872f2c2dcd68b6ac17317.json"
+       "/0b834a78fa5a697130a2f7a919af36681f2997fc5c33a14b8c0242cbedf9a9a6.json"
       ]
      ]
     }
@@ -2740,7 +2740,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/886784361e15d4ece07d8805a8051dea926f60a020fac79dac528b7496851a5f.json"
+       "/81e8bb256ab86905467eef6d44deee1d67c68b325b929363b915fd927cb5c15c.json"
       ]
      ]
     }
@@ -2833,7 +2833,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/51eba3676d1d508f967d7942f92ac125ce23776334c87e1540c6c9b59b0b29f7.json"
+       "/af305134082d5d4df683767e1fd2d8c898e2d79792a77e52167d97bf104c3a79.json"
       ]
      ]
     }
@@ -2926,7 +2926,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/1c39ce26df8d59adcce3f52c0afa683914e948ca5828e492f352f42c5859b8d7.json"
+       "/f6b111b5d6f4803a1d2baadb8a72413ce2392a69c85f94c5244d7915319854a3.json"
       ]
      ]
     }
@@ -3019,7 +3019,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/d22ee6f2725b9e553fcab3d6fbe656d3407ffebf10d744919acc6ee244b001ad.json"
+       "/d74baa20ba6023b1892a54dd49af1e8f8d667d9dcb281c9e884b7995262513db.json"
       ]
      ]
     }
@@ -3112,7 +3112,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/e5c94907dcbf9075d14e656529755b8384ca635c0090946709aa2b880243dfc4.json"
+       "/ec3028428c22e789885ecd83db7607aa831d65ebb09a8714ddc6a230bcdfa912.json"
       ]
      ]
     }
@@ -3205,7 +3205,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/8f6febe3c67754331419013eafafae1b5085ecc0f68111ca76d04ed0ec8709c8.json"
+       "/13f260ceceea62321697487002941716d5a468abd806a9b04a9647b2afe8160d.json"
       ]
      ]
     }
@@ -3298,7 +3298,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/b7832e44bff37a39e5af80d84bf14661f10843de67e575de7b91eea15ce5d556.json"
+       "/2ab2bcb986cfb05da32461a0e45a79bec997d8ca1b0db5e9ad7525e271f06c77.json"
       ]
      ]
     }
@@ -3391,7 +3391,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/8ed78a625a1e30004aa218ff3176c4c024fc0667202eb419b35e96acf2000da1.json"
+       "/2b5907ecffc1f42e729219056d53d8f9e149445e2cac45dba51f094b5c447146.json"
       ]
      ]
     }
@@ -3484,7 +3484,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/e721db09f90e07344f20b04b55d92ea95b26d16c4e7d7ec837f200ca691fd00c.json"
+       "/8844d1f2e649faf6c55040f3673628698801a5c44c6c6891fca54b66de4ed7ed.json"
       ]
      ]
     }
@@ -3577,7 +3577,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/b8f2185cb6a1a9b05606a3f74f22c91a3408c85175986bff4014c1490f564358.json"
+       "/9f41c99a96aee046a3c1ad5dd25503ea0be3c774211ff335014e55bf3332ffcb.json"
       ]
      ]
     }
@@ -3690,6 +3690,18 @@
        "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataDocumentTypeDocumentTypeTable34B5EEFFTableArn"
       ]
      },
+     "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name": {
+      "Fn::GetAtt": [
+       "amplifyDataKardexNestedStackKardexNestedStackResourceF1C4F401",
+       "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name"
+      ]
+     },
+     "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn": {
+      "Fn::GetAtt": [
+       "amplifyDataKardexNestedStackKardexNestedStackResourceF1C4F401",
+       "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn"
+      ]
+     },
      "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataProductNestedStackProductNestedStackResource667C45A6OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataProductProductDataSourceD6BBE37FName": {
       "Fn::GetAtt": [
        "amplifyDataProductNestedStackProductNestedStackResource648F4D75",
@@ -3760,18 +3772,6 @@
       "Fn::GetAtt": [
        "amplifyDataProductTaxNestedStackProductTaxNestedStackResource3B8671A2",
        "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataProductTaxProductTaxTable5070532DTableArn"
-      ]
-     },
-     "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name": {
-      "Fn::GetAtt": [
-       "amplifyDataKardexNestedStackKardexNestedStackResourceF1C4F401",
-       "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexDataSourceBF3D83B0Name"
-      ]
-     },
-     "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexNestedStackKardexNestedStackResourceC67581ABOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn": {
-      "Fn::GetAtt": [
-       "amplifyDataKardexNestedStackKardexNestedStackResourceF1C4F401",
-       "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexKardexTable92E762D5TableArn"
       ]
      },
      "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexHistoryNestedStackKardexHistoryNestedStackResource26B5430EOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataKardexHistoryKardexHistoryDataSource36F715A8Name": {
@@ -3973,7 +3973,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/c712988af4b2e325e842a5fe0d8f7e698e537785c2b2465df14de9eeaa2273fc.json"
+       "/188f541b8bb0e6a9b81f8b0ae2e03e6b62b23e2b4cc37e20a50ec52880aee81c.json"
       ]
      ]
     }
@@ -4189,7 +4189,7 @@
      }
     ],
     "SourceObjectKeys": [
-     "9a3bf42bf6d7300a7f794963e3353646980f1377a29043b2b7f2f18eec413535.zip"
+     "079aee91332d5f12d254e2e430a4637ceb174cb4ca191be9517d20e64e0fa6b9.zip"
     ],
     "SourceMarkers": [
      {}
@@ -4258,15 +4258,7 @@
       "Arn"
      ]
     },
-    "Runtime": {
-     "Fn::FindInMap": [
-      "LatestNodeRuntimeMap",
-      {
-       "Ref": "AWS::Region"
-      },
-      "value"
-     ]
-    },
+    "Runtime": "nodejs22.x",
     "Description": {
      "Fn::Join": [
       "",
@@ -4702,7 +4694,7 @@
      }
     ],
     "SourceObjectKeys": [
-     "2dcf26afaec910c75fca5ad0e1e78e3d18399d4f752853228350468ec5bf6901.zip"
+     "8888547c6bf5328c2001b4030839a53b3d7330f329348e07472954c5dfdc6654.zip"
     ],
     "SourceMarkers": [
      {}
@@ -4798,7 +4790,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1VQTW/CMAz9LdxDxrpp91K0HcYQo9KuyKRuCaRJFqdUVdX/PqWBMk7vw/LTsxOePL/xxQxamoviPFfywPsNksci9yDObIdkGieQQUv7HqylTgvefziwx1+VWrkEQpaVenS+16mV/1QujlhDMFIrP7FjG6NxBR7yGJqV+q4GRi+8XzbijD5MrizC1igpurt91VGEDmF73xdolelq1J7H0WoyGBChJ54GGJiC+lAA77NSr6FD94OOpNEsl7pS6I1+b7TwwZlIVk7mwCTUvN8ZNR4x4r1iZAMjqnmfeyd1tQUHNXp04/wmhiHI+OmsIW/q6d8h9cZj170KPffQklCSpy1lSo7V2XhS7qGSunrID+ILrB39h/ytMxdZoIuv06ZAfqKnS/LKnxO+mJ1IyrlrtJc18l3EPw4J2G4sAgAA"
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11Qy27CMBD8lt6NS0N/IAS1hyJEidRrtDibYPAj9TpEUZR/rxxDaHuax2pHs5vwZLXiyyfoaCHKy0LJIx92SB7L3IO4sAOSbZ1ABh0VAzQN9Ubw4d1Bc/pWaSPXQMiyykzO5zZt5C+VixNqCEbayA/s2c4a3ICHPIZmlXmokdGKD+tWXNCHyY1F2FslRf+wbzqK0CFsF0OJjbK9RuN5HG1mgwEReuJpgJEp0McS+JBVZgs9ui90JK1huTS1Qm/NW2uED85Msmo2RyZB8+Fg1XTEhI+KkY2MSPMh906aeg8ONHp00/wuxjHI+OmsJW/1/O+Qeuexa6FCzwI6EkrytKNMyak6m07KPdTS1H/y/4Xunb3KEl38l7El8jM9X5NX/pLw5dOZpFy41nipkR8i/gDQ8oOpIQIAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/CDKMetadata/Default"
@@ -4855,148 +4847,6 @@
   },
   "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref": {
    "Type": "String"
-  }
- },
- "Mappings": {
-  "LatestNodeRuntimeMap": {
-   "af-south-1": {
-    "value": "nodejs22.x"
-   },
-   "ap-east-1": {
-    "value": "nodejs22.x"
-   },
-   "ap-east-2": {
-    "value": "nodejs22.x"
-   },
-   "ap-northeast-1": {
-    "value": "nodejs22.x"
-   },
-   "ap-northeast-2": {
-    "value": "nodejs22.x"
-   },
-   "ap-northeast-3": {
-    "value": "nodejs22.x"
-   },
-   "ap-south-1": {
-    "value": "nodejs22.x"
-   },
-   "ap-south-2": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-1": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-2": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-3": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-4": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-5": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-6": {
-    "value": "nodejs22.x"
-   },
-   "ap-southeast-7": {
-    "value": "nodejs22.x"
-   },
-   "ca-central-1": {
-    "value": "nodejs22.x"
-   },
-   "ca-west-1": {
-    "value": "nodejs22.x"
-   },
-   "cn-north-1": {
-    "value": "nodejs22.x"
-   },
-   "cn-northwest-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-central-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-central-2": {
-    "value": "nodejs22.x"
-   },
-   "eu-isoe-west-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-north-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-south-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-south-2": {
-    "value": "nodejs22.x"
-   },
-   "eu-west-1": {
-    "value": "nodejs22.x"
-   },
-   "eu-west-2": {
-    "value": "nodejs22.x"
-   },
-   "eu-west-3": {
-    "value": "nodejs22.x"
-   },
-   "eusc-de-east-1": {
-    "value": "nodejs22.x"
-   },
-   "il-central-1": {
-    "value": "nodejs22.x"
-   },
-   "me-central-1": {
-    "value": "nodejs22.x"
-   },
-   "me-south-1": {
-    "value": "nodejs22.x"
-   },
-   "mx-central-1": {
-    "value": "nodejs22.x"
-   },
-   "sa-east-1": {
-    "value": "nodejs22.x"
-   },
-   "us-east-1": {
-    "value": "nodejs22.x"
-   },
-   "us-east-2": {
-    "value": "nodejs22.x"
-   },
-   "us-gov-east-1": {
-    "value": "nodejs22.x"
-   },
-   "us-gov-west-1": {
-    "value": "nodejs22.x"
-   },
-   "us-iso-east-1": {
-    "value": "nodejs22.x"
-   },
-   "us-iso-west-1": {
-    "value": "nodejs22.x"
-   },
-   "us-isob-east-1": {
-    "value": "nodejs18.x"
-   },
-   "us-isob-west-1": {
-    "value": "nodejs18.x"
-   },
-   "us-isof-east-1": {
-    "value": "nodejs22.x"
-   },
-   "us-isof-south-1": {
-    "value": "nodejs22.x"
-   },
-   "us-west-1": {
-    "value": "nodejs22.x"
-   },
-   "us-west-2": {
-    "value": "nodejs22.x"
-   }
   }
  },
  "Conditions": {

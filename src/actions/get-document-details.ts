@@ -5,6 +5,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
 import { computeLiquidation, type LiquidationConfig, type LiquidationLineInput, type LiquidationResult } from "@/lib/liquidation";
 import { listAllPages } from "@/services/amplify-list-all";
+import { documentTypeLabelEs } from "@/lib/document-type-label";
 
 type DocumentHeader = {
   id: number;
@@ -15,6 +16,8 @@ type DocumentHeader = {
   paidstatus: number;
   warehousename: string;
   documenttypename: string;
+  documenttypecode?: string | null;
+  documenttypeprinttemplate?: string | null;
   customername: string | null;
   customertaxnumber: string | null;
   customercountryname: string | null;
@@ -83,6 +86,18 @@ function asLineInputs(value: any): LiquidationLineInput[] {
       id: String(l?.id ?? idx + 1),
       productId: l?.productId !== undefined ? Number(l.productId) : undefined,
       name: l?.name !== undefined ? String(l.name) : undefined,
+      purchaseReference:
+        l?.purchaseReference !== undefined
+          ? String(l.purchaseReference)
+          : l?.purchase_reference !== undefined
+            ? String(l.purchase_reference)
+            : undefined,
+      warehouseReference:
+        l?.warehouseReference !== undefined
+          ? String(l.warehouseReference)
+          : l?.warehouse_reference !== undefined
+            ? String(l.warehouse_reference)
+            : undefined,
       quantity: Number(l?.quantity ?? 0) || 0,
       totalCost: Number(l?.totalCost ?? 0) || 0,
       discountPercentage: Number(l?.discountPercentage ?? 0) || 0,
@@ -237,7 +252,14 @@ export async function getDocumentDetails(documentId: number) {
       total: Number(doc.total ?? 0),
       paidstatus: Number(doc.paidStatus ?? 0),
       warehousename: String(warehouse?.name ?? ""),
-      documenttypename: String(documentType?.name ?? ""),
+      documenttypename: documentTypeLabelEs({
+        name: documentType?.name ?? null,
+        printTemplate: documentType?.printTemplate ?? null,
+        code: documentType?.code ?? null,
+        languageKey: documentType?.languageKey ?? null,
+      }),
+      documenttypecode: documentType?.code ?? null,
+      documenttypeprinttemplate: documentType?.printTemplate ?? null,
       customername: customer ? String(customer.name ?? "") : null,
       customertaxnumber: customer ? String(customer.taxNumber ?? "") : null,
       customercountryname: country ? String(country.name ?? '') : null,

@@ -1,0 +1,406 @@
+"use client";
+
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+import { useDebounce } from "@/hooks/use-debounce";
+import { useToast } from "@/hooks/use-toast";
+
+import type { ProductGroup } from "@/actions/get-product-groups";
+import type { Warehouse } from "@/actions/get-warehouses";
+import type { Tax } from "@/actions/get-taxes";
+
+import type { ProductsMasterRow } from "@/actions/list-products-for-master";
+import { useProductsCatalog } from "@/components/catalog/products-catalog-provider";
+import { listProductsByGroup, type ProductTreeItem } from "@/actions/list-products-by-group";
+import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
+import { getTaxesForProducts } from "@/actions/get-taxes-for-products";
+
+import { DataTable } from "./data-table";
+import { productsMasterColumns } from "./products-master-columns";
+import { AddProductForm } from "./add-product-form";
+import { deleteProduct } from "@/actions/delete-product";
+import { ViewProductDetails } from "./view-product-details";
+
+export type ProductsMasterTableRow = ProductsMasterRow & {
+  productGroupName?: string | null;
+  taxesText?: string;
+  barcodesText?: string;
+};
+
+type Props = {
+  productGroups: ProductGroup[];
+  warehouses: Warehouse[];
+  taxes: Tax[];
+  initialQuery?: string;
+  initialGroupId?: number | null;
+};
+
+export function ProductsMasterClient({ productGroups, warehouses, taxes, initialQuery, initialGroupId }: Props) {
+  const { toast } = useToast();
+
+  const productsCatalog = useProductsCatalog();
+
+  const [selectedGroupId, setSelectedGroupId] = React.useState<number | null>(
+    typeof initialGroupId === "number" && Number.isFinite(initialGroupId) ? initialGroupId : null
+  );
+
+  const [leftQuery, setLeftQuery] = React.useState("");
+  const dLeftQuery = useDebounce(leftQuery, 200);
+  const [openByGroupId, setOpenByGroupId] = React.useState<Record<number, boolean>>({});
+  const [groupProducts, setGroupProducts] = React.useState<Record<number, ProductTreeItem[]>>({});
+  const [loadingGroupIds, setLoadingGroupIds] = React.useState<Record<number, boolean>>({});
+
+  const [query, setQuery] = React.useState(String(initialQuery ?? ""));
+  const dQuery = useDebounce(query, 250);
+
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [rows, setRows] = React.useState<ProductsMasterTableRow[]>([]);
+  const [isAddModalOpen, setAddModalOpen] = React.useState(false);
+  const [refreshNonce, setRefreshNonce] = React.useState(0);
+
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [detailsProductId, setDetailsProductId] = React.useState<number | null>(null);
+
+  const groupNameById = React.useMemo(() => {
+    const map = new Map<number, string>();
+    for (const g of productGroups ?? []) {
+      if (!Number.isFinite(Number(g.id))) continue;
+      map.set(Number(g.id), String(g.name ?? ""));
+    }
+    return map;
+  }, [productGroups]);
+
+  function normalizeLoose(value: unknown): string {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  React.useEffect(() => {
+    // Ensure catalog is loaded once; UI will react when provider state updates.
+    productsCatalog.ensureLoaded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    if (productsCatalog.status === "error") {
+      setError(productsCatalog.error ?? "No se pudieron cargar productos");
+      setLoading(false);
+      return;
+    }
+
+    if (productsCatalog.status === "loading" || productsCatalog.status === "idle") {
+      setLoading(true);
+      return;
+    }
+
+    // ready
+    setError(null);
+    const base = (productsCatalog.products ?? []).map((r: ProductsMasterRow) => ({
+      ...(r as ProductsMasterTableRow),
+      productGroupName:
+        r.productGroupId && groupNameById.has(Number(r.productGroupId))
+          ? groupNameById.get(Number(r.productGroupId))
+          : null,
+      taxesText: "",
+      barcodesText: "",
+    })) as ProductsMasterTableRow[];
+    setRows(base);
+    setLoading(false);
+  }, [productsCatalog.status, productsCatalog.error, productsCatalog.products, groupNameById, refreshNonce]);
+
+  const rootGroups = React.useMemo(() => {
+    const all = productGroups ?? [];
+    const childrenByParent = new Map<number | null, ProductGroup[]>();
+
+    for (const g of all) {
+      const parent = (g as any).parentGroupId ?? null;
+      const parentId = parent === null || parent === undefined ? null : Number(parent);
+      const key = Number.isFinite(parentId as any) ? (parentId as number) : null;
+      const arr = childrenByParent.get(key) ?? [];
+      arr.push(g);
+      childrenByParent.set(key, arr);
+    }
+
+    const sortGroups = (arr: ProductGroup[]) => arr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    for (const [k, v] of childrenByParent) childrenByParent.set(k, sortGroups(v));
+
+    return {
+      childrenByParent,
+      roots: childrenByParent.get(null) ?? [],
+    };
+  }, [productGroups]);
+
+  const filteredRoots = React.useMemo(() => {
+    const q = String(dLeftQuery ?? "").trim().toLowerCase();
+    if (!q) return rootGroups.roots;
+    return rootGroups.roots.filter((g) => String(g.name ?? "").toLowerCase().includes(q) || String(g.id).includes(q));
+  }, [rootGroups.roots, dLeftQuery]);
+
+  const filteredRows = React.useMemo(() => {
+    const q = normalizeLoose(dQuery);
+    const qRaw = String(dQuery ?? "").trim();
+    const hasQuery = q.length > 0;
+
+    return (rows ?? []).filter((r) => {
+      if (selectedGroupId && r.productGroupId !== selectedGroupId) return false;
+      if (!hasQuery) return true;
+
+      const idText = String(r.id);
+      const name = normalizeLoose(r.name);
+      const code = normalizeLoose(r.code);
+      return idText.includes(qRaw) || name.includes(q) || code.includes(q);
+    });
+  }, [rows, selectedGroupId, dQuery]);
+
+  async function ensureGroupLoaded(groupId: number) {
+    if (groupProducts[groupId]) return;
+    setLoadingGroupIds((prev) => ({ ...prev, [groupId]: true }));
+    try {
+      const res = await listProductsByGroup({ groupId, q: "", limit: 200 });
+      if (res.error) throw new Error(res.error);
+      setGroupProducts((prev) => ({ ...prev, [groupId]: res.data ?? [] }));
+    } catch {
+      setGroupProducts((prev) => ({ ...prev, [groupId]: [] }));
+    } finally {
+      setLoadingGroupIds((prev) => ({ ...prev, [groupId]: false }));
+    }
+  }
+
+  async function setGroupOpen(groupId: number, open: boolean) {
+    setOpenByGroupId((prev) => ({ ...prev, [groupId]: open }));
+    if (open) {
+      await ensureGroupLoaded(groupId);
+    }
+  }
+
+  const handleDeleteProduct = React.useCallback(
+    async (productId: number) => {
+      const result = await deleteProduct(productId);
+      if (result.success) {
+        toast({ title: "Producto eliminado", description: result.message });
+        setRows((prev) => prev.filter((r) => r.id !== productId));
+        setGroupProducts((prev) => {
+          const next = { ...prev };
+          for (const key of Object.keys(next)) {
+            const gid = Number(key);
+            next[gid] = (next[gid] ?? []).filter((p) => p.idProduct !== productId);
+          }
+          return next;
+        });
+      } else {
+        toast({ variant: "destructive", title: "Error al eliminar", description: result.error });
+      }
+    },
+    [toast]
+  );
+
+  const tableMeta = React.useMemo(
+    () => ({
+      productGroups,
+      warehouses,
+      taxes,
+      handleDeleteProduct,
+    }),
+    [productGroups, warehouses, taxes, handleDeleteProduct]
+  );
+
+  function GroupNode({ group, depth }: { group: ProductGroup; depth: number }) {
+    const groupId = group.id;
+    const children = rootGroups.childrenByParent.get(groupId) ?? [];
+    const loaded = groupProducts[groupId] ?? null;
+    const loadingGp = Boolean(loadingGroupIds[groupId]);
+    const isOpen = Boolean(openByGroupId[groupId]);
+
+    const displayProducts = React.useMemo(() => {
+      const q = String(dLeftQuery ?? "").trim().toLowerCase();
+      if (!loaded) return [];
+      if (!q) return loaded;
+      return loaded.filter((p) => p.name.toLowerCase().includes(q) || String(p.idProduct).includes(q) || String(p.code ?? "").toLowerCase().includes(q));
+    }, [loaded, dLeftQuery]);
+
+    return (
+      <Collapsible open={isOpen} onOpenChange={(open) => setGroupOpen(groupId, open)}>
+        <div className="flex items-center justify-between gap-2" style={{ paddingLeft: depth * 10 }}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex flex-1 items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-muted"
+              title={group.name}
+            >
+              <span className="truncate">{group.name}</span>
+            </button>
+          </CollapsibleTrigger>
+          <Badge
+            variant={selectedGroupId === groupId ? "default" : "secondary"}
+            className="shrink-0 cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSelectedGroupId((prev) => (prev === groupId ? null : groupId));
+            }}
+          >
+            {selectedGroupId === groupId ? "Filtrando" : "Filtrar"}
+          </Badge>
+        </div>
+
+        <CollapsibleContent>
+          <div className="mt-1 space-y-1">
+            {loadingGp ? (
+              <div className="px-2 py-1 text-xs text-muted-foreground">Cargando…</div>
+            ) : loaded ? (
+              displayProducts.length ? (
+                displayProducts.slice(0, 200).map((p) => (
+                  <button
+                    key={p.idProduct}
+                    type="button"
+                    className="w-full rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                    onClick={() => {
+                      setDetailsProductId(p.idProduct);
+                      setDetailsOpen(true);
+                    }}
+                    title={p.code ? `${p.code} — ${p.name}` : p.name}
+                  >
+                    <div className="truncate">
+                      <span className="font-mono text-xs text-muted-foreground mr-2">{p.code ?? p.idProduct}</span>
+                      {p.name}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-2 py-1 text-xs text-muted-foreground">Sin productos.</div>
+              )
+            ) : (
+              <div className="px-2 py-1 text-xs text-muted-foreground">Expandir para cargar productos.</div>
+            )}
+          </div>
+
+          {children.length ? (
+            <div className="mt-2 space-y-2">
+              {children.map((c) => (
+                <GroupNode key={c.id} group={c} depth={depth + 1} />
+              ))}
+            </div>
+          ) : null}
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+      <Card className="h-[calc(100vh-220px)]">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Grupos y productos</CardTitle>
+          <Input placeholder="Buscar en el árbol…" value={leftQuery} onChange={(e) => setLeftQuery(e.target.value)} />
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ScrollArea className="h-[calc(100vh-300px)] pr-2">
+            <div className="space-y-2">
+              {filteredRoots.map((g) => (
+                <GroupNode key={g.id} group={g} depth={0} />
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar productos (nombre, código o barcode)…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full sm:w-[420px]"
+            />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  await productsCatalog.refresh();
+                  setRefreshNonce((n) => n + 1);
+                } catch (e: any) {
+                  setError(e?.message ?? "No se pudo refrescar");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              title="Refrescar"
+            >
+              Refrescar
+            </Button>
+            {selectedGroupId ? (
+              <Button variant="outline" onClick={() => setSelectedGroupId(null)} disabled={loading}>
+                Quitar filtro: {productGroups.find((g) => g.id === selectedGroupId)?.name ?? `#${selectedGroupId}`}
+              </Button>
+            ) : null}
+          </div>
+
+          <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button>Nuevo producto</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Añadir nuevo producto</DialogTitle>
+                <DialogDescription>Completa los detalles para añadir un nuevo producto al catálogo.</DialogDescription>
+              </DialogHeader>
+              <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups || []} warehouses={warehouses} taxes={taxes} />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="text-sm text-muted-foreground">
+          Productos: {filteredRows.length} {selectedGroupId ? "(filtrado por grupo)" : ""}
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : (
+          <DataTable columns={productsMasterColumns} data={filteredRows} meta={tableMeta} />
+        )}
+      </div>
+
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Detalles del producto</SheetTitle>
+          </SheetHeader>
+          {detailsProductId ? (
+            <div className="pt-4">
+              <ViewProductDetails productId={detailsProductId} />
+            </div>
+          ) : (
+            <div className="pt-4 text-sm text-muted-foreground">Selecciona un producto.</div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

@@ -1,6 +1,8 @@
 "use server";
 import { z } from 'zod';
 import { amplifyClient } from '@/lib/amplify-config';
+import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { requireSession } from "@/lib/session";
 const UpdateProductSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre del producto es obligatorio."),
@@ -23,6 +25,8 @@ export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
  * Actualiza un producto existente en la base de datos dentro de una transacción.
  */
 export async function updateProduct(input: UpdateProductInput) {
+  await requireSession(ACCESS_LEVELS.ADMIN);
+
   const validation = UpdateProductSchema.safeParse(input);
 
   if (!validation.success) {
