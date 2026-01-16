@@ -1,0 +1,10 @@
+{
+  // Ensure VS Code uses the workspace TypeScript (required for "moduleResolution": "bundler")
+  // to avoid false "Cannot find module 'next/*'" and component prop type errors.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Keep imports consistent with the @/* path alias.
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifier": "non-relative"
+}
