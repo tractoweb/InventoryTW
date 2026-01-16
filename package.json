@@ -48,6 +48,7 @@
     "firebase": "^11.9.1",
     "genkit": "^1.0.0",
     "jsbarcode": "^3.12.3",
+    "@zxing/browser": "^0.1.5",
     "lucide-react": "^0.475.0",
     "mysql2": "^3.10.1",
     "next": "14.2.35",

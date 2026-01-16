@@ -94,7 +94,9 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
 
       const textX = x0 + outerX; // reuse 0.2cm as internal padding
       const textW = Math.max(10, labelW - outerX * 2);
-      const nameY = y0 + marginTop + cmToDots(0.15, dpi);
+      // Some printers (e.g. GC420t) can drift slightly upwards; keep name a bit lower
+      // to reduce the perceived gap before the next fields without moving them up.
+      const nameY = y0 + marginTop + cmToDots(0.23, dpi);
 
       // Keep names inside the sticker:
       // - allow wrapping to up to 3 lines

@@ -78,7 +78,47 @@
   * {
     @apply border-border;
   }
+  html {
+    @apply overflow-x-hidden;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] .ui-show-glow {
+    filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.55));
+  }
+
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(1200px circle at 20% 0%, hsl(var(--primary) / 0.12), transparent 55%),
+      radial-gradient(900px circle at 80% 20%, hsl(var(--accent) / 0.10), transparent 60%),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.05) 0px,
+        rgba(255, 255, 255, 0.05) 1px,
+        rgba(0, 0, 0, 0) 3px,
+        rgba(0, 0, 0, 0) 6px
+      );
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+  }
+
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] body {
+    position: relative;
+  }
+
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] #__next,
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] main,
+  html[data-ui-animejs="on"][data-ui-animation-preset="show"] header {
+    position: relative;
+    z-index: 1;
   }
 }

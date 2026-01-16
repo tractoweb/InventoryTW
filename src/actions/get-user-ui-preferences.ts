@@ -3,7 +3,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
-import { requireSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/session";
 import {
   DEFAULT_USER_UI_PREFERENCES,
   makeUserUiPreferencesKey,
@@ -13,9 +13,13 @@ import {
 
 export async function getUserUiPreferences(): Promise<{ data?: UserUiPreferences; error?: string }> {
   noStore();
-  const session = await requireSession();
+  const sessionRes = await getCurrentSession();
+  if (!sessionRes.data) {
+    // Public pages (e.g. /login) still render the provider; don't throw.
+    return { data: DEFAULT_USER_UI_PREFERENCES };
+  }
 
-  const name = makeUserUiPreferencesKey(session.userId);
+  const name = makeUserUiPreferencesKey(sessionRes.data.userId);
 
   try {
     const res: any = await amplifyClient.models.ApplicationProperty.get({ name } as any);

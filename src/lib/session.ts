@@ -26,7 +26,11 @@ export async function getCurrentSession(): Promise<{ data?: CurrentSession; erro
 
   try {
     const res = await validateSession(parsed.userId, parsed.sessionToken);
-    if (!res?.valid || !res?.session) return { error: "Sesión inválida" };
+    if (!res?.valid || !res?.session) {
+      // Cookie is stale/invalid; clear it so we don't keep retrying on every request.
+      clearSessionCookie();
+      return { error: "Sesión inválida" };
+    }
 
     const s: any = res.session;
     return {

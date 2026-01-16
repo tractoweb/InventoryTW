@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { ACCESS_LEVELS } from '@/lib/amplify-config';
@@ -11,6 +12,7 @@ import { requireSession } from '@/lib/session';
 import { listAllPages } from '@/services/amplify-list-all';
 import { writeAuditLog } from '@/services/audit-log-service';
 import { createDocument } from '@/services/document-service';
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 async function seedCounterFromExistingMax(counterName: string, entity: 'Document' | 'DocumentItem') {
   const all =
@@ -140,6 +142,10 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
         itemsCount: input.items.length,
       },
     }).catch(() => {});
+
+    revalidateTag(CACHE_TAGS.heavy.documents);
+    revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+    revalidateTag(CACHE_TAGS.heavy.stockData);
 
     return {
       success: true,

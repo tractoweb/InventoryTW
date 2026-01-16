@@ -2,11 +2,13 @@
 
 import { z } from "zod";
 import { unstable_noStore as noStore } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { listAllPages } from "@/services/amplify-list-all";
 import { writeAuditLog } from "@/services/audit-log-service";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const CreateTaxSchema = z.object({
   name: z.string().min(1),
@@ -63,6 +65,9 @@ export async function createTaxAction(raw: CreateTaxInput): Promise<{ success: b
 
     const res: any = await amplifyClient.models.Tax.create(payload);
     if (res?.data) {
+      revalidateTag(CACHE_TAGS.ref.taxes);
+      revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+
       writeAuditLog({
         userId: session.userId,
         action: "CREATE",

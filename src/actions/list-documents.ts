@@ -1,9 +1,10 @@
 "use server";
 
-import { unstable_noStore as noStore } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
 import { documentTypeLabelEs } from "@/lib/document-type-label";
+import { cached } from "@/lib/server-cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export type DocumentListFilters = {
   q?: string;
@@ -44,8 +45,6 @@ type Warehouse = { idWarehouse: number; name: string };
 type DocumentType = { documentTypeId: number; name: string; printTemplate?: string | null; languageKey?: string | null };
 
 export async function listDocuments(filters?: DocumentListFilters) {
-  noStore();
-
   try {
     const filter: any = {};
 
@@ -76,10 +75,28 @@ export async function listDocuments(filters?: DocumentListFilters) {
 
     if (scanMode) {
       // Stable path: scan all matching docs, apply q filter (optional), sort by stockDate, then slice by page.
-      const docsResult = await listAllPages<any>(
-        (args) => amplifyClient.models.Document.list(args),
-        Object.keys(filter).length ? { filter } : undefined
+      const filterKey = JSON.stringify({
+        customerId: filters?.customerId ?? null,
+        warehouseId: filters?.warehouseId ?? null,
+        documentTypeId: filters?.documentTypeId ?? null,
+        dateFrom: filters?.dateFrom ?? null,
+        dateTo: filters?.dateTo ?? null,
+      });
+
+      const loadAllForScan = cached(
+        async () =>
+          listAllPages<any>(
+            (args) => amplifyClient.models.Document.list(args),
+            Object.keys(filter).length ? { filter } : undefined
+          ),
+        {
+          keyParts: ["heavy", "documents-scan", filterKey],
+          revalidateSeconds: 30,
+          tags: [CACHE_TAGS.heavy.documents],
+        }
       );
+
+      const docsResult = await loadAllForScan();
 
       if ("error" in docsResult) return { data: [], error: docsResult.error };
 

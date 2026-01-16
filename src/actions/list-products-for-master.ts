@@ -1,8 +1,8 @@
 "use server";
 
-import { unstable_noStore as noStore } from "next/cache";
-
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { cached } from "@/lib/server-cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export type ProductsMasterRow = {
   id: number;
@@ -24,15 +24,20 @@ export async function listProductsForMaster(args?: {
   limit?: number; // alias for pageSize
   nextToken?: string | null;
 }): Promise<{ data: ProductsMasterRow[]; nextToken: string | null; error?: string }> {
-  noStore();
+  const qRaw = String(args?.q ?? "").trim();
+  const groupId = args?.groupId === undefined || args?.groupId === null ? null : Number(args.groupId);
+  const pageSizeRaw = args?.pageSize ?? args?.limit ?? 10;
+  const pageSize = Number.isFinite(Number(pageSizeRaw)) ? Math.max(1, Math.trunc(Number(pageSizeRaw))) : 10;
+  const nextTokenIn = args?.nextToken ?? null;
 
-  try {
-    const qRaw = String(args?.q ?? "").trim();
-    const groupId = args?.groupId === undefined || args?.groupId === null ? null : Number(args.groupId);
-    const pageSizeRaw = args?.pageSize ?? args?.limit ?? 10;
-    const pageSize = Number.isFinite(Number(pageSizeRaw)) ? Math.max(1, Math.trunc(Number(pageSizeRaw))) : 10;
+  const load = cached(
+    async () => {
+      try {
+      const qRawLocal = qRaw;
+      const groupIdLocal = groupId;
+      const pageSizeLocal = pageSize;
 
-    const searchMode = qRaw.length > 0;
+      const searchMode = qRawLocal.length > 0;
 
     function normalizeLoose(value: unknown): string {
       return String(value ?? "")
@@ -93,24 +98,26 @@ export async function listProductsForMaster(args?: {
       return results;
     }
 
-    const productGroupFilter = groupId && Number.isFinite(groupId) ? ({ productGroupId: { eq: groupId } } as any) : null;
+        const productGroupFilter = groupIdLocal && Number.isFinite(groupIdLocal)
+          ? ({ productGroupId: { eq: groupIdLocal } } as any)
+          : null;
 
     let products: any[] = [];
     let nextToken: string | null = null;
 
-    if (!searchMode) {
+        if (!searchMode) {
       const res: any = await amplifyClient.models.Product.list({
-        limit: pageSize,
-        nextToken: args?.nextToken ?? undefined,
+        limit: pageSizeLocal,
+        nextToken: nextTokenIn ?? undefined,
         ...(productGroupFilter ? { filter: productGroupFilter } : null),
       } as any);
 
       products = (res?.data ?? []) as any[];
       nextToken = res?.nextToken ?? null;
-    } else {
-      const q = qRaw;
-      const qLoose = normalizeLoose(qRaw);
-      const tokens = decodeSearchTokens(args?.nextToken);
+        } else {
+      const q = qRawLocal;
+      const qLoose = normalizeLoose(qRawLocal);
+      const tokens = decodeSearchTokens(nextTokenIn);
 
       const byNameFilter = productGroupFilter
         ? ({ and: [productGroupFilter, { name: { contains: q } }] } as any)
@@ -122,17 +129,17 @@ export async function listProductsForMaster(args?: {
       const [byName, byCode, byBarcode] = await Promise.all([
         amplifyClient.models.Product.list({
           filter: byNameFilter,
-          limit: pageSize,
+          limit: pageSizeLocal,
           nextToken: tokens.name ?? undefined,
         } as any),
         amplifyClient.models.Product.list({
           filter: byCodeFilter,
-          limit: pageSize,
+          limit: pageSizeLocal,
           nextToken: tokens.code ?? undefined,
         } as any),
         amplifyClient.models.Barcode.list({
           filter: { value: { contains: q } },
-          limit: pageSize,
+          limit: pageSizeLocal,
           nextToken: tokens.barcode ?? undefined,
         } as any),
       ]);
@@ -151,14 +158,14 @@ export async function listProductsForMaster(args?: {
       const barcodeMatches = (((byBarcode as any)?.data ?? []) as any[])
         .map((b: any) => Number(b?.productId))
         .filter((id: any) => Number.isFinite(id) && id > 0);
-      const uniqueBarcodeIds = Array.from(new Set(barcodeMatches)).slice(0, pageSize);
+      const uniqueBarcodeIds = Array.from(new Set(barcodeMatches)).slice(0, pageSizeLocal);
 
       const barcodeProducts = await mapWithConcurrency(uniqueBarcodeIds, 10, async (idProduct) => {
         const res = await amplifyClient.models.Product.get({ idProduct: Number(idProduct) } as any);
         return (res as any)?.data ?? null;
       });
       for (const p of barcodeProducts.filter(Boolean)) {
-        if (productGroupFilter && Number((p as any)?.productGroupId) !== groupId) continue;
+        if (productGroupFilter && Number((p as any)?.productGroupId) !== groupIdLocal) continue;
         const id = Number((p as any)?.idProduct);
         if (Number.isFinite(id)) byId.set(id, p);
       }
@@ -173,7 +180,7 @@ export async function listProductsForMaster(args?: {
         });
 
       merged.sort((a, b) => Number(a?.idProduct ?? 0) - Number(b?.idProduct ?? 0));
-      products = merged.slice(0, pageSize);
+      products = merged.slice(0, pageSizeLocal);
 
       const nextTokens: SearchTokens = {
         name: (byName as any)?.nextToken ?? null,
@@ -202,8 +209,24 @@ export async function listProductsForMaster(args?: {
       })
       .filter((r: any) => Number.isFinite(r.id) && r.id > 0 && r.name.length > 0);
 
-    return { data: rows, nextToken };
-  } catch (error) {
-    return { data: [], nextToken: null, error: formatAmplifyError(error) };
-  }
+        return { data: rows, nextToken };
+      } catch (error) {
+        return { data: [], nextToken: null, error: formatAmplifyError(error) };
+      }
+    },
+    {
+      keyParts: [
+        "heavy",
+        "products-master",
+        qRaw,
+        groupId === null ? "g:null" : `g:${groupId}`,
+        `ps:${pageSize}`,
+        nextTokenIn ?? "nt:null",
+      ],
+      revalidateSeconds: 20,
+      tags: [CACHE_TAGS.heavy.productsMaster],
+    }
+  );
+
+  return await load();
 }

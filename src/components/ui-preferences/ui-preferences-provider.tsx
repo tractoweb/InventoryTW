@@ -7,6 +7,7 @@ import {
   DEFAULT_USER_UI_PREFERENCES,
   type UserUiPreferences,
 } from "@/lib/ui-preferences";
+import { getAnime } from "@/components/ui-preferences/anime";
 
 type UiPreferencesContextValue = {
   preferences: UserUiPreferences;
@@ -89,6 +90,11 @@ function applyUiPreferencesToDom(preferences: UserUiPreferences) {
   }
 }
 
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+}
+
 export function UiPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = React.useState<UserUiPreferences>(DEFAULT_USER_UI_PREFERENCES);
   const [loading, setLoading] = React.useState(true);
@@ -110,6 +116,93 @@ export function UiPreferencesProvider({ children }: { children: React.ReactNode 
   React.useEffect(() => {
     applyUiPreferencesToDom(preferences);
   }, [preferences]);
+
+  React.useEffect(() => {
+    if (!preferences.enableAnimeJs) return;
+    if (prefersReducedMotion()) return;
+
+    const abort = new AbortController();
+    const signal = abort.signal;
+
+    const active = new WeakSet<HTMLElement>();
+
+    const animateIn = async (el: HTMLElement) => {
+      const anime = await getAnime();
+      if (signal.aborted) return;
+      if (!anime) return;
+
+      active.add(el);
+      anime.remove(el);
+      anime.animate(el, {
+        translateY: preferences.animationPreset === "show" ? -2 : -1,
+        scale: preferences.animationPreset === "show" ? 1.03 : 1.02,
+        duration: preferences.animationPreset === "show" ? 220 : 160,
+        easing: preferences.animationPreset === "show" ? anime.eases.outExpo : anime.eases.outQuad,
+      });
+    };
+
+    const animateOut = async (el: HTMLElement) => {
+      const anime = await getAnime();
+      if (signal.aborted) return;
+      if (!anime) return;
+
+      active.delete(el);
+      anime.remove(el);
+      anime.animate(el, {
+        translateY: 0,
+        scale: 1,
+        duration: preferences.animationPreset === "show" ? 280 : 180,
+        easing: preferences.animationPreset === "show" ? anime.eases.outExpo : anime.eases.outQuad,
+      });
+    };
+
+    const findTarget = (evtTarget: EventTarget | null): HTMLElement | null => {
+      const node = evtTarget as Element | null;
+      if (!node?.closest) return null;
+      const el = node.closest("[data-anime-hover=lift]") as HTMLElement | null;
+      if (!el) return null;
+      if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") return null;
+      return el;
+    };
+
+    const onPointerOver = (e: PointerEvent) => {
+      const el = findTarget(e.target);
+      if (!el) return;
+      if (active.has(el)) return;
+      void animateIn(el);
+    };
+
+    const onPointerOut = (e: PointerEvent) => {
+      const el = findTarget(e.target);
+      if (!el) return;
+      // If moving within the same element, ignore.
+      const related = e.relatedTarget as Node | null;
+      if (related && el.contains(related)) return;
+      void animateOut(el);
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      const el = findTarget(e.target);
+      if (!el) return;
+      if (active.has(el)) return;
+      void animateIn(el);
+    };
+
+    const onFocusOut = (e: FocusEvent) => {
+      const el = findTarget(e.target);
+      if (!el) return;
+      void animateOut(el);
+    };
+
+    document.addEventListener("pointerover", onPointerOver, { signal });
+    document.addEventListener("pointerout", onPointerOut, { signal });
+    document.addEventListener("focusin", onFocusIn, { signal });
+    document.addEventListener("focusout", onFocusOut, { signal });
+
+    return () => {
+      abort.abort();
+    };
+  }, [preferences.enableAnimeJs, preferences.animationPreset]);
 
   const value = React.useMemo<UiPreferencesContextValue>(
     () => ({ preferences, setPreferences, loading, refresh }),

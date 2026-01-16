@@ -2,10 +2,12 @@
 
 import { z } from "zod";
 import { unstable_noStore as noStore } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const UpdateTaxSchema = z.object({
   idTax: z.coerce.number().int().positive(),
@@ -52,6 +54,9 @@ export async function updateTaxAction(raw: UpdateTaxInput): Promise<{ success: b
 
     const res: any = await amplifyClient.models.Tax.update(payload);
     if (res?.data) {
+      revalidateTag(CACHE_TAGS.ref.taxes);
+      revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+
       writeAuditLog({
         userId: session.userId,
         action: "UPDATE",

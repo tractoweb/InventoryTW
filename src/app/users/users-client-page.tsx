@@ -37,7 +37,9 @@ import { listUsersAction, type UserListRow } from "@/actions/list-users";
 import { updateUserAction } from "@/actions/update-user";
 
 const UserEditSchema = z.object({
-  userId: z.number().int().positive(),
+  // In create mode the ID is assigned server-side; keep this nonnegative
+  // so the form can submit and show relevant field errors.
+  userId: z.number().int().nonnegative(),
   username: z.string().min(1, "Usuario requerido"),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
@@ -154,6 +156,9 @@ export default function UsersClientPage() {
     setSaving(true);
     setError(null);
 
+    // Clear previous field errors
+    form.clearErrors();
+
     try {
       if (dialogMode === "create") {
         const input: CreateUserInput = {
@@ -171,9 +176,30 @@ export default function UsersClientPage() {
         }
 
         const res = await createUser(input);
-        if (!res.success) throw new Error(res.error ?? "No se pudo crear usuario");
+        if (!res.success) {
+          const anyRes: any = res as any;
+          if (anyRes?.fieldErrors && typeof anyRes.fieldErrors === "object") {
+            for (const [k, v] of Object.entries(anyRes.fieldErrors)) {
+              if (!v) continue;
+              if (k === "password") {
+                form.setError("newPassword", { type: "server", message: String(v) });
+              } else if (
+                k === "username" ||
+                k === "email" ||
+                k === "firstName" ||
+                k === "lastName" ||
+                k === "accessLevel" ||
+                k === "isEnabled"
+              ) {
+                form.setError(k as any, { type: "server", message: String(v) });
+              }
+            }
+          }
+          throw new Error(res.error ?? "No se pudo crear usuario");
+        }
 
-        toast({ title: "Usuario creado", description: `#${res.user?.userId ?? ""} · ${values.username}` });
+        const createdId = (res as any)?.user?.userId ?? "";
+        toast({ title: "Usuario creado", description: `#${createdId} · ${values.username}` });
         setDialogOpen(false);
         await refresh();
         return;
@@ -198,6 +224,11 @@ export default function UsersClientPage() {
       await refresh();
     } catch (e: any) {
       setError(e?.message ?? "No se pudo guardar");
+      toast({
+        title: "No se pudo guardar",
+        description: e?.message ?? "Revisa los campos e inténtalo de nuevo",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -290,22 +321,34 @@ export default function UsersClientPage() {
             <div className="grid gap-2">
               <Label>Usuario</Label>
               <Input {...form.register("username")} disabled={saving} />
+              {form.formState.errors.username?.message ? (
+                <p className="text-xs text-destructive">{form.formState.errors.username.message}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Nombre</Label>
                 <Input {...form.register("firstName")} disabled={saving} />
+                {form.formState.errors.firstName?.message ? (
+                  <p className="text-xs text-destructive">{form.formState.errors.firstName.message}</p>
+                ) : null}
               </div>
               <div className="grid gap-2">
                 <Label>Apellido</Label>
                 <Input {...form.register("lastName")} disabled={saving} />
+                {form.formState.errors.lastName?.message ? (
+                  <p className="text-xs text-destructive">{form.formState.errors.lastName.message}</p>
+                ) : null}
               </div>
             </div>
 
             <div className="grid gap-2">
               <Label>Email</Label>
               <Input type="email" {...form.register("email")} disabled={saving} />
+              {form.formState.errors.email?.message ? (
+                <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-2">
@@ -334,6 +377,9 @@ export default function UsersClientPage() {
             <div className="grid gap-2">
               <Label>{dialogMode === "create" ? "Contraseña" : "Nueva contraseña (opcional)"}</Label>
               <Input type="password" {...form.register("newPassword")} disabled={saving} placeholder={dialogMode === "create" ? "mínimo 4 caracteres" : "dejar vacío para no cambiar"} />
+              {form.formState.errors.newPassword?.message ? (
+                <p className="text-xs text-destructive">{form.formState.errors.newPassword.message}</p>
+              ) : null}
               {dialogMode === "edit" ? (
                 <p className="text-xs text-muted-foreground">Si lo dejas vacío, no cambia la contraseña.</p>
               ) : null}

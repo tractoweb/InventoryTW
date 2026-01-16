@@ -2,9 +2,11 @@
 
 import { z } from "zod";
 import { unstable_noStore as noStore } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const UpdateWarehouseSchema = z.object({
   idWarehouse: z.coerce.number().int().positive(),
@@ -26,7 +28,11 @@ export async function updateWarehouseAction(raw: UpdateWarehouseInput): Promise<
       name: parsed.data.name.trim(),
     } as any);
 
-    if (res?.data) return { success: true };
+    if (res?.data) {
+      revalidateTag(CACHE_TAGS.ref.warehouses);
+      revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+      return { success: true };
+    }
     return { success: false, error: (res?.errors?.[0]?.message as string | undefined) ?? "No se pudo actualizar" };
   } catch (e) {
     return { success: false, error: formatAmplifyError(e) };

@@ -1,8 +1,7 @@
 'use server';
 
-import { unstable_noStore as noStore } from 'next/cache';
-
 import { formatAmplifyError } from '@/lib/amplify-config';
+import { cached } from "@/lib/server-cache";
 import { listCountries } from '@/services/country-service';
 
 export type CountryListItem = {
@@ -12,20 +11,29 @@ export type CountryListItem = {
 };
 
 export async function getCountries(): Promise<{ data: CountryListItem[]; error?: string }> {
-  noStore();
-
   try {
-    const rows = await listCountries();
-    const data: CountryListItem[] = (rows ?? [])
-      .map((c: any) => ({
-        idCountry: Number(c?.idCountry),
-        name: String(c?.name ?? ''),
-        code: c?.code ?? null,
-      }))
-      .filter((c) => Number.isFinite(c.idCountry) && c.idCountry > 0 && c.name.length > 0)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const load = cached(
+      async () => {
+        const rows = await listCountries();
+        const data: CountryListItem[] = (rows ?? [])
+          .map((c: any) => ({
+            idCountry: Number(c?.idCountry),
+            name: String(c?.name ?? ''),
+            code: c?.code ?? null,
+          }))
+          .filter((c) => Number.isFinite(c.idCountry) && c.idCountry > 0 && c.name.length > 0)
+          .sort((a, b) => a.name.localeCompare(b.name));
 
-    return { data };
+        return { data } as const;
+      },
+      {
+        keyParts: ["ref", "countries"],
+        revalidateSeconds: 24 * 60 * 60,
+        tags: ["ref:countries"],
+      }
+    );
+
+    return await load();
   } catch (e) {
     return { data: [], error: formatAmplifyError(e) };
   }

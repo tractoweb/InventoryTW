@@ -76,7 +76,7 @@ async function OverviewWrapper() {
 
 async function RecentItemsWrapper() {
     const { data, error } = await getStockData();
-  return <RecentItems items={data ?? null} error={error} />;
+  return <RecentItems items={data ?? null} error={error ?? null} />;
 }
 
 

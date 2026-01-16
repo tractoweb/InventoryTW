@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
@@ -9,6 +10,7 @@ import { createProduct } from '@/services/product-service';
 import { listAllPages } from '@/services/amplify-list-all';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const CreateProductSchema = z.object({
   name: z.string().min(1),
@@ -128,6 +130,9 @@ export async function createProductAction(raw: CreateProductInput): Promise<{ su
           }).catch(() => {});
         }
 
+        revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+        revalidateTag(CACHE_TAGS.heavy.stockData);
+        revalidateTag(CACHE_TAGS.heavy.productsMaster);
         return { success: true, idProduct };
       }
 

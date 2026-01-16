@@ -1,8 +1,10 @@
 "use server";
 import { amplifyClient } from '@/lib/amplify-config';
+import { revalidateTag } from "next/cache";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 /**
  * Elimina un producto de la base de datos si no tiene dependencias en documentos.
@@ -42,6 +44,10 @@ export async function deleteProduct(productId: number): Promise<{ success: boole
         isEnabled: false,
       },
     }).catch(() => {});
+
+    revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+    revalidateTag(CACHE_TAGS.heavy.stockData);
+    revalidateTag(CACHE_TAGS.heavy.productsMaster);
 
     return { success: true, message: "Producto desactivado (no se elimina para no romper trazabilidad)." };
   } catch (error: any) {

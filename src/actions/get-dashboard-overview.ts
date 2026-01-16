@@ -1,8 +1,9 @@
 "use server";
 
-import { unstable_noStore as noStore } from "next/cache";
 import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
+import { cached } from "@/lib/server-cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 function toIsoDateOnly(d: Date): string {
   // Use UTC to avoid server TZ surprises.
@@ -154,11 +155,12 @@ export type DashboardOverviewArgs = {
 };
 
 export async function getDashboardOverview(args?: DashboardOverviewArgs): Promise<{ data?: DashboardOverview; error?: string }> {
-  noStore();
+  const daysRaw = args?.days ?? 30;
+  const days = Number.isFinite(daysRaw) ? Math.min(365, Math.max(7, Math.trunc(Number(daysRaw)))) : 30;
 
-  try {
-    const daysRaw = args?.days ?? 30;
-    const days = Number.isFinite(daysRaw) ? Math.min(365, Math.max(7, Math.trunc(Number(daysRaw)))) : 30;
+  const load = cached(
+    async () => {
+      try {
 
     const todayUtc = new Date();
     const to = toIsoDateOnly(todayUtc);
@@ -648,8 +650,17 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
       },
     };
 
-    return { data };
-  } catch (error: any) {
-    return { error: formatAmplifyError(error) };
-  }
+        return { data };
+      } catch (error: any) {
+        return { error: formatAmplifyError(error) };
+      }
+    },
+    {
+      keyParts: ["heavy", "dashboard-overview", String(days)],
+      revalidateSeconds: 30,
+      tags: [CACHE_TAGS.heavy.dashboardOverview, CACHE_TAGS.heavy.stockData, CACHE_TAGS.heavy.documents],
+    }
+  );
+
+  return await load();
 }

@@ -20,6 +20,7 @@ import { generate3UpLabelsRow } from "@/utils/zplGenerator";
 import type { LabelData } from "@/types/label.types";
 import { sendZplWithRetry } from "@/lib/browserprint-client";
 import { BarcodeSvg } from "@/components/print-labels/barcode-svg";
+import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 
 export default function ProductsBrowser() {
   const pageSize = 50;
@@ -45,10 +46,14 @@ export default function ProductsBrowser() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewRows, setPreviewRows] = useState<LabelData[][]>([]);
+  const previewViewportRef = useRef<HTMLDivElement | null>(null);
+  const [previewRowWidthPx, setPreviewRowWidthPx] = useState<number>(780);
 
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 250);
   const isSearching = debouncedQuery.trim().length > 0;
+
+  const [scanOpen, setScanOpen] = useState(false);
 
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
@@ -188,14 +193,33 @@ export default function ProductsBrowser() {
   };
 
   const renderStickerPreview = (label: LabelData, options?: { widthPx?: number }) => {
-    // Sticker size: 3.2cm x 2.5cm.
-    // At 203dpi (~8 dots/mm): ~256 x 200 dots.
-    const zplW = 256;
-    const zplH = 200;
+    // Preview tries to mirror the ZPL layout (see generate3UpLabelsRow in src/utils/zplGenerator.ts)
+    // using the same physical measurements and DPI.
+    const dpi = Number(process.env.NEXT_PUBLIC_ZEBRA_DPI ?? 203);
+    const safeDpi = Number.isFinite(dpi) ? Math.max(100, Math.trunc(dpi)) : 203;
+    const cmToDots = (cm: number) => Math.round((cm * safeDpi) / 2.54);
+
+    const labelW = cmToDots(3.2);
+    const labelH = cmToDots(2.5);
+    const outerX = cmToDots(0.2);
+    const marginTop = cmToDots(0.1);
+    const marginBottom = cmToDots(0.1);
+
+    // Matches the ZPL generator tweak (lower name slightly to compensate upward drift)
+    const nameY = marginTop + cmToDots(0.23);
+    const posY = cmToDots(1.15);
+    const dateY = posY + cmToDots(0.25);
+
+    const barcodeH = 40; // dots (as in ^BCN,40...)
+    const barcodeTextH = 18; // dots
+    const barcodeGap = cmToDots(0.1);
+    const bottomPad = marginBottom + cmToDots(0.1);
+    const barcodeY = Math.max(dateY + cmToDots(0.1), labelH - bottomPad - (barcodeH + barcodeGap + barcodeTextH));
+    const barcodeTextY = barcodeY + barcodeH + barcodeGap;
 
     const pxW = options?.widthPx ?? 200;
-    const scale = pxW / zplW;
-    const pxH = Math.round(zplH * scale);
+    const scale = pxW / labelW;
+    const pxH = Math.round(labelH * scale);
 
     const name = String(label.nombreProducto ?? "");
     const lote = String(label.lote ?? "");
@@ -216,6 +240,8 @@ export default function ProductsBrowser() {
           ? Math.max(9, Math.round(11 * scale))
           : Math.max(10, Math.round(12 * scale));
 
+    const showLogo = logoMode !== "off";
+
     return (
       <div
         className="border bg-white"
@@ -228,30 +254,33 @@ export default function ProductsBrowser() {
           fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
         }}
       >
-        <img
-          src={logoSrc}
-          alt="Logo"
-          style={{
-            position: "absolute",
-            left: Math.round(8 * scale),
-            top: 0,
-            width: Math.round(90 * scale),
-            height: Math.round(40 * scale),
-            objectFit: "contain",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
+        {showLogo ? (
+          <img
+            src={logoSrc}
+            alt="Logo"
+            style={{
+              position: "absolute",
+              // Align with the default logo snippet (^FO32,0 ...)
+              left: Math.round(32 * scale),
+              top: 0,
+              width: Math.round(90 * scale),
+              height: Math.round(40 * scale),
+              objectFit: "contain",
+            }}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : null}
 
         <div
           style={{
             position: "absolute",
-            left: Math.round(16 * scale),
-            top: Math.round(46 * scale),
+            left: Math.round((32 + outerX) * scale),
+            top: Math.round(nameY * scale),
             fontSize: nameFont,
             fontWeight: 600,
-            lineHeight: 1.1,
+            lineHeight: 1.0,
             width: pxW - Math.round(32 * scale),
             maxHeight: Math.round(54 * scale),
             overflow: "hidden",
@@ -271,8 +300,8 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round(16 * scale),
-            top: Math.round(92 * scale),
+            left: Math.round((32 + outerX) * scale),
+            top: Math.round(posY * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
@@ -287,8 +316,8 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round(16 * scale),
-            top: Math.round(108 * scale),
+            left: Math.round((32 + outerX) * scale),
+            top: Math.round(dateY * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
@@ -303,17 +332,17 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round(12 * scale),
-            top: Math.round(126 * scale),
+            left: Math.round((32 + outerX - 4) * scale),
+            top: Math.round(barcodeY * scale),
             width: pxW - Math.round(24 * scale),
-            height: pxH - Math.round(110 * scale),
+            height: Math.max(0, pxH - Math.round(barcodeY * scale)),
             display: "flex",
             flexDirection: "column",
             gap: Math.max(2, Math.round(4 * scale)),
           }}
           title={barcode}
         >
-          <BarcodeSvg value={barcode} height={Math.max(20, Math.round(32 * scale))} barWidth={1} className="w-full" />
+          <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
           <div
             style={{
               fontSize: Math.max(7, Math.round(9 * scale)),
@@ -329,6 +358,116 @@ export default function ProductsBrowser() {
             {barcode}
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const render3UpRowPreview = (rowLabels: LabelData[], options?: { totalWidthPx?: number }) => {
+    const dpi = Number(process.env.NEXT_PUBLIC_ZEBRA_DPI ?? 203);
+    const safeDpi = Number.isFinite(dpi) ? Math.max(100, Math.trunc(dpi)) : 203;
+    const cmToDots = (cm: number) => Math.round((cm * safeDpi) / 2.54);
+
+    // Matches generate3UpLabelsRow (roll size in ZebraDesigner: 10.40cm x 2.70cm)
+    const labelW = cmToDots(3.2);
+    const labelH = cmToDots(2.5);
+    const outerX = cmToDots(0.2);
+    const gapX = cmToDots(0.2);
+    const gapY = cmToDots(0.2);
+
+    const totalW = outerX + labelW + gapX + labelW + gapX + labelW + outerX;
+    const pitchH = labelH + gapY;
+
+    const pxTotalW = options?.totalWidthPx ?? 780;
+    const scale = pxTotalW / totalW;
+    const pxLabelW = Math.round(labelW * scale);
+    const pxLabelH = Math.round(labelH * scale);
+    const pxRowH = Math.round(pitchH * scale);
+    const pxPadX = Math.round(outerX * scale);
+    const pxGapX = Math.round(gapX * scale);
+    const pxGapY = Math.max(1, Math.round(gapY * scale));
+
+    const slots = rowLabels.slice(0, 3);
+
+    return (
+      <div
+        className="rounded"
+        style={{
+          width: pxTotalW,
+          height: pxRowH,
+          paddingLeft: pxPadX,
+          paddingRight: pxPadX,
+          display: "flex",
+          gap: pxGapX,
+          alignItems: "flex-start",
+          overflow: "hidden",
+          position: "relative",
+          background: "rgba(0,0,0,0.02)",
+        }}
+      >
+        {/* Roll boundary */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            border: "1px solid rgba(0,0,0,0.18)",
+            borderRadius: 6,
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Cut/advance line: end of label (2.5cm) + gap area (0.2cm) */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: pxLabelH,
+            height: 0,
+            borderTop: "1px dashed rgba(0,0,0,0.22)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: pxLabelH,
+            height: pxGapY,
+            background: "rgba(255, 193, 7, 0.08)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Label area guides (3 columns) */}
+        {Array.from({ length: 3 }).map((_, i) => {
+          const left = pxPadX + i * (pxLabelW + pxGapX);
+          return (
+            <div
+              key={i}
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: 0,
+                left,
+                width: pxLabelW,
+                height: pxLabelH,
+                border: "1px dashed rgba(0,0,0,0.18)",
+                borderRadius: 6,
+                pointerEvents: "none",
+              }}
+            />
+          );
+        })}
+
+        {slots.map((lbl, j) => (
+          <div key={j} style={{ width: pxLabelW, flex: "0 0 auto" }}>
+            {renderStickerPreview(lbl, { widthPx: pxLabelW })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -428,6 +567,26 @@ export default function ProductsBrowser() {
       setPreviewLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const el = previewViewportRef.current;
+    if (!el) return;
+
+    const compute = () => {
+      // Keep some room for borders/padding/scrollbars.
+      const w = el.clientWidth;
+      const safe = Number.isFinite(w) ? Math.max(360, Math.floor(w) - 8) : 780;
+      setPreviewRowWidthPx(safe);
+    };
+
+    compute();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [previewOpen]);
 
   const confirmAndPrint = async () => {
     if (printing) return;
@@ -646,6 +805,9 @@ export default function ProductsBrowser() {
             onChange={(e) => setQuery(e.target.value)}
             className="max-w-md"
           />
+          <Button variant="outline" onClick={() => setScanOpen(true)} disabled={printing || previewLoading}>
+            Escanear
+          </Button>
         </div>
       </div>
 
@@ -819,7 +981,7 @@ export default function ProductsBrowser() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[65vh] overflow-auto border rounded p-3 bg-muted/20">
+          <div ref={previewViewportRef} className="max-h-[65vh] overflow-auto border rounded p-3 bg-muted/20">
             {previewRows.length === 0 ? (
               <div className="text-sm text-muted-foreground">No hay nada para imprimir.</div>
             ) : (
@@ -827,10 +989,8 @@ export default function ProductsBrowser() {
                 {previewRows.map((rowLabels, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-16 text-xs text-muted-foreground pt-2">Fila {i + 1}</div>
-                    <div className="flex gap-3">
-                      {rowLabels.map((lbl, j) => (
-                        <div key={j}>{renderStickerPreview(lbl, { widthPx: 180 })}</div>
-                      ))}
+                    <div className="overflow-x-auto">
+                      {render3UpRowPreview(rowLabels, { totalWidthPx: previewRowWidthPx })}
                     </div>
                   </div>
                 ))}
@@ -850,6 +1010,15 @@ export default function ProductsBrowser() {
       </Dialog>
 
       {message ? <div className="mt-4 text-center font-semibold">{message}</div> : null}
+
+      <CameraScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onDetected={(value) => {
+          setQuery(String(value));
+          setMessage(`Escaneado: ${String(value)}`);
+        }}
+      />
     </div>
   );
 }
