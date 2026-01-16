@@ -1,33 +1,45 @@
-import Link from "next/link";
-
 import UserForm from "@/components/users/UserForm";
 import ApplicationSettingsForm from "@/components/settings/application-settings-form";
+import UserUiPreferencesForm from "@/components/settings/user-ui-preferences-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 
 export default async function SettingsPage() {
-  await requireSession(ACCESS_LEVELS.ADMIN);
+  const session = await requireSession();
+  const isAdmin = Number(session.accessLevel) >= ACCESS_LEVELS.ADMIN;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
         <p className="text-muted-foreground">
-          Administra usuarios y parámetros generales del sistema.
+          Personaliza tu interfaz y administra parámetros del sistema.
         </p>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="users">Usuarios</TabsTrigger>
-          <TabsTrigger value="app">Aplicación</TabsTrigger>
-          <TabsTrigger value="catalogs">Catálogos</TabsTrigger>
-          <TabsTrigger value="advanced">Avanzado</TabsTrigger>
+      <Tabs defaultValue="ui" className="w-full">
+        <TabsList className={isAdmin ? "grid w-full grid-cols-2 md:grid-cols-5" : "grid w-full grid-cols-1"}>
+          <TabsTrigger value="ui">Personalización</TabsTrigger>
+          {isAdmin ? (
+            <>
+              <TabsTrigger value="users">Usuarios</TabsTrigger>
+              <TabsTrigger value="app">Aplicación</TabsTrigger>
+              <TabsTrigger value="catalogs">Catálogos</TabsTrigger>
+              <TabsTrigger value="advanced">Avanzado</TabsTrigger>
+            </>
+          ) : null}
         </TabsList>
 
-        <TabsContent value="users" className="pt-4">
+        <TabsContent value="ui" className="pt-4">
+          <div className="grid gap-4">
+            <UserUiPreferencesForm />
+          </div>
+        </TabsContent>
+
+        {isAdmin ? (
+          <TabsContent value="users" className="pt-4">
           <Card>
             <CardHeader>
               <CardTitle>Creación de Usuario</CardTitle>
@@ -39,15 +51,19 @@ export default async function SettingsPage() {
               <UserForm />
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        ) : null}
 
-        <TabsContent value="app" className="pt-4">
-          <div className="grid gap-4">
-            <ApplicationSettingsForm />
-          </div>
-        </TabsContent>
+        {isAdmin ? (
+          <TabsContent value="app" className="pt-4">
+            <div className="grid gap-4">
+              <ApplicationSettingsForm />
+            </div>
+          </TabsContent>
+        ) : null}
 
-        <TabsContent value="catalogs" className="pt-4">
+        {isAdmin ? (
+          <TabsContent value="catalogs" className="pt-4">
           <Card>
             <CardHeader>
               <CardTitle>Catálogos</CardTitle>
@@ -62,9 +78,11 @@ export default async function SettingsPage() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        ) : null}
 
-        <TabsContent value="advanced" className="pt-4">
+        {isAdmin ? (
+          <TabsContent value="advanced" className="pt-4">
           <Card>
             <CardHeader>
               <CardTitle>Avanzado</CardTitle>
@@ -79,7 +97,8 @@ export default async function SettingsPage() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   );
