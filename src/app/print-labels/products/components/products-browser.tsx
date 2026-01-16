@@ -203,6 +203,19 @@ export default function ProductsBrowser() {
     const barcode = String(label.codigoBarras ?? "");
     const radius = Math.max(2, Math.round(8 * scale)); // ~0.1cm
 
+    const nameLinesAll = formatName(name);
+    const nameLines = nameLinesAll.slice(0, 3);
+    if (nameLinesAll.length > 3 && nameLines.length) {
+      nameLines[nameLines.length - 1] = `${nameLines[nameLines.length - 1]}…`;
+    }
+
+    const nameFont =
+      name.length > 45
+        ? Math.max(8, Math.round(10 * scale))
+        : name.length > 30
+          ? Math.max(9, Math.round(11 * scale))
+          : Math.max(10, Math.round(12 * scale));
+
     return (
       <div
         className="border bg-white"
@@ -235,24 +248,31 @@ export default function ProductsBrowser() {
           style={{
             position: "absolute",
             left: Math.round(16 * scale),
-            top: Math.round(50 * scale),
-            fontSize: Math.max(9, Math.round(12 * scale)),
+            top: Math.round(46 * scale),
+            fontSize: nameFont,
             fontWeight: 600,
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
+            lineHeight: 1.1,
             width: pxW - Math.round(32 * scale),
+            maxHeight: Math.round(54 * scale),
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
           }}
           title={name}
         >
-          {name}
+          {(nameLines.length ? nameLines : [name]).map((line, i) => (
+            <div key={i} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {line}
+            </div>
+          ))}
         </div>
 
         <div
           style={{
             position: "absolute",
             left: Math.round(16 * scale),
-            top: Math.round(74 * scale),
+            top: Math.round(92 * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
@@ -268,7 +288,7 @@ export default function ProductsBrowser() {
           style={{
             position: "absolute",
             left: Math.round(16 * scale),
-            top: Math.round(90 * scale),
+            top: Math.round(108 * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
@@ -284,7 +304,7 @@ export default function ProductsBrowser() {
           style={{
             position: "absolute",
             left: Math.round(12 * scale),
-            top: Math.round(112 * scale),
+            top: Math.round(126 * scale),
             width: pxW - Math.round(24 * scale),
             height: pxH - Math.round(110 * scale),
             display: "flex",

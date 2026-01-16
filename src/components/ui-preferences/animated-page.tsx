@@ -33,12 +33,11 @@ export function AnimatedPage({
 
     void getAnime().then((anime) => {
       anime.remove(el);
-      anime({
-        targets: el,
+      anime.animate(el, {
         opacity: [0, 1],
         translateY: preset === "show" ? [28, 0] : [12, 0],
         duration: preset === "show" ? 900 : 450,
-        easing: preset === "show" ? "easeOutExpo" : "easeOutQuad",
+        easing: preset === "show" ? anime.eases.outExpo : anime.eases.outQuad,
       });
     });
   }, [pathname, preferences.enableAnimeJs, preferences.animationPreset]);

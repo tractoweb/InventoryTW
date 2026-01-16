@@ -80,7 +80,8 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
       const x0 = outerX + i * (labelW + gapX);
       const y0 = 0;
 
-      const nombre = sanitizeZplField(data.nombreProducto).slice(0, 30);
+      const nombreRaw = sanitizeZplField(data.nombreProducto);
+      const nombre = nombreRaw.slice(0, 90);
       const barcode = sanitizeZplField(data.codigoBarras);
       const lote = sanitizeZplField(data.lote ?? "").slice(0, 30);
       const fecha = sanitizeZplField(data.fecha ?? "").slice(0, 30);
@@ -92,9 +93,18 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
         : null;
 
       const textX = x0 + outerX; // reuse 0.2cm as internal padding
-      const nameY = y0 + marginTop + cmToDots(0.2, dpi);
-      const line2Y = nameY + cmToDots(0.4, dpi);
-      const dateY = line2Y + cmToDots(0.35, dpi);
+      const textW = Math.max(10, labelW - outerX * 2);
+      const nameY = y0 + marginTop + cmToDots(0.15, dpi);
+
+      // Keep names inside the sticker:
+      // - allow wrapping to up to 3 lines
+      // - shrink font when the name is long (otherwise it would overlap the next fields)
+      const nameFont = nombre.length > 20 ? 20 : 28;
+
+      // Place "posición" and "fecha" as a stacked column below the name block.
+      // These Y positions are chosen to avoid colliding with the barcode block near the bottom.
+      const posY = y0 + cmToDots(1.15, dpi);
+      const dateY = posY + cmToDots(0.25, dpi);
 
       const barcodeX = textX;
       const barcodeH = 40;
@@ -102,7 +112,9 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
       const barcodeGap = cmToDots(0.1, dpi);
       const bottomPad = marginBottom + cmToDots(0.1, dpi);
       const barcodeY = Math.max(
-        y0 + cmToDots(0.2, dpi),
+        // Keep barcode below the stacked fields (pos/date)
+        dateY + cmToDots(0.1, dpi),
+        // Also anchor to bottom
         y0 + labelH - bottomPad - (barcodeH + barcodeGap + barcodeTextH)
       );
       const barcodeTextY = barcodeY + barcodeH + barcodeGap;
@@ -110,8 +122,8 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
       return [
         border,
         logoZpl ? logoZpl : null,
-        `^FO${textX},${nameY}^A0N,28,28^FD${nombre}^FS`,
-        `^FO${textX},${line2Y}^A0N,22,22^FD${lote}^FS`,
+        `^FO${textX},${nameY}^A0N,${nameFont},${nameFont}^FB${textW},3,0,L,0^FD${nombre}^FS`,
+        `^FO${textX},${posY}^A0N,22,22^FD${lote}^FS`,
         `^FO${textX},${dateY}^A0N,20,20^FD${fecha}^FS`,
         `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
         `^FO${x0},${barcodeTextY}^FB${labelW},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcode}^FS`,
@@ -136,10 +148,13 @@ ${blocks}
 // Template ZPL basado en el ejemplo "legacy" que estabas usando (sin incrustar gráficos).
 // Tamaño y comandos de barcode alineados con: ^PW831, ^LL0216, ^BY1,3,40 y ^BCN.
 export const generateProductLabel = (data: LabelData, options?: GenerateProductLabelOptions): string => {
-  const nombre = sanitizeZplField(data.nombreProducto).slice(0, 30);
+  const nombreRaw = sanitizeZplField(data.nombreProducto);
+  const nombre = nombreRaw.slice(0, 120);
   const barcode = sanitizeZplField(data.codigoBarras);
   const lote = sanitizeZplField(data.lote ?? "").slice(0, 30);
   const fecha = sanitizeZplField(data.fecha ?? "").slice(0, 30);
+
+  const nameFont = nombre.length > 24 ? 22 : 28;
 
   const includeDefaultsHeader = options?.includeDefaultsHeader ?? true;
   const copiesRaw = options?.copies;
@@ -159,11 +174,11 @@ export const generateProductLabel = (data: LabelData, options?: GenerateProductL
 ^LS0
 ^CI28
 ${logoZpl ? `${logoZpl}\n` : ""}
-^FO40,20^A0N,28,28^FD${nombre}^FS
-^FO40,50^A0N,22,22^FD${lote}^FS
-^FO40,78^A0N,20,20^FD${fecha}^FS
-^FO40,112^BY1,3,40^BCN,40,N,N,N^FD${barcode}^FS
-^FO0,154^FB831,1,0,C,0^A0N,16,16^FD${barcode}^FS
+^FO40,16^A0N,${nameFont},${nameFont}^FB751,3,0,L,0^FD${nombre}^FS
+^FO40,92^A0N,22,22^FD${lote}^FS
+^FO40,112^A0N,20,20^FD${fecha}^FS
+^FO40,130^BY1,3,40^BCN,40,N,N,N^FD${barcode}^FS
+^FO0,174^FB831,1,0,C,0^A0N,16,16^FD${barcode}^FS
 ${copies ? `^PQ${copies},0,1,Y` : ""}
 ^XZ`
   ).trim();
