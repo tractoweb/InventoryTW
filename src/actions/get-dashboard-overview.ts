@@ -188,7 +188,10 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
       listAllPages<any>((a) => amplifyClient.models.Tax.list(a)),
       listAllPages<any>((a) => amplifyClient.models.ProductTax.list(a)),
       listAllPages<any>((a) => amplifyClient.models.DocumentType.list(a)),
-      listAllPages<any>((a) => amplifyClient.models.Customer.list(a)),
+      cached(
+        async () => listAllPages<any>((a) => amplifyClient.models.Customer.list(a)),
+        { keyParts: ["partners", "customers", "all"], revalidateSeconds: 60, tags: [CACHE_TAGS.heavy.customers] }
+      )(),
     ]);
 
     if ("error" in stocksResult) return { error: stocksResult.error };

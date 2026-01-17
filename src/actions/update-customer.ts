@@ -2,10 +2,12 @@
 
 import { z } from "zod";
 import { unstable_noStore as noStore } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
 import { getCurrentSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const UpdateCustomerSchema = z.object({
   idCustomer: z.coerce.number().int().min(1),
@@ -104,6 +106,7 @@ export async function updateCustomerAction(raw: UpdateCustomerInput): Promise<{ 
         }).catch(() => {});
       }
 
+      revalidateTag(CACHE_TAGS.heavy.customers);
       return { success: true };
     }
 

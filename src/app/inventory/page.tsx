@@ -21,7 +21,7 @@ export default async function InventoryPage({
   const error = groupsError || warehousesError || taxesError;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 min-w-0">
        <h1 className="text-3xl font-bold tracking-tight">Maestro de Productos</h1>
         {error && (
             <Alert variant="destructive">

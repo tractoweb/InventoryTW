@@ -21,21 +21,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isLogin = pathname === "/login";
+
   const [sessionChecked, setSessionChecked] = React.useState(false);
   const [sessionOk, setSessionOk] = React.useState(false);
 
-  if (pathname === "/login") {
-    return <>{children}</>
-  }
-
   React.useEffect(() => {
+    if (isLogin) {
+      // Login route is public; skip session checks.
+      setSessionOk(true);
+      setSessionChecked(true);
+      return;
+    }
+
     let cancelled = false;
 
     async function run() {
       // Si por alguna razón entramos acá sin sesión válida (cookie stale),
       // no mostramos contenido: mostramos loader y redirigimos.
       setSessionChecked(false);
-      const res = await getCurrentSessionAction();
+
+      let res: Awaited<ReturnType<typeof getCurrentSessionAction>> | null = null;
+      try {
+        res = await getCurrentSessionAction();
+      } catch {
+        // If server actions are unavailable / transient network error,
+        // treat as unauthenticated and redirect.
+        res = null;
+      }
       if (cancelled) return;
 
       if (!res?.data) {
@@ -55,7 +68,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [pathname, router]);
+  }, [isLogin, pathname, router]);
+
+  if (isLogin) {
+    return <>{children}</>;
+  }
 
   if (!sessionChecked || !sessionOk) {
     return (

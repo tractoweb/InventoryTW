@@ -1,7 +1,8 @@
 "use server";
 
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { listAllPages } from "@/services/amplify-list-all";
 
 async function mapWithConcurrency<T, U>(
@@ -29,8 +30,6 @@ export async function getBarcodesForProducts(productIds: number[]): Promise<{
   data: Record<number, string[]>;
   error?: string;
 }> {
-  noStore();
-
   try {
     const ids = Array.from(
       new Set((productIds ?? []).map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))
@@ -39,16 +38,28 @@ export async function getBarcodesForProducts(productIds: number[]): Promise<{
     if (ids.length === 0) return { data: {} };
 
     const lists = await mapWithConcurrency(ids, 10, async (idProduct) => {
-      const listRes = await listAllPages<any>((listArgs) => amplifyClient.models.Barcode.list(listArgs), {
-        filter: { productId: { eq: Number(idProduct) } },
-      });
+      const keyParts = ["print-labels", "barcodes", String(idProduct)];
+      const cached = unstable_cache(
+        async () => {
+          const listRes = await listAllPages<any>((listArgs) => amplifyClient.models.Barcode.list(listArgs), {
+            filter: { productId: { eq: Number(idProduct) } },
+          });
 
-      if ("error" in listRes) return { idProduct, barcodes: [] as string[] };
+          if ("error" in listRes) return [] as string[];
 
-      const barcodes = (listRes.data ?? [])
-        .map((b: any) => String(b?.value ?? "").trim())
-        .filter((v: string) => v.length > 0);
+          return (listRes.data ?? [])
+            .map((b: any) => String(b?.value ?? "").trim())
+            .filter((v: string) => v.length > 0);
+        },
+        keyParts,
+        {
+          // Barcodes rarely change; cache longer.
+          revalidate: 300,
+          tags: [CACHE_TAGS.heavy.productsMaster],
+        }
+      );
 
+      const barcodes = await cached();
       return { idProduct, barcodes };
     });
 

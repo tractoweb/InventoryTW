@@ -31,6 +31,9 @@ import { productsMasterColumns } from "./products-master-columns";
 import { AddProductForm } from "./add-product-form";
 import { deleteProduct } from "@/actions/delete-product";
 import { ViewProductDetails } from "./view-product-details";
+import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
+import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
+import { ScanLine } from "lucide-react";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -72,6 +75,9 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
 
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailsProductId, setDetailsProductId] = React.useState<number | null>(null);
+
+  const [groupsOpen, setGroupsOpen] = React.useState(false);
+  const [scanOpen, setScanOpen] = React.useState(false);
 
   const groupNameById = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -302,8 +308,8 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-      <Card className="h-[calc(100vh-220px)]">
+    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <Card className="hidden lg:block h-[calc(100vh-220px)]">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Grupos y productos</CardTitle>
           <Input placeholder="Buscar en el árbol…" value={leftQuery} onChange={(e) => setLeftQuery(e.target.value)} />
@@ -319,15 +325,48 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
+      <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
+        <SheetContent side="left" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Grupos y productos</SheetTitle>
+          </SheetHeader>
+          <div className="pt-4">
+            <Input placeholder="Buscar en el árbol…" value={leftQuery} onChange={(e) => setLeftQuery(e.target.value)} />
+            <div className="mt-4">
+              <ScrollArea className="h-[calc(100svh-220px)] pr-2">
+                <div className="space-y-2">
+                  {filteredRoots.map((g) => (
+                    <GroupNode key={g.id} group={g} depth={0} />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="space-y-4 min-w-0">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+            <Button variant="outline" className="lg:hidden w-full sm:w-auto" onClick={() => setGroupsOpen(true)}>
+              Grupos
+            </Button>
             <Input
               placeholder="Buscar productos (nombre, código o barcode)…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full sm:w-[420px]"
+              className="w-full sm:w-[420px] min-w-0"
             />
+
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setScanOpen(true)}
+              title="Escanear código de barras"
+            >
+              <ScanLine className="h-4 w-4 mr-2" />
+              Escanear
+            </Button>
             <Button
               variant="outline"
               onClick={async () => {
@@ -383,7 +422,9 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : (
-          <DataTable columns={productsMasterColumns} data={filteredRows} meta={tableMeta} />
+          <div className="w-full min-w-0">
+            <DataTable columns={productsMasterColumns} data={filteredRows} meta={tableMeta} />
+          </div>
         )}
       </div>
 
@@ -401,6 +442,32 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
           )}
         </SheetContent>
       </Sheet>
+
+      <CameraScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onDetected={(value) => {
+          const raw = String(value ?? "").trim();
+          if (!raw) return;
+          setScanOpen(false);
+          setQuery(raw);
+
+          void (async () => {
+            const res = await findProductByBarcodeAction(raw);
+            if (res?.data?.idProduct) {
+              setDetailsProductId(Number(res.data.idProduct));
+              setDetailsOpen(true);
+              return;
+            }
+
+            toast({
+              variant: "destructive",
+              title: "No encontrado",
+              description: res?.error ?? "No se encontró producto para ese código",
+            });
+          })();
+        }}
+      />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { unstable_noStore as noStore } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
 import { documentTypeLabelEs } from "@/lib/document-type-label";
+import { cached } from "@/lib/server-cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export type DocumentsCatalogRow = {
   documentId: number;
@@ -41,9 +43,14 @@ export async function listDocumentsForBrowserAll(): Promise<{ data: DocumentsCat
   noStore();
 
   try {
+    const cachedCustomers = cached(
+      async () => listAllPages<Customer>((args) => amplifyClient.models.Customer.list(args)),
+      { keyParts: ["partners", "customers", "all"], revalidateSeconds: 60, tags: [CACHE_TAGS.heavy.customers] }
+    );
+
     const [docsResult, customersResult, usersResult, warehousesResult, documentTypesResult] = await Promise.all([
       listAllPages<any>((args) => amplifyClient.models.Document.list(args)),
-      listAllPages<Customer>((args) => amplifyClient.models.Customer.list(args)),
+      cachedCustomers(),
       listAllPages<User>((args) => amplifyClient.models.User.list(args)),
       listAllPages<Warehouse>((args) => amplifyClient.models.Warehouse.list(args)),
       listAllPages<DocumentType>((args) => amplifyClient.models.DocumentType.list(args)),

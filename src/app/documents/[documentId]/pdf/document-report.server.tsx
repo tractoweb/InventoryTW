@@ -62,6 +62,10 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     backgroundColor: "#f2f2f2",
   },
+  trRow: {
+    flexDirection: "row",
+    width: "100%",
+  },
   cell: {
     borderRightWidth: 1,
     borderRightColor: "#000",
@@ -74,6 +78,15 @@ const styles = StyleSheet.create({
     borderRightWidth: 0,
   },
   right: { textAlign: "right" },
+
+  colIndex: { width: 18 },
+  colProduct: { flexGrow: 1, flexShrink: 1 },
+  colQty: { width: 34 },
+  colMoney: { width: 62 },
+  colSmall: { width: 48 },
+
+  productName: { fontWeight: 700 },
+  productMeta: { fontSize: 8, color: "#222", marginTop: 1 },
 
   footerTotals: {
     marginTop: 8,
@@ -179,108 +192,75 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
 
         <Text style={styles.sectionTitle}>Detalle de Productos</Text>
         <View style={styles.table}>
-          <View style={[styles.tr, styles.th]}>
-            <View style={[styles.cell, { width: 18 }]}>
+          <View style={[styles.trRow, styles.th]}>
+            <View style={[styles.cell, styles.colIndex]}>
               <Text>#</Text>
             </View>
-            <View style={[styles.cell, { width: 140 }]}>
-              <Text>Producto</Text>
+            <View style={[styles.cell, styles.colProduct]}>
+              <Text>Producto / Detalle</Text>
             </View>
-            <View style={[styles.cell, { width: 58 }]}>
-              <Text>Ref. Compra</Text>
-            </View>
-            <View style={[styles.cell, { width: 58 }]}>
-              <Text>Ref. Bodega</Text>
-            </View>
-            <View style={[styles.cell, { width: 30 }]}>
+            <View style={[styles.cell, styles.colQty]}>
               <Text>Cant.</Text>
             </View>
-            <View style={[styles.cell, { width: 55 }]}>
+            <View style={[styles.cell, styles.colMoney]}>
               <Text>Total</Text>
             </View>
-            {hasDiscounts && (
-              <View style={[styles.cell, { width: 28 }]}>
-                <Text>Desc%</Text>
-              </View>
-            )}
-            <View style={[styles.cell, { width: 55 }]}>
-              <Text>Unit Base</Text>
-            </View>
-            <View style={[styles.cell, { width: 55 }]}>
-              <Text>-Desc</Text>
-            </View>
-            <View style={[styles.cell, { width: 55 }]}>
-              <Text>+IVA</Text>
-            </View>
-            <View style={[styles.cell, { width: 55 }]}>
-              <Text>+Flete</Text>
-            </View>
-            <View style={[styles.cell, { width: 55 }]}>
+            <View style={[styles.cell, styles.colMoney]}>
               <Text>Unit Final</Text>
             </View>
-            <View style={[styles.cell, { width: 32 }]}>
-              <Text>Marg%</Text>
-            </View>
-            <View style={[styles.cell, { width: 55 }]}>
+            <View style={[styles.cell, styles.colMoney]}>
               <Text>Venta Unit</Text>
             </View>
-            <View style={[styles.cell, { width: 60 }, styles.lastCell]}>
-              <Text>Flete</Text>
+            <View style={[styles.cell, styles.colSmall, styles.lastCell]}>
+              <Text>Marg%</Text>
             </View>
           </View>
 
           {(lines ?? []).map((l: any, idx: number) => {
             const freightName = freightNameById.get(String(l.freightId ?? "")) ?? "";
+            const metaBits: string[] = [];
+            const purchaseRef = String(l.purchaseReference ?? "").trim();
+            const warehouseRef = String(l.warehouseReference ?? "").trim();
+            if (purchaseRef) metaBits.push(`Ref. Compra: ${purchaseRef}`);
+            if (warehouseRef) metaBits.push(`Ref. Bodega: ${warehouseRef}`);
+
+            const discPct = Number(l.discountPercentage ?? 0);
+            const discAmt = Number(l.discountAmount ?? 0);
+            if (hasDiscounts && (discPct > 0 || discAmt > 0)) {
+              metaBits.push(`Desc: ${discPct ? `${discPct.toFixed(0)}%` : ""}${discAmt ? ` (${money(discAmt)})` : ""}`.trim());
+            }
+
+            const ivaAmt = Number(l.ivaAmount ?? 0);
+            if (ivaAmt) metaBits.push(`IVA: ${money(ivaAmt)}`);
+
+            const freightAmt = Number(l.freightAmount ?? 0);
+            if (freightName || freightAmt) metaBits.push(`Flete: ${freightName ? `${freightName} ` : ""}${money(freightAmt)}`.trim());
+
+            const metaLine = metaBits.join(" · ");
+
             return (
-              <View key={String(l.id ?? idx)} style={styles.tr}>
-                <View style={[styles.cell, { width: 18 }]}>
+              <View key={String(l.id ?? idx)} style={styles.trRow} wrap={false}>
+                <View style={[styles.cell, styles.colIndex]}>
                   <Text style={styles.right}>{idx + 1}</Text>
                 </View>
-                <View style={[styles.cell, { width: 140 }]}>
-                  <Text>{String(l.name ?? "")}</Text>
+                <View style={[styles.cell, styles.colProduct]}>
+                  <Text style={styles.productName}>{String(l.name ?? "")}</Text>
+                  {metaLine ? <Text style={styles.productMeta}>{metaLine}</Text> : null}
                 </View>
-                <View style={[styles.cell, { width: 58 }]}>
-                  <Text>{String(l.purchaseReference ?? "")}</Text>
-                </View>
-                <View style={[styles.cell, { width: 58 }]}>
-                  <Text>{String(l.warehouseReference ?? "")}</Text>
-                </View>
-                <View style={[styles.cell, { width: 30 }]}>
+                <View style={[styles.cell, styles.colQty]}>
                   <Text style={styles.right}>{String(Number(l.quantity ?? 0))}</Text>
                 </View>
-                <View style={[styles.cell, { width: 55 }]}>
+                <View style={[styles.cell, styles.colMoney]}>
                   <Text style={styles.right}>{money(Number(l.totalCost ?? 0))}</Text>
                 </View>
-                {hasDiscounts && (
-                  <View style={[styles.cell, { width: 28 }]}>
-                    <Text style={styles.right}>{Number(l.discountPercentage ?? 0) ? String(Number(l.discountPercentage ?? 0).toFixed(0)) : ""}</Text>
-                  </View>
-                )}
-                <View style={[styles.cell, { width: 55 }]}>
-                  <Text style={styles.right}>{money(Number(l.unitCostBase ?? 0))}</Text>
-                </View>
-                <View style={[styles.cell, { width: 55 }]}>
-                  <Text style={styles.right}>{money(Number(l.discountAmount ?? 0))}</Text>
-                </View>
-                <View style={[styles.cell, { width: 55 }]}>
-                  <Text style={styles.right}>{money(Number(l.ivaAmount ?? 0))}</Text>
-                </View>
-                <View style={[styles.cell, { width: 55 }]}>
-                  <Text style={styles.right}>{money(Number(l.freightAmount ?? 0))}</Text>
-                </View>
-                <View style={[styles.cell, { width: 55 }]}>
+                <View style={[styles.cell, styles.colMoney]}>
                   <Text style={styles.right}>{money(Number(l.unitCostFinal ?? 0))}</Text>
                 </View>
-                <View style={[styles.cell, { width: 32 }]}>
-                  <Text style={styles.right}>{String(Number(l.marginPercentage ?? 0).toFixed(0))}</Text>
-                </View>
-                <View style={[styles.cell, { width: 55 }]}>
+                <View style={[styles.cell, styles.colMoney]}>
                   <Text style={styles.right}>{money(Number(l.unitSalePrice ?? 0))}</Text>
                 </View>
-                <View style={[styles.cell, { width: 60 }, styles.lastCell]}>
-                  <Text>
-                    {freightName ? `${freightName}: ${money(Number(l.freightAmount ?? 0))}` : ""}
-                  </Text>
+                <View style={[styles.cell, styles.colSmall, styles.lastCell]}>
+                  <Text style={styles.right}>{String(Number(l.marginPercentage ?? 0).toFixed(0))}</Text>
                 </View>
               </View>
             );

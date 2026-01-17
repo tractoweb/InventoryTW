@@ -1,7 +1,8 @@
 "use server";
 
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { listAllPages } from "@/services/amplify-list-all";
 
 export type PrintLabelsProductRow = {
@@ -29,25 +30,102 @@ function normalizeLoose(value: unknown): string {
     .trim();
 }
 
-async function mapWithConcurrency<T, U>(
-  items: T[],
-  concurrency: number,
-  mapper: (item: T) => Promise<U>
-): Promise<U[]> {
-  const results = new Array<U>(items.length);
-  let index = 0;
+function hashKey(value: string): string {
+  // Small stable hash to keep cache keys short (non-crypto).
+  let h = 5381;
+  for (let i = 0; i < value.length; i++) h = (h * 33) ^ value.charCodeAt(i);
+  return (h >>> 0).toString(16);
+}
 
-  async function worker() {
-    while (true) {
-      const currentIndex = index++;
-      if (currentIndex >= items.length) return;
-      results[currentIndex] = await mapper(items[currentIndex]);
+type ProductLite = {
+  idProduct: number;
+  name: string;
+  code: string | null;
+  measurementUnit: string | null;
+  createdAt: string | null;
+};
+
+function toProductLite(p: any): ProductLite {
+  return {
+    idProduct: Number(p?.idProduct ?? 0),
+    name: String(p?.name ?? ""),
+    code: p?.code ? String(p.code) : null,
+    measurementUnit: p?.measurementUnit ? String(p.measurementUnit) : null,
+    createdAt: p?.createdAt ? String(p.createdAt) : null,
+  };
+}
+
+async function listProductsPageCached(args: { pageSize: number; nextToken: string | null }): Promise<{ products: ProductLite[]; nextToken: string | null }> {
+  const tokenKey = args.nextToken ? hashKey(String(args.nextToken)) : "_";
+  const keyParts = ["print-labels", "products", "page", String(args.pageSize), tokenKey];
+  const fn = unstable_cache(
+    async () => {
+      const res: any = await amplifyClient.models.Product.list({
+        limit: args.pageSize,
+        nextToken: args.nextToken ?? undefined,
+      } as any);
+
+      const products = ((res?.data ?? []) as any[]).map(toProductLite).filter((p) => Number.isFinite(p.idProduct) && p.idProduct > 0);
+      return { products, nextToken: (res?.nextToken ?? null) as string | null };
+    },
+    keyParts,
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.heavy.productsMaster],
     }
-  }
+  );
 
-  const workers = Array.from({ length: Math.max(1, concurrency) }, () => worker());
-  await Promise.all(workers);
-  return results;
+  return fn();
+}
+
+async function searchProductsCached(qRaw: string): Promise<ProductLite[]> {
+  const q = String(qRaw ?? "").trim();
+  const qLoose = normalizeLoose(q);
+  const keyParts = ["print-labels", "products", "search", hashKey(qLoose)];
+
+  const fn = unstable_cache(
+    async () => {
+      // Keep search lightweight: only Products table (name/code/id). Barcodes are loaded separately.
+      const [byNameRes, byCodeRes] = await Promise.all([
+        listAllPages<any>((listArgs) => amplifyClient.models.Product.list(listArgs), {
+          filter: { name: { contains: q } },
+        }),
+        listAllPages<any>((listArgs) => amplifyClient.models.Product.list(listArgs), {
+          filter: { code: { contains: q } },
+        }),
+      ]);
+
+      if ("error" in byNameRes) throw new Error(byNameRes.error);
+      if ("error" in byCodeRes) throw new Error(byCodeRes.error);
+
+      const byId = new Map<number, ProductLite>();
+      for (const p of (byNameRes.data ?? []) as any[]) {
+        const lite = toProductLite(p);
+        if (Number.isFinite(lite.idProduct) && lite.idProduct > 0) byId.set(lite.idProduct, lite);
+      }
+      for (const p of (byCodeRes.data ?? []) as any[]) {
+        const lite = toProductLite(p);
+        if (Number.isFinite(lite.idProduct) && lite.idProduct > 0) byId.set(lite.idProduct, lite);
+      }
+
+      const merged = Array.from(byId.values()).filter((p) => {
+        const idText = String(p.idProduct);
+        const name = normalizeLoose(p.name);
+        const code = normalizeLoose(p.code ?? "");
+        return idText.includes(qLoose) || name.includes(qLoose) || code.includes(qLoose);
+      });
+
+      merged.sort((a, b) => a.idProduct - b.idProduct);
+      return merged;
+    },
+    keyParts,
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.heavy.productsMaster],
+    }
+  );
+
+  return fn();
 }
 
 export async function listProductsForPrintLabels(args?: ListProductsForPrintLabelsArgs): Promise<{
@@ -55,8 +133,6 @@ export async function listProductsForPrintLabels(args?: ListProductsForPrintLabe
   nextToken: string | null;
   error?: string;
 }> {
-  noStore();
-
   try {
     const pageSizeRaw = args?.pageSize ?? args?.limit ?? 50;
     const pageSize = Number.isFinite(pageSizeRaw) ? Math.max(1, Math.trunc(Number(pageSizeRaw))) : 50;
@@ -64,80 +140,24 @@ export async function listProductsForPrintLabels(args?: ListProductsForPrintLabe
     const qRaw = String(args?.q ?? "").trim();
     const searchMode = qRaw.length > 0;
 
-    let products: any[] = [];
+    let products: ProductLite[] = [];
     let nextToken: string | null = null;
 
     if (!searchMode) {
-      const res: any = await amplifyClient.models.Product.list({
-        limit: pageSize,
-        nextToken: args?.nextToken ?? undefined,
-      } as any);
-
-      products = (res?.data ?? []) as any[];
-      nextToken = res?.nextToken ?? null;
+      const res = await listProductsPageCached({
+        pageSize,
+        nextToken: args?.nextToken ?? null,
+      });
+      products = res.products;
+      nextToken = res.nextToken;
     } else {
-      // Search mode: query across the full dataset (all pages), then paginate locally.
-      const q = qRaw;
-      const qLoose = normalizeLoose(qRaw);
-
+      // Search mode: cache the merged candidate set (Products table only), then paginate locally.
       const offsetRaw = args?.nextToken ?? "0";
       const offsetParsed = Number.parseInt(String(offsetRaw), 10);
       const offset = Number.isFinite(offsetParsed) && offsetParsed >= 0 ? offsetParsed : 0;
 
-      const [byNameRes, byCodeRes, byBarcodeRes] = await Promise.all([
-        listAllPages<any>((listArgs) => amplifyClient.models.Product.list(listArgs), {
-          filter: { name: { contains: q } },
-        }),
-        listAllPages<any>((listArgs) => amplifyClient.models.Product.list(listArgs), {
-          filter: { code: { contains: q } },
-        }),
-        listAllPages<any>((listArgs) => amplifyClient.models.Barcode.list(listArgs), {
-          filter: { value: { contains: q } },
-        }),
-      ]);
-
-      if ("error" in byNameRes) throw new Error(byNameRes.error);
-      if ("error" in byCodeRes) throw new Error(byCodeRes.error);
-      if ("error" in byBarcodeRes) throw new Error(byBarcodeRes.error);
-
-      const byId = new Map<number, any>();
-      for (const p of (byNameRes.data ?? []) as any[]) {
-        const id = Number((p as any)?.idProduct);
-        if (Number.isFinite(id)) byId.set(id, p);
-      }
-      for (const p of (byCodeRes.data ?? []) as any[]) {
-        const id = Number((p as any)?.idProduct);
-        if (Number.isFinite(id)) byId.set(id, p);
-      }
-
-      const barcodeMatches = (byBarcodeRes.data ?? [])
-        .map((b: any) => Number(b?.productId))
-        .filter((id: any) => Number.isFinite(id) && id > 0);
-      const uniqueBarcodeIds = Array.from(new Set(barcodeMatches));
-
-      // Fetch barcode-matched products (bounded for safety)
-      const maxBarcodeFetch = 1000;
-      const barcodeProducts = await mapWithConcurrency(uniqueBarcodeIds.slice(0, maxBarcodeFetch), 10, async (idProduct) => {
-        const res = await amplifyClient.models.Product.get({ idProduct: Number(idProduct) } as any);
-        return (res as any)?.data ?? null;
-      });
-      for (const p of barcodeProducts.filter(Boolean)) {
-        const id = Number((p as any)?.idProduct);
-        if (Number.isFinite(id)) byId.set(id, p);
-      }
-
-      const merged = Array.from(byId.values())
-        // extra in-memory match for accents/special chars
-        .filter((p) => {
-          const idText = String((p as any)?.idProduct ?? "");
-          const name = normalizeLoose((p as any)?.name);
-          const code = normalizeLoose((p as any)?.code);
-          return idText.includes(qLoose) || name.includes(qLoose) || code.includes(qLoose);
-        });
-
-      merged.sort((a, b) => Number(a?.idProduct ?? 0) - Number(b?.idProduct ?? 0));
+      const merged = await searchProductsCached(qRaw);
       products = merged.slice(offset, offset + pageSize);
-
       const nextOffset = offset + pageSize;
       nextToken = nextOffset < merged.length ? String(nextOffset) : null;
     }

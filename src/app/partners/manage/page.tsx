@@ -68,6 +68,10 @@ export default function PartnersManagePage() {
   const [q, setQ] = React.useState("");
   const dq = useDebounce(q, 250);
 
+  const [onlyEnabled, setOnlyEnabled] = React.useState(false);
+  const [onlySuppliers, setOnlySuppliers] = React.useState(false);
+  const [onlyCustomers, setOnlyCustomers] = React.useState(false);
+
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [rows, setRows] = React.useState<CustomerSearchResult[]>([]);
@@ -104,7 +108,11 @@ export default function PartnersManagePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await searchCustomersAction(dq, 100, {});
+      const res = await searchCustomersAction(dq, 100, {
+        onlyEnabled,
+        onlySuppliers,
+        onlyCustomers,
+      });
       if (res?.error) throw new Error(String(res.error));
       setRows(res.data ?? []);
     } catch (e: any) {
@@ -121,7 +129,11 @@ export default function PartnersManagePage() {
       try {
         const [cRes, listRes] = await Promise.all([
           getCountries(),
-          searchCustomersAction("", 100, {}),
+          searchCustomersAction("", 100, {
+            onlyEnabled,
+            onlySuppliers,
+            onlyCustomers,
+          }),
         ]);
         if (!alive) return;
         setCountries(cRes.data ?? []);
@@ -137,12 +149,13 @@ export default function PartnersManagePage() {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dq]);
+  }, [dq, onlyEnabled, onlySuppliers, onlyCustomers]);
 
   async function openEdit(idCustomer: number) {
     setEditOpen(true);
@@ -215,7 +228,7 @@ export default function PartnersManagePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Editar Customers</h1>
           <p className="text-muted-foreground">Gestión de clientes/proveedores (modelo Customer).</p>
@@ -226,14 +239,30 @@ export default function PartnersManagePage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Listado</CardTitle>
-          <div className="w-full max-w-sm">
-            <Input
-              placeholder="Buscar por nombre, código o NIT…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="w-full sm:w-80">
+              <Input
+                placeholder="Buscar por nombre, código o NIT…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={onlyEnabled} onCheckedChange={(v) => setOnlyEnabled(Boolean(v))} />
+                Solo activos
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={onlySuppliers} onCheckedChange={(v) => setOnlySuppliers(Boolean(v))} />
+                Proveedores
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={onlyCustomers} onCheckedChange={(v) => setOnlyCustomers(Boolean(v))} />
+                Clientes
+              </label>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -250,42 +279,72 @@ export default function PartnersManagePage() {
           ) : rows.length === 0 ? (
             <div className="text-sm text-muted-foreground">Sin resultados.</div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">ID</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead className="hidden md:table-cell">Código</TableHead>
-                    <TableHead className="hidden md:table-cell">NIT</TableHead>
-                    <TableHead className="hidden md:table-cell">Ciudad</TableHead>
-                    <TableHead className="hidden md:table-cell">Activo</TableHead>
-                    <TableHead className="hidden md:table-cell">Proveedor</TableHead>
-                    <TableHead className="hidden md:table-cell">Cliente</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r) => (
-                    <TableRow key={r.idCustomer}>
-                      <TableCell>{r.idCustomer}</TableCell>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell className="hidden md:table-cell">{r.code ?? "-"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{r.taxNumber ?? "-"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{r.city ?? "-"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{boolLabel(r.isEnabled)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{boolLabel(r.isSupplier)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{boolLabel(r.isCustomer)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(r.idCustomer)}>
-                          Editar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <>
+              <div className="space-y-2 md:hidden">
+                {rows.map((r) => (
+                  <div key={r.idCustomer} className="flex items-start justify-between gap-3 rounded-md border p-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">
+                        {r.name}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        ID {r.idCustomer}
+                        {r.code ? ` · ${r.code}` : ""}
+                        {r.taxNumber ? ` · ${r.taxNumber}` : ""}
+                        {r.city ? ` · ${r.city}` : ""}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded bg-muted px-2 py-0.5">Activo: {boolLabel(r.isEnabled)}</span>
+                        <span className="rounded bg-muted px-2 py-0.5">Proveedor: {boolLabel(r.isSupplier)}</span>
+                        <span className="rounded bg-muted px-2 py-0.5">Cliente: {boolLabel(r.isCustomer)}</span>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(r.idCustomer)}>
+                      Editar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden rounded-md border md:block">
+                <div className="w-full overflow-x-auto">
+                  <Table className="min-w-[980px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[80px]">ID</TableHead>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead className="hidden md:table-cell">Código</TableHead>
+                        <TableHead className="hidden md:table-cell">NIT</TableHead>
+                        <TableHead className="hidden md:table-cell">Ciudad</TableHead>
+                        <TableHead className="hidden md:table-cell">Activo</TableHead>
+                        <TableHead className="hidden md:table-cell">Proveedor</TableHead>
+                        <TableHead className="hidden md:table-cell">Cliente</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((r) => (
+                        <TableRow key={r.idCustomer}>
+                          <TableCell>{r.idCustomer}</TableCell>
+                          <TableCell className="font-medium">{r.name}</TableCell>
+                          <TableCell className="hidden md:table-cell">{r.code ?? "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{r.taxNumber ?? "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{r.city ?? "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{boolLabel(r.isEnabled)}</TableCell>
+                          <TableCell className="hidden md:table-cell">{boolLabel(r.isSupplier)}</TableCell>
+                          <TableCell className="hidden md:table-cell">{boolLabel(r.isCustomer)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm" onClick={() => openEdit(r.idCustomer)}>
+                              Editar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

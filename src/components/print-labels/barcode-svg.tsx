@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import JsBarcode from "jsbarcode";
 
 export function BarcodeSvg(props: {
   value: string;
@@ -19,23 +18,9 @@ export function BarcodeSvg(props: {
     const svg = svgRef.current;
     if (!svg) return;
 
-    // Clear previous rendering
-    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    let cancelled = false;
 
-    if (!value) return;
-
-    try {
-      JsBarcode(svg, value, {
-        format: "CODE128",
-        height,
-        width: Math.max(1, Math.trunc(Number(barWidth) || 1)),
-        margin: 0,
-        displayValue,
-        textMargin: 2,
-        fontSize: 12,
-      });
-    } catch {
-      // If JsBarcode rejects the input, keep the cell usable.
+    const renderFallback = () => {
       try {
         const padding = 2;
         const fontSize = 12;
@@ -65,8 +50,43 @@ export function BarcodeSvg(props: {
       } catch {
         // silent
       }
-    }
-  }, [value, height, displayValue]);
+    };
+
+    // Clear previous rendering
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    if (!value) return;
+
+    void (async () => {
+      try {
+        const mod = await import("jsbarcode");
+        if (cancelled) return;
+
+        const JsBarcode = (mod as any)?.default ?? (mod as any);
+        if (typeof JsBarcode !== "function") {
+          renderFallback();
+          return;
+        }
+
+        JsBarcode(svg, value, {
+          format: "CODE128",
+          height,
+          width: Math.max(1, Math.trunc(Number(barWidth) || 1)),
+          margin: 0,
+          displayValue,
+          textMargin: 2,
+          fontSize: 12,
+        });
+      } catch {
+        if (cancelled) return;
+        renderFallback();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [value, height, displayValue, barWidth]);
 
   return (
     <svg

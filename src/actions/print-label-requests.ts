@@ -63,6 +63,31 @@ function uuid(): string {
   return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+function parseIsoMs(value: unknown): number | null {
+  const s = String(value ?? "").trim();
+  if (!s) return null;
+  const ms = Date.parse(s);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+async function deleteRequestCascade(requestIdRaw: string): Promise<void> {
+  const requestId = String(requestIdRaw ?? "").trim();
+  if (!requestId) return;
+
+  const itemsRes = await listAllPages<any>((args) => amplifyClient.models.PrintLabelRequestItem.list(args), {
+    filter: { requestId: { eq: requestId } },
+  });
+
+  const items = "error" in itemsRes ? [] : ((itemsRes.data ?? []) as any[]);
+  await mapWithConcurrency(items, 10, async (it) => {
+    const requestItemId = String(it?.requestItemId ?? "").trim();
+    if (!requestItemId) return;
+    await amplifyClient.models.PrintLabelRequestItem.delete({ requestItemId } as any);
+  });
+
+  await amplifyClient.models.PrintLabelRequest.delete({ requestId } as any);
+}
+
 export async function createPrintLabelRequest(items: CreatePrintLabelRequestItemInput[]): Promise<{
   data?: PrintLabelRequestDto;
   error?: string;
@@ -139,9 +164,34 @@ export async function listPendingPrintLabelRequests(): Promise<{
 
     if ("error" in reqRes) return { data: [], error: reqRes.error };
 
-    const reqs = (reqRes.data ?? []) as any[];
+    const reqsAll = (reqRes.data ?? []) as any[];
 
-    const dtos = await mapWithConcurrency(reqs, 8, async (r) => {
+    // Auto-purge: delete PENDING requests older than 3 hours to save resources.
+    const nowMs = Date.now();
+    const cutoffMs = nowMs - 3 * 60 * 60 * 1000;
+
+    const stale: any[] = [];
+    const fresh: any[] = [];
+    for (const r of reqsAll) {
+      const requestedAtRaw = r?.requestedAt ?? r?.createdAt;
+      const requestedMs = parseIsoMs(requestedAtRaw);
+      if (requestedMs !== null && requestedMs < cutoffMs) stale.push(r);
+      else fresh.push(r);
+    }
+
+    if (stale.length > 0) {
+      await mapWithConcurrency(stale, 4, async (r) => {
+        const requestId = String(r?.requestId ?? "").trim();
+        if (!requestId) return;
+        try {
+          await deleteRequestCascade(requestId);
+        } catch {
+          // best-effort purge
+        }
+      });
+    }
+
+    const dtos = await mapWithConcurrency(fresh, 8, async (r) => {
       const requestId = String(r?.requestId ?? "");
       const requestedAt = String(r?.requestedAt ?? r?.createdAt ?? new Date().toISOString());
       const status = String(r?.status ?? "PENDING");
@@ -176,6 +226,31 @@ export async function listPendingPrintLabelRequests(): Promise<{
     return { data: dtos };
   } catch (error) {
     return { data: [], error: formatAmplifyError(error) };
+  }
+}
+
+export async function deletePrintLabelRequests(args: {
+  requestIds: string[];
+}): Promise<{ ok: boolean; deleted: number; error?: string }> {
+  noStore();
+
+  try {
+    const ids = Array.from(
+      new Set(
+        (args?.requestIds ?? [])
+          .map((x) => String(x ?? "").trim())
+          .filter(Boolean)
+      )
+    );
+    if (ids.length === 0) return { ok: true, deleted: 0 };
+
+    await mapWithConcurrency(ids, 4, async (id) => {
+      await deleteRequestCascade(id);
+    });
+
+    return { ok: true, deleted: ids.length };
+  } catch (error) {
+    return { ok: false, deleted: 0, error: formatAmplifyError(error) };
   }
 }
 

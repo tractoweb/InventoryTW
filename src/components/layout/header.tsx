@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, LogOut, Search, Settings, User as UserIcon } from "lucide-react";
@@ -26,6 +25,7 @@ import { Badge } from "../ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { es } from 'date-fns/locale';
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/icons";
 
 
 const pageTitles: { [key: string]: string } = {
@@ -46,6 +46,11 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="md:hidden" />
+
+      <Link href="/" className="flex items-center gap-2 md:hidden">
+        <AppLogo className="h-6 w-6 text-primary" />
+        <span className="text-base font-semibold">InventoryTAW</span>
+      </Link>
 
       <h1 className="hidden text-lg font-semibold capitalize md:block">
         {pageTitle}

@@ -80,8 +80,9 @@ export function DataTable<TData extends { id: number }, TValue>({
     const currentPage = table.getState().pagination.pageIndex + 1;
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="rounded-md border w-full min-w-0">
+      <div className="w-full overflow-x-auto">
+        <Table className="min-w-max">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -152,7 +153,8 @@ export function DataTable<TData extends { id: number }, TValue>({
             </TableRow>
           )}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
       <div className="flex items-center justify-end space-x-2 py-4 px-4">
         <Button
           variant="outline"

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { animate } from "animejs";
+
+import { getAnime } from "@/components/ui-preferences/anime";
 
 import { loginAction } from "@/actions/auth/login";
 import { Button } from "@/components/ui/button";
@@ -41,22 +42,37 @@ export default function LoginPage() {
     if (!el) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
 
-    animate(el, {
-      opacity: [0, 1],
-      translateY: [12, 0],
-      scale: [0.985, 1],
-      easing: "easeOutExpo",
-      duration: 750,
-    });
+    let cancelled = false;
 
-    animate(el, {
-      translateY: [0, -4],
-      direction: "alternate",
-      loop: true,
-      easing: "easeInOutSine",
-      duration: 2800,
-      delay: 800,
-    });
+    void getAnime()
+      .then((anime) => {
+        if (cancelled) return;
+        if (!anime) return;
+
+        anime.animate(el, {
+          opacity: [0, 1],
+          translateY: [12, 0],
+          scale: [0.985, 1],
+          easing: "easeOutExpo",
+          duration: 750,
+        });
+
+        anime.animate(el, {
+          translateY: [0, -4],
+          direction: "alternate",
+          loop: true,
+          easing: "easeInOutSine",
+          duration: 2800,
+          delay: 800,
+        });
+      })
+      .catch(() => {
+        // fail-safe
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function onSubmit(e: React.FormEvent) {

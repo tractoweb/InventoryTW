@@ -2,11 +2,13 @@
 
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag, unstable_cache } from "next/cache";
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { createCustomer } from '@/services/customer-service';
 import { listAllPages } from '@/services/amplify-list-all';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 
 const CreateCustomerSchema = z.object({
   name: z.string().min(1),
@@ -34,14 +36,21 @@ export async function createCustomerAction(raw: CreateCustomerInput): Promise<{ 
     if (!parsed.success) return { success: false, error: 'Datos inválidos' };
 
     // Seed counter from existing data to avoid collisions after imports.
-    const existingCustomers = await listAllPages((args) => amplifyClient.models.Customer.list(args));
-    if ('error' in existingCustomers) {
-      return { success: false, error: existingCustomers.error };
-    }
-    const maxExistingId = existingCustomers.data.reduce((max, c: any) => {
-      const id = Number(c?.idCustomer ?? 0);
-      return Number.isFinite(id) ? Math.max(max, id) : max;
-    }, 0);
+    // Cached briefly: creation is rare but listing all pages can be heavy.
+    const maxIdCached = unstable_cache(
+      async () => {
+        const existingCustomers = await listAllPages((args) => amplifyClient.models.Customer.list(args));
+        if ('error' in existingCustomers) throw new Error(existingCustomers.error);
+        return existingCustomers.data.reduce((max, c: any) => {
+          const id = Number(c?.idCustomer ?? 0);
+          return Number.isFinite(id) ? Math.max(max, id) : max;
+        }, 0);
+      },
+      ["partners", "max-id"],
+      { revalidate: 5 * 60, tags: [CACHE_TAGS.heavy.customers] }
+    );
+
+    const maxExistingId = await maxIdCached();
     await ensureCounterAtLeast('customerId', maxExistingId);
 
     const input = parsed.data;
@@ -70,7 +79,10 @@ export async function createCustomerAction(raw: CreateCustomerInput): Promise<{ 
         isTaxExempt: input.isTaxExempt ?? false,
       } as any);
 
-      if (createRes?.data) return { success: true, idCustomer };
+      if (createRes?.data) {
+        revalidateTag(CACHE_TAGS.heavy.customers);
+        return { success: true, idCustomer };
+      }
 
       const errMsg = (createRes?.errors?.[0]?.message as string | undefined) ?? 'No se pudo crear el proveedor';
       // If creation failed due to an ID collision/race, try again; otherwise fail fast.

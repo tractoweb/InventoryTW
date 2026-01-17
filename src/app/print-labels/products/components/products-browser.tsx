@@ -5,6 +5,16 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { listProductsForPrintLabels, type PrintLabelsProductRow } from "@/actions/list-products-for-print-labels";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { useBrowserPrint } from "@/hooks/use-browserprint";
@@ -26,7 +37,7 @@ import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-di
 import {
   createPrintLabelRequest,
   listPendingPrintLabelRequests,
-  setPrintLabelRequestStatus,
+  deletePrintLabelRequests,
   type CreatePrintLabelRequestItemInput,
   type PrintLabelRequestDto,
 } from "@/actions/print-label-requests";
@@ -84,7 +95,42 @@ export default function ProductsBrowser() {
 
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [requests, setRequests] = useState<PrintRequest[]>([]);
+  const [selectedRequestIds, setSelectedRequestIds] = useState<Record<string, boolean>>({});
   const [draftList, setDraftList] = useState<Record<number, RequestItemSnapshot>>({});
+
+  type ConfirmState =
+    | { kind: "none" }
+    | { kind: "clear-draft" }
+    | { kind: "remove-item"; idProduct: number; name: string };
+  const [confirmState, setConfirmState] = useState<ConfirmState>({ kind: "none" });
+
+  const clampQty = (value: unknown) => {
+    const n = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(1, Math.trunc(n));
+  };
+
+  const setDraftQty = (idProduct: number, qty: unknown) => {
+    setDraftList((prev) => {
+      const existing = prev[idProduct];
+      if (!existing) return prev;
+      const nextQty = clampQty(qty);
+      return { ...prev, [idProduct]: { ...existing, qty: nextQty } };
+    });
+  };
+
+  const bumpDraftQty = (idProduct: number, delta: number) => {
+    setDraftList((prev) => {
+      const existing = prev[idProduct];
+      if (!existing) return prev;
+      const nextQty = clampQty((existing.qty ?? 1) + delta);
+      return { ...prev, [idProduct]: { ...existing, qty: nextQty } };
+    });
+  };
+
+  type PreviewSource = "table" | "requests";
+  const [previewSource, setPreviewSource] = useState<PreviewSource>("table");
+  const [previewRequestIds, setPreviewRequestIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +159,24 @@ export default function ProductsBrowser() {
       }));
 
       setRequests(mapped);
+
+      // Keep a stable default selection set for the modal.
+      setSelectedRequestIds((prev) => {
+        const next: Record<string, boolean> = {};
+        const existingIds = new Set(mapped.map((r) => r.requestId));
+
+        // Preserve previous selections if still present.
+        for (const [id, v] of Object.entries(prev ?? {})) {
+          if (v && existingIds.has(id)) next[id] = true;
+        }
+
+        // If nothing selected, default to first.
+        if (Object.keys(next).length === 0 && mapped[0]?.requestId) {
+          next[mapped[0].requestId] = true;
+        }
+
+        return next;
+      });
     }
 
     void run();
@@ -121,6 +185,19 @@ export default function ProductsBrowser() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const selectedRequestList = useMemo(() => {
+    const ids = Object.entries(selectedRequestIds)
+      .filter(([, v]) => Boolean(v))
+      .map(([id]) => id);
+    return ids;
+  }, [selectedRequestIds]);
+
+  const selectedRequests = useMemo(() => {
+    if (!selectedRequestList.length) return [];
+    const byId = new Map(requests.map((r) => [r.requestId, r] as const));
+    return selectedRequestList.map((id) => byId.get(id)).filter(Boolean) as PrintRequest[];
+  }, [requests, selectedRequestList]);
 
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
@@ -624,8 +701,11 @@ export default function ProductsBrowser() {
     if (printing || previewLoading) return;
 
     const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
-    if (selectedIds.length === 0) {
-      setMessage("No hay productos seleccionados para agregar.");
+    const requestIdsToConsume = selectedRequestList;
+    const requestItems = selectedRequests.flatMap((r) => r.items ?? []);
+
+    if (selectedIds.length === 0 && requestItems.length === 0) {
+      setMessage("Selecciona productos en la tabla o una petición para agregar.");
       return;
     }
 
@@ -668,13 +748,113 @@ export default function ProductsBrowser() {
             qty: (existing?.qty ?? 0) + qty,
           };
         }
+
+        // Merge the selected request (if any) into the same draft list.
+        for (const it of requestItems) {
+          const idProduct = Number(it.idProduct);
+          if (!Number.isFinite(idProduct) || idProduct <= 0) continue;
+
+          const qty = Math.max(1, Number(it.qty ?? 1) || 1);
+          const existing = next[idProduct];
+          next[idProduct] = {
+            idProduct,
+            name: String(it.name ?? existing?.name ?? ""),
+            reference: it.reference ?? existing?.reference ?? null,
+            measurementUnit: it.measurementUnit ?? existing?.measurementUnit ?? null,
+            createdAt: it.createdAt ?? existing?.createdAt ?? null,
+            barcodes: it.barcodes ?? existing?.barcodes ?? null,
+            qty: (existing?.qty ?? 0) + qty,
+          };
+        }
+
         return next;
       });
 
-      setSelected({});
-      setMessage("Agregado a la lista.");
+      if (selectedIds.length > 0) setSelected({});
+      const addedFromTable = selectedIds.length;
+      const addedFromRequest = requestItems.length;
+
+      if (requestIdsToConsume.length > 0) {
+        const del = await deletePrintLabelRequests({ requestIds: requestIdsToConsume });
+        if (!del.ok) throw new Error(del.error ?? "No se pudo eliminar la(s) petición(es) usada(s)");
+
+        setRequests((prev) => prev.filter((r) => !requestIdsToConsume.includes(r.requestId)));
+        setSelectedRequestIds((prev) => {
+          const next = { ...(prev ?? {}) };
+          for (const id of requestIdsToConsume) delete next[id];
+          return next;
+        });
+      }
+
+      setMessage(
+        addedFromTable > 0 && addedFromRequest > 0
+          ? `Agregado a la lista (tabla: ${addedFromTable}, petición: ${addedFromRequest}).`
+          : addedFromRequest > 0
+            ? `Agregado a la lista desde la petición (${addedFromRequest} productos).`
+            : `Agregado a la lista (${addedFromTable} productos).`
+      );
     } catch (e: unknown) {
       setMessage(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const prepareRequestsPreview = async () => {
+    if (printing) return;
+
+    const reqs = selectedRequests;
+    if (reqs.length === 0) {
+      setMessage("Selecciona una o más peticiones para imprimir.");
+      return;
+    }
+
+    setMessage(null);
+    setPreviewLoading(true);
+
+    try {
+      await ensureLogoSnippet();
+
+      const stickers: LabelData[] = [];
+
+      // Expand selected requests into sticker plan.
+      for (const req of reqs) {
+        for (const it of req.items ?? []) {
+          const qty = Math.max(0, Number(it.qty) || 0);
+          if (qty <= 0) continue;
+          const effectiveBarcodes = it.barcodes ?? [];
+          const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+          const label: LabelData = {
+            nombreProducto: String(it.name ?? ""),
+            codigoBarras: String(primaryBarcode ?? ""),
+            lote: String(it.measurementUnit ?? ""),
+            fecha: toIsoDate(it.createdAt),
+          };
+          for (let i = 0; i < qty; i++) stickers.push(label);
+        }
+      }
+
+      if (stickers.length === 0) {
+        setMessage("Las peticiones seleccionadas no tienen stickers para imprimir.");
+        return;
+      }
+
+      const plan: LabelSlot[][] = [];
+      for (let i = 0; i < stickers.length; i += 3) {
+        plan.push([stickers[i] ?? null, stickers[i + 1] ?? null, stickers[i + 2] ?? null]);
+      }
+
+      setPreviewSource("requests");
+      setPreviewRequestIds(reqs.map((r) => r.requestId));
+      setPreviewRows(plan);
+
+      // Close the requests dialog first, then open the preview.
+      // (Dialog already has nice animate-in/zoom/slide transitions.)
+      setRequestsOpen(false);
+      // Small stagger so the close animation feels smoother.
+      window.setTimeout(() => setPreviewOpen(true), 120);
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -887,11 +1067,11 @@ export default function ProductsBrowser() {
           }
         }
 
-        const upd = await setPrintLabelRequestStatus({ requestId: req.requestId, status: "PRINTED" });
-        if (!upd.ok) throw new Error(upd.error ?? "No se pudo marcar como impresa");
+  const del = await deletePrintLabelRequests({ requestIds: [req.requestId] });
+  if (!del.ok) throw new Error(del.error ?? "No se pudo eliminar la solicitud impresa");
 
-        // Remove from pending list.
-        setRequests((prev) => prev.filter((x) => x.requestId !== req.requestId));
+  // Remove from pending list.
+  setRequests((prev) => prev.filter((x) => x.requestId !== req.requestId));
 
         if (printedWithoutLogo) {
           setMessage(`Solicitud ${rIndex + 1} impresa (sin logo por compatibilidad).`);
@@ -964,6 +1144,8 @@ export default function ProductsBrowser() {
 
       const plan = buildPrintPlanRows(selectedIds, barcodesOverlay);
       setPreviewRows(plan);
+      setPreviewSource("table");
+      setPreviewRequestIds([]);
       setPreviewOpen(true);
     } catch (e: unknown) {
       setMessage(e instanceof Error ? e.message : String(e));
@@ -1084,6 +1266,21 @@ export default function ProductsBrowser() {
 
       setPrinting(false);
       if (errors === 0) {
+        if (previewSource === "requests" && previewRequestIds.length) {
+          const del = await deletePrintLabelRequests({ requestIds: previewRequestIds });
+          if (!del.ok) {
+            // Best-effort: keep UI usable even if cleanup fails.
+            setMessage(del.error ?? "Imprimió, pero no se pudieron eliminar las peticiones.");
+          }
+
+          setRequests((prev) => prev.filter((r) => !previewRequestIds.includes(r.requestId)));
+          setSelectedRequestIds((prev) => {
+            const next = { ...(prev ?? {}) };
+            for (const id of previewRequestIds) delete next[id];
+            return next;
+          });
+        }
+
         setMessage(
           printedWithoutLogo
             ? "¡Etiquetas enviadas correctamente! (Se imprimió sin logo por compatibilidad)"
@@ -1443,8 +1640,18 @@ export default function ProductsBrowser() {
       <Dialog open={previewOpen} onOpenChange={(open) => (previewLoading || printing ? null : setPreviewOpen(open))}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Preview de impresión</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Preview de impresión
+              {previewSource === "requests" ? (
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary animate-in fade-in-0 zoom-in-95">
+                  Desde peticiones
+                </span>
+              ) : null}
+            </DialogTitle>
             <DialogDescription>
+              {previewSource === "requests" && previewRequestIds.length
+                ? `Peticiones: ${previewRequestIds.length}. `
+                : ""}
               Se imprimirán {previewRows.length} filas (hasta {previewRows.length * 3} posiciones). Orden: izquierda→derecha, empezando arriba.
             </DialogDescription>
           </DialogHeader>
@@ -1482,7 +1689,7 @@ export default function ProductsBrowser() {
           <DialogHeader>
             <DialogTitle>Peticiones de impresión</DialogTitle>
             <DialogDescription>
-              Pendientes: {requestsSummary.count} solicitudes ({requestsSummary.stickers} stickers). Lista actual: {draftSummary.products} productos ({draftSummary.stickers} stickers).
+              Pendientes: {requestsSummary.count} solicitudes ({requestsSummary.stickers} stickers). Lista actual: {draftSummary.products} productos ({draftSummary.stickers} stickers). Seleccionadas: {selectedRequestList.length}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1490,13 +1697,28 @@ export default function ProductsBrowser() {
             <div className="rounded-md border p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium">Lista actual</div>
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  {draftSummary.products} productos · {draftSummary.stickers} stickers
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                    {draftSummary.products} productos · {draftSummary.stickers} stickers
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => {
+                      if (printing || previewLoading) return;
+                      if (Object.keys(draftList).length === 0) return;
+                      setConfirmState({ kind: "clear-draft" });
+                    }}
+                    disabled={printing || previewLoading || Object.keys(draftList).length === 0}
+                  >
+                    Vaciar
+                  </Button>
                 </div>
               </div>
               {draftSummary.products === 0 ? (
                 <div className="text-sm text-muted-foreground mt-2">
-                  Vacía. Selecciona productos en la tabla y usa “Agregar a la lista”.
+                  Vacía. Selecciona productos en la tabla y/o elige peticiones abajo y usa “Agregar a la lista”.
                 </div>
               ) : (
                 <div className="mt-2 max-h-48 overflow-auto">
@@ -1504,18 +1726,72 @@ export default function ProductsBrowser() {
                     <thead className="text-xs text-muted-foreground">
                       <tr>
                         <th className="text-left font-medium py-1">Producto</th>
-                        <th className="text-right font-medium py-1 w-20">Qty</th>
+                        <th className="text-right font-medium py-1 w-44">Qty</th>
                       </tr>
                     </thead>
                     <tbody>
                       {Object.values(draftList)
+                        .slice()
                         .sort((a, b) => a.idProduct - b.idProduct)
                         .map((it) => (
                           <tr key={it.idProduct} className="border-t">
-                            <td className="py-1 pr-3 truncate" title={it.name}>
-                              {it.name}
+                            <td className="py-1 pr-3 min-w-0">
+                              <div className="truncate" title={it.name}>
+                                {it.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate" title={it.reference ?? ""}>
+                                Ref: {it.reference ?? "—"}
+                              </div>
                             </td>
-                            <td className="py-1 text-right tabular-nums">{it.qty}</td>
+                            <td className="py-1 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                  onClick={() => bumpDraftQty(it.idProduct, -1)}
+                                  disabled={printing || previewLoading || it.qty <= 1}
+                                  aria-label="Restar"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+
+                                <input
+                                  type="number"
+                                  min={1}
+                                  step={1}
+                                  inputMode="numeric"
+                                  className="h-7 w-14 rounded-md border bg-background px-2 text-right text-sm tabular-nums"
+                                  value={String(clampQty(it.qty))}
+                                  onChange={(e) => setDraftQty(it.idProduct, e.currentTarget.valueAsNumber)}
+                                  onBlur={() => setDraftQty(it.idProduct, it.qty)}
+                                  disabled={printing || previewLoading}
+                                  aria-label="Cantidad"
+                                />
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                                  onClick={() => bumpDraftQty(it.idProduct, +1)}
+                                  disabled={printing || previewLoading}
+                                  aria-label="Sumar"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                  onClick={() => setConfirmState({ kind: "remove-item", idProduct: it.idProduct, name: it.name })}
+                                  disabled={printing || previewLoading}
+                                  aria-label="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                     </tbody>
@@ -1527,8 +1803,27 @@ export default function ProductsBrowser() {
             <div className="rounded-md border p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium">Solicitudes pendientes</div>
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  {requestsSummary.count} solicitudes · {requestsSummary.stickers} stickers
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => {
+                      setSelectedRequestIds(Object.fromEntries(requests.map((r) => [r.requestId, true])));
+                    }}
+                    disabled={printing || previewLoading || requests.length === 0}
+                  >
+                    Seleccionar todo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => setSelectedRequestIds({})}
+                    disabled={printing || previewLoading || selectedRequestList.length === 0}
+                  >
+                    Limpiar
+                  </Button>
                 </div>
               </div>
 
@@ -1540,14 +1835,36 @@ export default function ProductsBrowser() {
                     const itemsCount = r.items.length;
                     const stickers = r.items.reduce((s, it) => s + Math.max(0, Number(it.qty) || 0), 0);
                     const when = new Date(r.requestedAt);
+                    const isSelected = Boolean(selectedRequestIds?.[r.requestId]);
+
                     return (
-                      <div key={r.requestId} className="rounded-md border p-3">
+                      <div
+                        key={r.requestId}
+                        className={
+                          isSelected
+                            ? "rounded-md border p-3 ring-2 ring-primary/40"
+                            : "rounded-md border p-3"
+                        }
+                      >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="font-medium">Solicitud #{idx + 1}</div>
+                          <label className="flex items-center gap-2 min-w-0 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const checked = e.currentTarget.checked;
+                                setSelectedRequestIds((prev) => ({ ...(prev ?? {}), [r.requestId]: checked }));
+                              }}
+                              aria-label={`Seleccionar solicitud ${idx + 1}`}
+                            />
+                            <div className="font-medium truncate">Solicitud #{idx + 1}</div>
+                          </label>
+
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
                             {when.toLocaleString()} · {itemsCount} productos · {stickers} stickers
                           </div>
                         </div>
+
                         <div className="mt-2">
                           <table className="w-full text-sm">
                             <thead className="text-xs text-muted-foreground">
@@ -1562,8 +1879,13 @@ export default function ProductsBrowser() {
                                 .sort((a, b) => a.idProduct - b.idProduct)
                                 .map((it) => (
                                   <tr key={it.idProduct} className="border-t">
-                                    <td className="py-1 pr-3 truncate" title={it.name}>
-                                      {it.name}
+                                    <td className="py-1 pr-3 min-w-0">
+                                      <div className="truncate" title={it.name}>
+                                        {it.name}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground truncate" title={it.reference ?? ""}>
+                                        Ref: {it.reference ?? "—"}
+                                      </div>
                                     </td>
                                     <td className="py-1 text-right tabular-nums">{it.qty}</td>
                                   </tr>
@@ -1580,15 +1902,74 @@ export default function ProductsBrowser() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={mergeSelectedIntoDraft} disabled={printing || previewLoading || selectedCount === 0}>
+            <Button
+              variant="outline"
+              onClick={mergeSelectedIntoDraft}
+              disabled={printing || previewLoading || (selectedCount === 0 && selectedRequestList.length === 0)}
+            >
               Agregar a la lista
             </Button>
-            <Button onClick={printRequestsNow} disabled={printing || requests.length === 0 || bp.status !== "ready" || !bp.selectedPrinter}>
-              Imprimir
+            <Button
+              onClick={prepareRequestsPreview}
+              disabled={printing || previewLoading || selectedRequestList.length === 0}
+            >
+              Imprimir (ver preview)
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={confirmState.kind !== "none"}
+        onOpenChange={(open) => {
+          if (!open) setConfirmState({ kind: "none" });
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmState.kind === "clear-draft"
+                ? "Vaciar lista actual"
+                : confirmState.kind === "remove-item"
+                  ? "Eliminar producto"
+                  : "Confirmación"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmState.kind === "clear-draft"
+                ? "¿Deseas vaciar la lista actual? Esta acción no se puede deshacer."
+                : confirmState.kind === "remove-item"
+                  ? `¿Deseas eliminar “${confirmState.name}” de la lista actual?`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmState.kind === "remove-item" || confirmState.kind === "clear-draft" ? "bg-red-600 hover:bg-red-700" : undefined}
+              onClick={() => {
+                if (confirmState.kind === "clear-draft") {
+                  setDraftList({});
+                  setMessage("Lista actual vaciada.");
+                }
+
+                if (confirmState.kind === "remove-item") {
+                  const idProduct = confirmState.idProduct;
+                  setDraftList((prev) => {
+                    const next = { ...prev };
+                    delete next[idProduct];
+                    return next;
+                  });
+                  setMessage("Producto eliminado de la lista actual.");
+                }
+
+                setConfirmState({ kind: "none" });
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {message ? <div className="mt-4 text-center font-semibold">{message}</div> : null}
 

@@ -10,8 +10,12 @@ import { DocumentsCatalogProvider } from '@/components/catalog/documents-catalog
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'InventoryEdge',
+  title: 'InventoryTAW',
   description: 'Sistema de gestión de inventario',
+  icons: {
+    icon: ['/favicon.svg', '/icon.svg'],
+    apple: ['/icon.svg'],
+  },
 };
 
 export default function RootLayout({

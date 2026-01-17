@@ -2,6 +2,8 @@
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { unstable_noStore as noStore } from 'next/cache';
 import { listAllPages } from "@/services/amplify-list-all";
+import { cached } from "@/lib/server-cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export type DocumentSearchResult = {
     id: number;
@@ -34,7 +36,14 @@ export async function searchDocuments(searchTerm: string) {
       .slice(0, 50);
 
     // Join customer names (best-effort)
-    const customersResult = await listAllPages<any>((args) => amplifyClient.models.Customer.list(args));
+    const customersResult = await cached(
+      async () => listAllPages<any>((args) => amplifyClient.models.Customer.list(args)),
+      {
+        keyParts: ["partners", "customers", "all"],
+        revalidateSeconds: 60,
+        tags: [CACHE_TAGS.heavy.customers],
+      }
+    )();
     const customerById = new Map<number, string>();
     if (!("error" in customersResult)) {
       for (const c of customersResult.data ?? []) {

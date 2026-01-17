@@ -209,7 +209,7 @@ export function AppSidebar() {
             <AppLogo className="h-8 w-8 text-primary" />
           </div>
           <span ref={brandTextRef} className="ui-show-glow text-xl font-semibold">
-            InventoryEdge
+            InventoryTAW
           </span>
         </div>
       </SidebarHeader>
