@@ -283,6 +283,30 @@ export default function AuditClientPage() {
                 </div>
               </div>
 
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Registro</div>
+                  <div className="text-sm">
+                    {selected.recordLabel ? (
+                      <span className="font-medium">{selected.recordLabel}</span>
+                    ) : (
+                      <span className="text-muted-foreground">(sin etiqueta)</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {selected.action} {selected.tableName} #{selected.recordId}
+                  </div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Campos cambiados</div>
+                  <div className="text-xs">
+                    {Array.isArray(selected.changedFields) && selected.changedFields.length > 0
+                      ? selected.changedFields.join(", ")
+                      : "(no detectado)"}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <div className="text-sm font-medium mb-2">OldValues</div>

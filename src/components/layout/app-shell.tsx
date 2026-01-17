@@ -25,6 +25,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
   const [sessionOk, setSessionOk] = React.useState(false);
+  const [session, setSession] = React.useState<any>(null);
+  const [sessionVersion, setSessionVersion] = React.useState(0);
+
+  React.useEffect(() => {
+    // Allows child pages (e.g., Profile) to request a session re-fetch.
+    const handler = () => setSessionVersion((v) => v + 1);
+    window.addEventListener("session:refresh", handler);
+    return () => window.removeEventListener("session:refresh", handler);
+  }, []);
 
   React.useEffect(() => {
     if (isLogin) {
@@ -40,6 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       // Si por alguna razón entramos acá sin sesión válida (cookie stale),
       // no mostramos contenido: mostramos loader y redirigimos.
       setSessionChecked(false);
+      setSession(null);
 
       let res: Awaited<ReturnType<typeof getCurrentSessionAction>> | null = null;
       try {
@@ -53,6 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       if (!res?.data) {
         setSessionOk(false);
+        setSession(null);
         setSessionChecked(true);
         const next = encodeURIComponent(pathname || "/");
         router.replace(`/login?next=${next}`);
@@ -61,6 +72,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
 
       setSessionOk(true);
+      setSession(res.data);
       setSessionChecked(true);
     }
 
@@ -68,30 +80,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLogin, pathname, router]);
+  }, [isLogin, pathname, router, sessionVersion]);
 
   if (isLogin) {
     return <>{children}</>;
   }
 
-  if (!sessionChecked || !sessionOk) {
-    return (
-      <div className="min-h-svh w-full grid place-items-center p-6">
-        <div className="text-sm text-muted-foreground">Cargando…</div>
-      </div>
-    );
-  }
+  const showSessionLoader = !sessionChecked || !sessionOk;
+  const accessLevel = typeof session?.accessLevel === "number" ? Number(session.accessLevel) : 0;
 
   return (
     <SidebarProvider>
       <UiPreferencesProvider>
         <AnimeTopLoader />
-        <AppSidebar />
+        <AppSidebar accessLevel={accessLevel} />
         <SidebarInset>
           <div className="flex min-h-svh min-w-0 w-full flex-col">
-            <AppHeader />
+            <AppHeader session={session} />
             <main className="flex-1 min-w-0 w-full max-w-full p-4 md:p-6 lg:p-8">
-              <AnimatedPage>{children}</AnimatedPage>
+              {showSessionLoader ? (
+                <div className="min-h-[50vh] w-full grid place-items-center">
+                  <div className="text-sm text-muted-foreground">Cargando…</div>
+                </div>
+              ) : (
+                <AnimatedPage>{children}</AnimatedPage>
+              )}
             </main>
           </div>
         </SidebarInset>

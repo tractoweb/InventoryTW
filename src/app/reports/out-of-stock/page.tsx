@@ -1,7 +1,10 @@
 import Link from "next/link";
 
-import { requireSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+
+import { getCurrentSession } from "@/lib/session";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { AccessDenied } from "@/components/auth/access-denied";
 
 import { getStockData } from "@/actions/get-stock-data";
 
@@ -12,7 +15,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 
 export default async function OutOfStockReportPage() {
-  await requireSession(ACCESS_LEVELS.CASHIER);
+  const s = await getCurrentSession();
+  if (!s.data) redirect("/login?next=%2Freports%2Fout-of-stock");
+  if (Number(s.data.accessLevel) < ACCESS_LEVELS.CASHIER) {
+    return <AccessDenied backHref="/reports" backLabel="Volver a Informes" />;
+  }
 
   const res = await getStockData();
   if (res.error) {

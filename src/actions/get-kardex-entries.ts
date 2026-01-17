@@ -45,10 +45,19 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
 }> {
   noStore();
 
-  const parsed = GetKardexEntriesSchema.safeParse(raw);
+  const parsed = GetKardexEntriesSchema.safeParse(raw ?? {});
   if (!parsed.success) return { data: [], error: 'Filtros inválidos' };
 
   const { productId, warehouseId, type, dateFrom, dateTo, limit } = parsed.data;
+
+  function safeIso(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    try {
+      return new Date(value).toISOString();
+    } catch {
+      return undefined;
+    }
+  }
 
   try {
     const and: any[] = [];
@@ -56,12 +65,20 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
     if (Number.isFinite(warehouseId)) and.push({ warehouseId: { eq: Number(warehouseId) } });
     if (type) and.push({ type: { eq: type } });
 
-    if (dateFrom && dateTo) {
-      and.push({ date: { between: [new Date(dateFrom).toISOString(), new Date(dateTo).toISOString()] } });
-    } else if (dateFrom) {
-      and.push({ date: { ge: new Date(dateFrom).toISOString() } });
-    } else if (dateTo) {
-      and.push({ date: { le: new Date(dateTo).toISOString() } });
+    let df = safeIso(dateFrom);
+    let dt = safeIso(dateTo);
+    if (df && dt && df > dt) {
+      const tmp = df;
+      df = dt;
+      dt = tmp;
+    }
+
+    if (df && dt) {
+      and.push({ date: { between: [df, dt] } });
+    } else if (df) {
+      and.push({ date: { ge: df } });
+    } else if (dt) {
+      and.push({ date: { le: dt } });
     }
 
     const filter = and.length === 0 ? undefined : and.length === 1 ? and[0] : { and };

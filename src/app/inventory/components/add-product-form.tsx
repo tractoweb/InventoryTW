@@ -103,17 +103,23 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
   useEffect(() => {
     if (debouncedCode && debouncedCode.length > 0) {
       setIsCheckingCode(true);
-      checkReferenceExistence(debouncedCode).then(result => {
-        setIsCheckingCode(false);
-        if (result.exists) {
-          form.setError("code", {
-            type: "manual",
-            message: "Esta referencia ya está en uso.",
-          });
-        } else {
+      checkReferenceExistence(debouncedCode)
+        .then((result) => {
+          setIsCheckingCode(false);
+          if (result.exists) {
+            form.setError("code", {
+              type: "manual",
+              message: "Esta referencia ya está en uso.",
+            });
+          } else {
+            form.clearErrors("code");
+          }
+        })
+        .catch(() => {
+          // If the server check fails (session/network), don't block product creation.
+          setIsCheckingCode(false);
           form.clearErrors("code");
-        }
-      });
+        });
     } else {
         form.clearErrors("code");
     }
@@ -129,15 +135,23 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
     return totalRate;
   }, [form, taxes]);
   
-  const calculatePrice = useCallback((cost: number, taxRate: number) => {
+  const MARKUP_RATE = 0.4;
+
+  // Pricing rule (Nuevo producto / Precio e Impuestos):
+  // - Base = costo
+  // - Precio de venta = base + 40%
+  // - Si el precio es "con impuesto", se aplica el/los impuestos encima.
+  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
     if (cost <= 0) return 0;
-    const newPrice = cost * (1 + taxRate);
+    const basePlusMarkup = cost * (1 + MARKUP_RATE);
+    const newPrice = isTaxInclusive ? basePlusMarkup * (1 + taxRate) : basePlusMarkup;
     return parseFloat(newPrice.toFixed(2));
   }, []);
 
   const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
     if (price <= 0) return 0;
-    const newCost = isTaxInclusive ? price / (1 + taxRate) : price;
+    const basePlusMarkup = isTaxInclusive ? price / (1 + taxRate) : price;
+    const newCost = basePlusMarkup / (1 + MARKUP_RATE);
     return parseFloat(newCost.toFixed(2));
   }, []);
 
@@ -148,7 +162,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
 
       if (name === 'cost' || name?.startsWith('taxes')) {
         const cost = Number(form.getValues('cost')) || 0;
-        const newPrice = calculatePrice(cost, taxRate);
+        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
         const currentPrice = Number(form.getValues('price')) || 0;
 
         if (newPrice.toFixed(2) !== currentPrice.toFixed(2)) {

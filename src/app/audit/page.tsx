@@ -1,8 +1,14 @@
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
-import { requireSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/components/auth/access-denied";
 import AuditClientPage from "./audit-client-page";
 
 export default async function AuditPage() {
-  await requireSession(ACCESS_LEVELS.ADMIN);
+  const res = await getCurrentSession();
+  if (!res.data) redirect("/login?next=%2Faudit");
+  if (Number(res.data.accessLevel) < ACCESS_LEVELS.ADMIN) {
+    return <AccessDenied backHref="/" backLabel="Volver al panel" />;
+  }
   return <AuditClientPage />;
 }

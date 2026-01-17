@@ -1068,6 +1068,7 @@ export function NewDocumentForm() {
                   onClick={() => {
                     setNewProductName(productQuery.trim());
                     setNewProductCode('');
+                    setProductDialogOpen(false);
                     setCreateProductOpen(true);
                   }}
                 >
@@ -1098,16 +1099,33 @@ export function NewDocumentForm() {
           </CommandGroup>
         </CommandList>
         <div className="border-t p-3">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={onlySupplierProducts}
-              onCheckedChange={(v) => setOnlySupplierProducts(Boolean(v))}
-              disabled={typeof customerId !== 'number'}
-            />
-            <span className="text-xs text-muted-foreground">
-              Filtrar por proveedor seleccionado
-              {typeof customerId !== 'number' ? ' (selecciona un proveedor)' : ''}
-            </span>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const q = productQuery.trim();
+                if (q.length > 0) {
+                  setNewProductName(q);
+                  setNewProductCode('');
+                }
+                setProductDialogOpen(false);
+                setCreateProductOpen(true);
+              }}
+            >
+              {productQuery.trim().length > 0 ? `Crear producto: “${productQuery.trim()}”` : 'Crear producto'}
+            </Button>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={onlySupplierProducts}
+                onCheckedChange={(v) => setOnlySupplierProducts(Boolean(v))}
+                disabled={typeof customerId !== 'number'}
+              />
+              <span className="text-xs text-muted-foreground">
+                Filtrar por proveedor seleccionado
+                {typeof customerId !== 'number' ? ' (selecciona un proveedor)' : ''}
+              </span>
+            </div>
           </div>
           <div className="text-[11px] text-muted-foreground">Si no escribes nada, muestra una lista base (o del proveedor).</div>
         </div>

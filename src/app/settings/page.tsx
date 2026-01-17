@@ -4,11 +4,13 @@ import UserUiPreferencesForm from "@/components/settings/user-ui-preferences-for
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
-import { requireSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function SettingsPage() {
-  const session = await requireSession();
-  const isAdmin = Number(session.accessLevel) >= ACCESS_LEVELS.ADMIN;
+  const res = await getCurrentSession();
+  if (!res.data) redirect("/login?next=%2Fsettings");
+  const isAdmin = Number(res.data.accessLevel) >= ACCESS_LEVELS.ADMIN;
 
   return (
     <div className="flex flex-col gap-6">

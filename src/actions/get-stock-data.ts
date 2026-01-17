@@ -1,3 +1,6 @@
+"use server";
+
+import "server-only";
 
 import type { StockInfo } from '@/lib/types';
 import { amplifyClient } from '@/lib/amplify-config';

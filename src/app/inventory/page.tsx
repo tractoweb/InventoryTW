@@ -4,8 +4,10 @@ import { Terminal } from "lucide-react";
 import { getWarehouses } from "@/actions/get-warehouses";
 import { getTaxes } from "@/actions/get-taxes";
 import { ProductsMasterClient } from "./components/products-master-client";
-import { requireSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/session";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/components/auth/access-denied";
 
 
 export default async function InventoryPage({
@@ -13,7 +15,11 @@ export default async function InventoryPage({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  await requireSession(ACCESS_LEVELS.CASHIER);
+  const s = await getCurrentSession();
+  if (!s.data) redirect("/login?next=%2Finventory");
+  if (Number(s.data.accessLevel) < ACCESS_LEVELS.CASHIER) {
+    return <AccessDenied backHref="/" backLabel="Volver al panel" />;
+  }
   const { data: productGroups, error: groupsError } = await getProductGroups();
   const { data: warehouses, error: warehousesError } = await getWarehouses();
   const { data: taxes, error: taxesError } = await getTaxes();

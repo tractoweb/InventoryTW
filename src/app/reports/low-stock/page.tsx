@@ -1,7 +1,10 @@
 import Link from "next/link";
 
-import { requireSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+
+import { getCurrentSession } from "@/lib/session";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { AccessDenied } from "@/components/auth/access-denied";
 import { inventoryService } from "@/services/inventory-service";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 
 export default async function LowStockReportPage() {
-  await requireSession(ACCESS_LEVELS.CASHIER);
+  const s = await getCurrentSession();
+  if (!s.data) redirect("/login?next=%2Freports%2Flow-stock");
+  if (Number(s.data.accessLevel) < ACCESS_LEVELS.CASHIER) {
+    return <AccessDenied backHref="/reports" backLabel="Volver a Informes" />;
+  }
 
   const res = await inventoryService.getLowStockAlerts();
   if (!res.success) {

@@ -25,6 +25,8 @@ export type AuditLogRow = {
   action: string;
   tableName: string;
   recordId: number;
+  recordLabel: string | null;
+  changedFields: string[] | null;
   ipAddress: string | null;
   userAgent: string | null;
   oldValues: string | null;
@@ -61,6 +63,48 @@ function safeIso(value: string | undefined): string | undefined {
   }
 }
 
+function safeJsonObject(raw: string | null): Record<string, any> | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as any;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function pickRecordLabel(obj: Record<string, any> | null): string | null {
+  if (!obj) return null;
+  const candidates = [
+    obj.name,
+    obj.code,
+    obj.documentNumber,
+    obj.reference,
+    obj.username,
+    obj.email,
+  ];
+  for (const c of candidates) {
+    const s = String(c ?? "").trim();
+    if (s) return s;
+  }
+  return null;
+}
+
+function diffKeys(oldObj: Record<string, any> | null, newObj: Record<string, any> | null): string[] | null {
+  if (!oldObj && !newObj) return null;
+  const keys = new Set<string>([...Object.keys(oldObj ?? {}), ...Object.keys(newObj ?? {})]);
+  const changed: string[] = [];
+  for (const k of keys) {
+    const a = (oldObj ?? {})[k];
+    const b = (newObj ?? {})[k];
+    if (JSON.stringify(a) !== JSON.stringify(b)) changed.push(k);
+  }
+  return changed.length ? changed.slice(0, 25) : [];
+}
+
 export async function listAuditLogsAction(raw?: z.input<typeof ListAuditLogsSchema>): Promise<{
   data: AuditLogRow[];
   nextToken: string | null;
@@ -81,8 +125,13 @@ export async function listAuditLogsAction(raw?: z.input<typeof ListAuditLogsSche
     if (action && String(action).trim().length) and.push({ action: { eq: String(action).trim() } });
     if (tableName && String(tableName).trim().length) and.push({ tableName: { eq: String(tableName).trim() } });
 
-    const df = safeIso(dateFrom);
-    const dt = safeIso(dateTo);
+    let df = safeIso(dateFrom);
+    let dt = safeIso(dateTo);
+    if (df && dt && df > dt) {
+      const tmp = df;
+      df = dt;
+      dt = tmp;
+    }
     if (df && dt) and.push({ timestamp: { between: [df, dt] } });
     else if (df) and.push({ timestamp: { ge: df } });
     else if (dt) and.push({ timestamp: { le: dt } });
@@ -92,7 +141,7 @@ export async function listAuditLogsAction(raw?: z.input<typeof ListAuditLogsSche
     const res: any = await amplifyClient.models.AuditLog.list({
       limit,
       nextToken: nextToken ?? undefined,
-      ...(filter ? { filter } : null),
+      ...(filter ? { filter } : {}),
     } as any);
 
     const items: any[] = (res?.data ?? []) as any[];
@@ -106,6 +155,8 @@ export async function listAuditLogsAction(raw?: z.input<typeof ListAuditLogsSche
         action: String(x?.action ?? ""),
         tableName: String(x?.tableName ?? ""),
         recordId: Number(x?.recordId ?? 0),
+        recordLabel: null,
+        changedFields: null,
         ipAddress: x?.ipAddress ? String(x.ipAddress) : null,
         userAgent: x?.userAgent ? String(x.userAgent) : null,
         oldValues: x?.oldValues ? String(x.oldValues) : null,
@@ -113,11 +164,20 @@ export async function listAuditLogsAction(raw?: z.input<typeof ListAuditLogsSche
       }))
       .filter((r) => r.logId && Number.isFinite(r.userId) && r.userId > 0 && Number.isFinite(r.recordId) && r.recordId > 0);
 
+    // Compute lightweight summary from JSON payloads (no extra reads).
+    rows = rows.map((r) => {
+      const oldObj = safeJsonObject(r.oldValues);
+      const newObj = safeJsonObject(r.newValues);
+      const recordLabel = pickRecordLabel(newObj) ?? pickRecordLabel(oldObj);
+      const changedFields = diffKeys(oldObj, newObj);
+      return { ...r, recordLabel, changedFields };
+    });
+
     const qTerm = String(q ?? "").trim().toLowerCase();
     if (qTerm) {
       rows = rows.filter((r) => {
         const rid = String(r.recordId);
-        const l = `${r.action} ${r.tableName} ${rid} ${r.timestamp}`.toLowerCase();
+        const l = `${r.action} ${r.tableName} ${rid} ${r.timestamp} ${r.userName ?? ""} ${r.recordLabel ?? ""}`.toLowerCase();
         return l.includes(qTerm);
       });
     }

@@ -1,7 +1,10 @@
 import Link from "next/link";
 
-import { requireSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+
+import { getCurrentSession } from "@/lib/session";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { AccessDenied } from "@/components/auth/access-denied";
 
 import { getDashboardStats } from "@/actions/get-dashboard-stats";
 
@@ -11,7 +14,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 export default async function ReportsPage() {
-	await requireSession(ACCESS_LEVELS.CASHIER);
+	const res = await getCurrentSession();
+	if (!res.data) redirect("/login?next=%2Freports");
+	if (Number(res.data.accessLevel) < ACCESS_LEVELS.CASHIER) {
+		return <AccessDenied backHref="/" backLabel="Volver al panel" />;
+	}
 
 	const statsRes = await getDashboardStats();
 	const error = statsRes.error;

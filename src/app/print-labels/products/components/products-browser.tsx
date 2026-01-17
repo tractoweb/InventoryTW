@@ -48,6 +48,7 @@ export default function ProductsBrowser() {
   const bp = useBrowserPrint();
 
   const [rows, setRows] = useState<PrintLabelsProductRow[]>([]);
+  const [rowCache, setRowCache] = useState<Record<number, PrintLabelsProductRow>>({});
   const [page, setPage] = useState(1);
   const [pageTokens, setPageTokens] = useState<Record<number, string | null>>({ 1: null });
   const [hasNext, setHasNext] = useState(false);
@@ -95,7 +96,6 @@ export default function ProductsBrowser() {
 
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [requests, setRequests] = useState<PrintRequest[]>([]);
-  const [selectedRequestIds, setSelectedRequestIds] = useState<Record<string, boolean>>({});
   const [draftList, setDraftList] = useState<Record<number, RequestItemSnapshot>>({});
 
   type ConfirmState =
@@ -159,24 +159,6 @@ export default function ProductsBrowser() {
       }));
 
       setRequests(mapped);
-
-      // Keep a stable default selection set for the modal.
-      setSelectedRequestIds((prev) => {
-        const next: Record<string, boolean> = {};
-        const existingIds = new Set(mapped.map((r) => r.requestId));
-
-        // Preserve previous selections if still present.
-        for (const [id, v] of Object.entries(prev ?? {})) {
-          if (v && existingIds.has(id)) next[id] = true;
-        }
-
-        // If nothing selected, default to first.
-        if (Object.keys(next).length === 0 && mapped[0]?.requestId) {
-          next[mapped[0].requestId] = true;
-        }
-
-        return next;
-      });
     }
 
     void run();
@@ -186,18 +168,54 @@ export default function ProductsBrowser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedRequestList = useMemo(() => {
-    const ids = Object.entries(selectedRequestIds)
-      .filter(([, v]) => Boolean(v))
-      .map(([id]) => id);
-    return ids;
-  }, [selectedRequestIds]);
+  async function addRequestToDraft(req: PrintRequest): Promise<void> {
+    if (printing || previewLoading) return;
+    const requestId = String(req?.requestId ?? "").trim();
+    if (!requestId) return;
 
-  const selectedRequests = useMemo(() => {
-    if (!selectedRequestList.length) return [];
-    const byId = new Map(requests.map((r) => [r.requestId, r] as const));
-    return selectedRequestList.map((id) => byId.get(id)).filter(Boolean) as PrintRequest[];
-  }, [requests, selectedRequestList]);
+    const items = (req.items ?? [])
+      .map((it) => ({
+        idProduct: Number(it.idProduct),
+        name: String(it.name ?? ""),
+        reference: it.reference ?? null,
+        measurementUnit: it.measurementUnit ?? null,
+        createdAt: it.createdAt ?? null,
+        barcodes: it.barcodes ?? null,
+        qty: Math.max(1, Number(it.qty) || 1),
+      }))
+      .filter((it) => Number.isFinite(it.idProduct) && it.idProduct > 0 && it.name.length > 0);
+
+    if (items.length === 0) {
+      setMessage("La petición no tiene productos válidos para agregar.");
+      return;
+    }
+
+    setDraftList((prev) => {
+      const next = { ...prev };
+      for (const it of items) {
+        const existing = next[it.idProduct];
+        next[it.idProduct] = {
+          idProduct: it.idProduct,
+          name: it.name || existing?.name || "",
+          reference: it.reference ?? existing?.reference ?? null,
+          measurementUnit: it.measurementUnit ?? existing?.measurementUnit ?? null,
+          createdAt: it.createdAt ?? existing?.createdAt ?? null,
+          barcodes: it.barcodes ?? existing?.barcodes ?? null,
+          qty: (existing?.qty ?? 0) + it.qty,
+        };
+      }
+      return next;
+    });
+
+    const del = await deletePrintLabelRequests({ requestIds: [requestId] });
+    if (!del.ok) {
+      setMessage(del.error ?? "Se agregó, pero no se pudo eliminar la petición.");
+      return;
+    }
+
+    setRequests((prev) => prev.filter((r) => r.requestId !== requestId));
+    setMessage(`Agregado desde petición (${items.length} productos).`);
+  }
 
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
@@ -230,8 +248,29 @@ export default function ProductsBrowser() {
     // Reset pagination when search changes
     setPage(1);
     setPageTokens({ 1: null });
-    setSelected({});
   }, [debouncedQuery]);
+
+  function mergeRowCache(existing: PrintLabelsProductRow | undefined, incoming: PrintLabelsProductRow): PrintLabelsProductRow {
+    const existingBarcodes = existing?.barcodes ?? null;
+    const incomingBarcodes = incoming?.barcodes ?? null;
+    const barcodes = incomingBarcodes !== null ? incomingBarcodes : existingBarcodes;
+
+    return {
+      idProduct: incoming.idProduct,
+      name: incoming.name ?? existing?.name ?? "",
+      reference: incoming.reference ?? existing?.reference ?? null,
+      measurementUnit: incoming.measurementUnit ?? existing?.measurementUnit ?? null,
+      createdAt: incoming.createdAt ?? existing?.createdAt ?? null,
+      barcodes,
+    };
+  }
+
+  const selectedIdsAll = useMemo(() => {
+    return Object.entries(selected)
+      .filter(([, qty]) => Math.max(0, Number(qty) || 0) > 0)
+      .map(([id]) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+  }, [selected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,7 +296,6 @@ export default function ProductsBrowser() {
       }
 
       setRows(res.data ?? []);
-      setSelected({});
 
       const nextToken = res.nextToken ?? null;
       setHasNext(Boolean(nextToken));
@@ -270,6 +308,19 @@ export default function ProductsBrowser() {
       cancelled = true;
     };
   }, [page, currentToken, debouncedQuery, isSearching]);
+
+  useEffect(() => {
+    if (!rows.length) return;
+    setRowCache((prev) => {
+      const next = { ...prev };
+      for (const r of rows) {
+        if (!r || !Number.isFinite(Number(r.idProduct)) || Number(r.idProduct) <= 0) continue;
+        const id = Number(r.idProduct);
+        next[id] = mergeRowCache(prev[id], r);
+      }
+      return next;
+    });
+  }, [rows]);
 
   useEffect(() => {
     let cancelled = false;
@@ -700,12 +751,10 @@ export default function ProductsBrowser() {
   const mergeSelectedIntoDraft = async () => {
     if (printing || previewLoading) return;
 
-    const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
-    const requestIdsToConsume = selectedRequestList;
-    const requestItems = selectedRequests.flatMap((r) => r.items ?? []);
+    const selectedIds = selectedIdsAll;
 
-    if (selectedIds.length === 0 && requestItems.length === 0) {
-      setMessage("Selecciona productos en la tabla o una petición para agregar.");
+    if (selectedIds.length === 0) {
+      setMessage("Selecciona productos en la tabla para agregar.");
       return;
     }
 
@@ -713,12 +762,24 @@ export default function ProductsBrowser() {
       setMessage(null);
 
       // Ensure barcodes for selected items so the list has stable data.
-      const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
+      const missing = selectedIds.filter((id) => {
+        const r = rowCache[id] ?? rows.find((x) => x.idProduct === id);
+        return !r || r.barcodes === null;
+      });
       let overlay: Record<number, string[]> = {};
       if (missing.length > 0) {
         const res = await getBarcodesForProducts(missing);
         if (res.error) throw new Error(res.error);
         overlay = res.data ?? {};
+        setRowCache((prev) => {
+          const next = { ...prev };
+          for (const id of missing) {
+            const existing = next[id];
+            if (!existing) continue;
+            next[id] = mergeRowCache(existing, { ...existing, barcodes: overlay[id] ?? [] });
+          }
+          return next;
+        });
         setRows((prev) =>
           prev.map((r) => {
             if (!selectedIds.includes(r.idProduct)) return r;
@@ -731,7 +792,7 @@ export default function ProductsBrowser() {
       setDraftList((prev) => {
         const next = { ...prev };
         for (const idProduct of selectedIds) {
-          const row = rows.find((r) => r.idProduct === idProduct);
+          const row = rowCache[idProduct] ?? rows.find((r) => r.idProduct === idProduct);
           if (!row) continue;
           const qty = Math.max(1, Number(selected[idProduct] ?? 1) || 1);
           const effectiveBarcodes =
@@ -749,50 +810,16 @@ export default function ProductsBrowser() {
           };
         }
 
-        // Merge the selected request (if any) into the same draft list.
-        for (const it of requestItems) {
-          const idProduct = Number(it.idProduct);
-          if (!Number.isFinite(idProduct) || idProduct <= 0) continue;
-
-          const qty = Math.max(1, Number(it.qty ?? 1) || 1);
-          const existing = next[idProduct];
-          next[idProduct] = {
-            idProduct,
-            name: String(it.name ?? existing?.name ?? ""),
-            reference: it.reference ?? existing?.reference ?? null,
-            measurementUnit: it.measurementUnit ?? existing?.measurementUnit ?? null,
-            createdAt: it.createdAt ?? existing?.createdAt ?? null,
-            barcodes: it.barcodes ?? existing?.barcodes ?? null,
-            qty: (existing?.qty ?? 0) + qty,
-          };
-        }
-
         return next;
       });
 
-      if (selectedIds.length > 0) setSelected({});
       const addedFromTable = selectedIds.length;
-      const addedFromRequest = requestItems.length;
-
-      if (requestIdsToConsume.length > 0) {
-        const del = await deletePrintLabelRequests({ requestIds: requestIdsToConsume });
-        if (!del.ok) throw new Error(del.error ?? "No se pudo eliminar la(s) petición(es) usada(s)");
-
-        setRequests((prev) => prev.filter((r) => !requestIdsToConsume.includes(r.requestId)));
-        setSelectedRequestIds((prev) => {
-          const next = { ...(prev ?? {}) };
-          for (const id of requestIdsToConsume) delete next[id];
-          return next;
-        });
+      // Clear table selection after successfully adding to the draft list.
+      // (Do not clear on errors.)
+      if (addedFromTable > 0) {
+        setSelected({});
       }
-
-      setMessage(
-        addedFromTable > 0 && addedFromRequest > 0
-          ? `Agregado a la lista (tabla: ${addedFromTable}, petición: ${addedFromRequest}).`
-          : addedFromRequest > 0
-            ? `Agregado a la lista desde la petición (${addedFromRequest} productos).`
-            : `Agregado a la lista (${addedFromTable} productos).`
-      );
+      setMessage(`Agregado a la lista (${addedFromTable} productos).`);
     } catch (e: unknown) {
       setMessage(e instanceof Error ? e.message : String(e));
     }
@@ -801,9 +828,9 @@ export default function ProductsBrowser() {
   const prepareRequestsPreview = async () => {
     if (printing) return;
 
-    const reqs = selectedRequests;
+    const reqs = requests;
     if (reqs.length === 0) {
-      setMessage("Selecciona una o más peticiones para imprimir.");
+      setMessage("No hay solicitudes pendientes.");
       return;
     }
 
@@ -861,7 +888,7 @@ export default function ProductsBrowser() {
   const sendPrintRequest = async () => {
     if (printing || previewLoading) return;
 
-    const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
+    const selectedIds = selectedIdsAll;
     if (selectedIds.length === 0) {
       setMessage("No hay productos seleccionados para enviar solicitud.");
       return;
@@ -871,12 +898,24 @@ export default function ProductsBrowser() {
       setMessage(null);
 
       // Ensure barcodes for selected items so the request is stable.
-      const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
+      const missing = selectedIds.filter((id) => {
+        const r = rowCache[id] ?? rows.find((x) => x.idProduct === id);
+        return !r || r.barcodes === null;
+      });
       let overlay: Record<number, string[]> = {};
       if (missing.length > 0) {
         const res = await getBarcodesForProducts(missing);
         if (res.error) throw new Error(res.error);
         overlay = res.data ?? {};
+        setRowCache((prev) => {
+          const next = { ...prev };
+          for (const id of missing) {
+            const existing = next[id];
+            if (!existing) continue;
+            next[id] = mergeRowCache(existing, { ...existing, barcodes: overlay[id] ?? [] });
+          }
+          return next;
+        });
         setRows((prev) =>
           prev.map((r) => {
             if (!selectedIds.includes(r.idProduct)) return r;
@@ -888,7 +927,7 @@ export default function ProductsBrowser() {
 
       const map: Record<number, RequestItemSnapshot> = {};
       for (const idProduct of selectedIds) {
-        const row = rows.find((r) => r.idProduct === idProduct);
+        const row = rowCache[idProduct] ?? rows.find((r) => r.idProduct === idProduct);
         if (!row) continue;
         const qty = Math.max(1, Number(selected[idProduct] ?? 1) || 1);
         const effectiveBarcodes = row.barcodes === null ? (overlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
@@ -1092,7 +1131,7 @@ export default function ProductsBrowser() {
     const stickers: LabelData[] = [];
 
     for (const idProduct of selectedIds) {
-      const row = rows.find((r) => r.idProduct === idProduct);
+      const row = rowCache[idProduct] ?? rows.find((r) => r.idProduct === idProduct);
       if (!row) continue;
 
       const qtyStickers = Math.max(0, Number(selected[idProduct] ?? 0) || 0);
@@ -1114,7 +1153,7 @@ export default function ProductsBrowser() {
     setMessage(null);
     setPreviewLoading(true);
 
-    const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
+    const selectedIds = selectedIdsAll;
     if (selectedIds.length === 0) {
       setPreviewLoading(false);
       return;
@@ -1128,11 +1167,23 @@ export default function ProductsBrowser() {
       await ensureLogoSnippet();
 
       // Ensure barcodes for selected items
-      const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
+      const missing = selectedIds.filter((id) => {
+        const r = rowCache[id] ?? rows.find((x) => x.idProduct === id);
+        return !r || r.barcodes === null;
+      });
       if (missing.length > 0) {
         const res = await getBarcodesForProducts(missing);
         if (res.error) throw new Error(res.error);
         Object.assign(barcodesOverlay, res.data ?? {});
+        setRowCache((prev) => {
+          const next = { ...prev };
+          for (const id of missing) {
+            const existing = next[id];
+            if (!existing) continue;
+            next[id] = mergeRowCache(existing, { ...existing, barcodes: (res.data ?? {})[id] ?? [] });
+          }
+          return next;
+        });
         setRows((prev) =>
           prev.map((r) => {
             if (!selectedIds.includes(r.idProduct)) return r;
@@ -1274,11 +1325,12 @@ export default function ProductsBrowser() {
           }
 
           setRequests((prev) => prev.filter((r) => !previewRequestIds.includes(r.requestId)));
-          setSelectedRequestIds((prev) => {
-            const next = { ...(prev ?? {}) };
-            for (const id of previewRequestIds) delete next[id];
-            return next;
-          });
+        }
+
+        // Only clear selection when we actually send the print job (this function),
+        // not when opening the preview.
+        if (previewSource === "table") {
+          setSelected({});
         }
 
         setMessage(
@@ -1689,7 +1741,7 @@ export default function ProductsBrowser() {
           <DialogHeader>
             <DialogTitle>Peticiones de impresión</DialogTitle>
             <DialogDescription>
-              Pendientes: {requestsSummary.count} solicitudes ({requestsSummary.stickers} stickers). Lista actual: {draftSummary.products} productos ({draftSummary.stickers} stickers). Seleccionadas: {selectedRequestList.length}.
+              Pendientes: {requestsSummary.count} solicitudes ({requestsSummary.stickers} stickers). Lista actual: {draftSummary.products} productos ({draftSummary.stickers} stickers).
             </DialogDescription>
           </DialogHeader>
 
@@ -1718,7 +1770,7 @@ export default function ProductsBrowser() {
               </div>
               {draftSummary.products === 0 ? (
                 <div className="text-sm text-muted-foreground mt-2">
-                  Vacía. Selecciona productos en la tabla y/o elige peticiones abajo y usa “Agregar a la lista”.
+                  Vacía. Selecciona productos en la tabla y usa “Agregar a la lista”, o usa “Agregar” dentro de una petición.
                 </div>
               ) : (
                 <div className="mt-2 max-h-48 overflow-auto">
@@ -1803,28 +1855,6 @@ export default function ProductsBrowser() {
             <div className="rounded-md border p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium">Solicitudes pendientes</div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => {
-                      setSelectedRequestIds(Object.fromEntries(requests.map((r) => [r.requestId, true])));
-                    }}
-                    disabled={printing || previewLoading || requests.length === 0}
-                  >
-                    Seleccionar todo
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => setSelectedRequestIds({})}
-                    disabled={printing || previewLoading || selectedRequestList.length === 0}
-                  >
-                    Limpiar
-                  </Button>
-                </div>
               </div>
 
               {requests.length === 0 ? (
@@ -1835,34 +1865,30 @@ export default function ProductsBrowser() {
                     const itemsCount = r.items.length;
                     const stickers = r.items.reduce((s, it) => s + Math.max(0, Number(it.qty) || 0), 0);
                     const when = new Date(r.requestedAt);
-                    const isSelected = Boolean(selectedRequestIds?.[r.requestId]);
 
                     return (
                       <div
                         key={r.requestId}
-                        className={
-                          isSelected
-                            ? "rounded-md border p-3 ring-2 ring-primary/40"
-                            : "rounded-md border p-3"
-                        }
+                        className="rounded-md border p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <label className="flex items-center gap-2 min-w-0 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                const checked = e.currentTarget.checked;
-                                setSelectedRequestIds((prev) => ({ ...(prev ?? {}), [r.requestId]: checked }));
-                              }}
-                              aria-label={`Seleccionar solicitud ${idx + 1}`}
-                            />
-                            <div className="font-medium truncate">Solicitud #{idx + 1}</div>
-                          </label>
+                          <div className="font-medium truncate">Solicitud #{idx + 1}</div>
 
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
                             {when.toLocaleString()} · {itemsCount} productos · {stickers} stickers
                           </div>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => addRequestToDraft(r)}
+                            disabled={printing || previewLoading}
+                          >
+                            Agregar
+                          </Button>
                         </div>
 
                         <div className="mt-2">
@@ -1905,13 +1931,13 @@ export default function ProductsBrowser() {
             <Button
               variant="outline"
               onClick={mergeSelectedIntoDraft}
-              disabled={printing || previewLoading || (selectedCount === 0 && selectedRequestList.length === 0)}
+              disabled={printing || previewLoading || selectedCount === 0}
             >
               Agregar a la lista
             </Button>
             <Button
               onClick={prepareRequestsPreview}
-              disabled={printing || previewLoading || selectedRequestList.length === 0}
+              disabled={printing || previewLoading || requests.length === 0}
             >
               Imprimir (ver preview)
             </Button>

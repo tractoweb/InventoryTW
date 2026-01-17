@@ -109,6 +109,9 @@ export async function getProductDetails(productId: string): Promise<{
   stockControls?: Array<any>;
   recentDocumentItems?: Array<{
     documentId: number;
+    documentNumber?: string | null;
+    referenceDocumentNumber?: string | null;
+    date?: string | null;
     documentItemId: number;
     quantity?: number | null;
     price?: number | null;
@@ -119,6 +122,7 @@ export async function getProductDetails(productId: string): Promise<{
   relatedDocuments?: Array<{
     documentId: number;
     number?: string | null;
+    referenceDocumentNumber?: string | null;
     stockDate?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -289,6 +293,7 @@ export async function getProductDetails(productId: string): Promise<{
       .map((d: any) => ({
         documentId: Number(d.documentId ?? 0),
         number: d?.number ? String(d.number) : null,
+        referenceDocumentNumber: d?.referenceDocumentNumber ? String(d.referenceDocumentNumber) : null,
         stockDate: d?.stockDate ? String(d.stockDate) : null,
         createdAt: d?.createdAt ? String(d.createdAt) : null,
         updatedAt: d?.updatedAt ? String(d.updatedAt) : null,
@@ -302,6 +307,28 @@ export async function getProductDetails(productId: string): Promise<{
         const bd = String(b.stockDate ?? b.createdAt ?? '');
         return bd.localeCompare(ad);
       });
+
+    const recentDocumentItemsEnriched = recentDocumentItems
+      .map((it) => {
+        const doc = docById.get(Number(it.documentId));
+        const quantity = it.quantity ?? null;
+        const price = it.price ?? null;
+        const computedTotal =
+          it.total !== null && it.total !== undefined
+            ? it.total
+            : quantity !== null && price !== null
+              ? Number(quantity) * Number(price)
+              : null;
+
+        return {
+          ...it,
+          documentNumber: doc?.number ? String(doc.number) : null,
+          referenceDocumentNumber: doc?.referenceDocumentNumber ? String(doc.referenceDocumentNumber) : null,
+          date: doc?.stockDate ? String(doc.stockDate) : (doc?.createdAt ? String(doc.createdAt) : null),
+          total: computedTotal,
+        };
+      })
+      .sort((a: any, b: any) => String(b?.date ?? b?.createdAt ?? '').localeCompare(String(a?.date ?? a?.createdAt ?? '')));
 
     // Build a per-document pricing/freight/IVA history from internal liquidation snapshots.
     const pricingHistory: Array<{
@@ -489,7 +516,7 @@ export async function getProductDetails(productId: string): Promise<{
       taxes,
       stocks,
       stockControls,
-      recentDocumentItems,
+      recentDocumentItems: recentDocumentItemsEnriched,
       relatedDocuments,
       pricingHistory,
       pricingSummary: {

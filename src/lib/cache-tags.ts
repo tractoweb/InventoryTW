@@ -11,6 +11,7 @@ export const CACHE_TAGS = {
     dashboardOverview: "heavy:dashboard-overview",
     documents: "heavy:documents",
     productsMaster: "heavy:products-master",
+    productsCompact: "heavy:products-compact",
     productDetails: "heavy:product-details",
     customers: "heavy:customers",
   },
