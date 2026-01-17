@@ -6,8 +6,9 @@ import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { getDashboardStats } from "@/actions/get-dashboard-stats";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export default async function ReportsPage() {
 	await requireSession(ACCESS_LEVELS.CASHIER);
@@ -40,9 +41,9 @@ export default async function ReportsPage() {
 					</CardHeader>
 					<CardContent className="flex items-center justify-between gap-3">
 						<div className="text-3xl font-bold">{stats?.lowStockCount ?? 0}</div>
-						<Button asChild variant="outline">
-							<Link href="/reports/low-stock">Ver</Link>
-						</Button>
+						<Link href="/reports/low-stock" className={cn(buttonVariants({ variant: "outline" }))}>
+							Ver
+						</Link>
 					</CardContent>
 				</Card>
 
@@ -53,9 +54,9 @@ export default async function ReportsPage() {
 					</CardHeader>
 					<CardContent className="flex items-center justify-between gap-3">
 						<div className="text-3xl font-bold">{stats?.outOfStockCount ?? 0}</div>
-						<Button asChild variant="outline">
-							<Link href="/reports/out-of-stock">Ver</Link>
-						</Button>
+						<Link href="/reports/out-of-stock" className={cn(buttonVariants({ variant: "outline" }))}>
+							Ver
+						</Link>
 					</CardContent>
 				</Card>
 
@@ -66,9 +67,9 @@ export default async function ReportsPage() {
 					</CardHeader>
 					<CardContent className="flex items-center justify-between gap-3">
 						<div className="text-sm text-muted-foreground">Nombre / Código</div>
-						<Button asChild variant="outline">
-							<Link href="/reports/comparison">Abrir</Link>
-						</Button>
+						<Link href="/reports/comparison" className={cn(buttonVariants({ variant: "outline" }))}>
+							Abrir
+						</Link>
 					</CardContent>
 				</Card>
 
@@ -78,9 +79,9 @@ export default async function ReportsPage() {
 						<CardDescription>Gestión por almacén.</CardDescription>
 					</CardHeader>
 					<CardContent className="flex items-center justify-end">
-						<Button asChild>
-							<Link href="/stock">Ir a Stock</Link>
-						</Button>
+						<Link href="/stock" className={cn(buttonVariants({}))}>
+							Ir a Stock
+						</Link>
 					</CardContent>
 				</Card>
 			</div>
@@ -93,15 +94,15 @@ export default async function ReportsPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-wrap gap-2">
-					<Button asChild variant="outline">
-						<Link href="/documents">Documentos</Link>
-					</Button>
-					<Button asChild variant="outline">
-						<Link href="/kardex">Kardex</Link>
-					</Button>
-					<Button asChild variant="outline">
-						<Link href="/inventory">Productos</Link>
-					</Button>
+					<Link href="/documents" className={cn(buttonVariants({ variant: "outline" }))}>
+						Documentos
+					</Link>
+					<Link href="/kardex" className={cn(buttonVariants({ variant: "outline" }))}>
+						Kardex
+					</Link>
+					<Link href="/inventory" className={cn(buttonVariants({ variant: "outline" }))}>
+						Productos
+					</Link>
 				</CardContent>
 			</Card>
 		</div>

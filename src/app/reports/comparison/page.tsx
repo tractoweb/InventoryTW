@@ -6,9 +6,10 @@ import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { getProductDuplicatesAction } from "@/actions/get-product-duplicates";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default async function ComparisonReportPage() {
   await requireSession(ACCESS_LEVELS.CASHIER);
@@ -22,9 +23,9 @@ export default async function ComparisonReportPage() {
             <h1 className="text-3xl font-bold tracking-tight">Comparación</h1>
             <p className="text-muted-foreground">Posibles productos duplicados.</p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/reports">Volver</Link>
-          </Button>
+          <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
+            Volver
+          </Link>
         </div>
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -46,12 +47,12 @@ export default async function ComparisonReportPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/reports">Volver</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/inventory">Ir a Productos</Link>
-          </Button>
+          <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
+            Volver
+          </Link>
+          <Link href="/inventory" className={cn(buttonVariants({}))}>
+            Ir a Productos
+          </Link>
         </div>
       </div>
 
@@ -77,12 +78,18 @@ export default async function ComparisonReportPage() {
                       <div className="text-xs text-muted-foreground break-all">Key: {g.key}</div>
                     </div>
                     <div className="flex gap-2">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/inventory?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}>Buscar en Productos</Link>
-                      </Button>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/stock?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}>Buscar en Stock</Link>
-                      </Button>
+                      <Link
+                        href={`/inventory?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                      >
+                        Buscar en Productos
+                      </Link>
+                      <Link
+                        href={`/stock?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                      >
+                        Buscar en Stock
+                      </Link>
                     </div>
                   </div>
 
@@ -103,9 +110,12 @@ export default async function ComparisonReportPage() {
                             <TableCell className="font-medium">{p.name}</TableCell>
                             <TableCell className="hidden md:table-cell">{p.code ?? "-"}</TableCell>
                             <TableCell className="text-right">
-                              <Button asChild size="sm" variant="outline">
-                                <Link href={`/inventory?q=${encodeURIComponent(p.name)}`}>Abrir</Link>
-                              </Button>
+                              <Link
+                                href={`/inventory?q=${encodeURIComponent(p.name)}`}
+                                className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                              >
+                                Abrir
+                              </Link>
                             </TableCell>
                           </TableRow>
                         ))}

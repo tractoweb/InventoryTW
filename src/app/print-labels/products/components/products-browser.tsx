@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -17,13 +18,21 @@ import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { useBrowserPrint } from "@/hooks/use-browserprint";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generate3UpLabelsRow } from "@/utils/zplGenerator";
+import { compute3UpStickerLayout } from "@/utils/labelLayout";
 import type { LabelData } from "@/types/label.types";
 import { sendZplWithRetry } from "@/lib/browserprint-client";
 import { BarcodeSvg } from "@/components/print-labels/barcode-svg";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
+import {
+  createPrintLabelRequest,
+  listPendingPrintLabelRequests,
+  setPrintLabelRequestStatus,
+  type CreatePrintLabelRequestItemInput,
+  type PrintLabelRequestDto,
+} from "@/actions/print-label-requests";
 
 export default function ProductsBrowser() {
-  const pageSize = 50;
+  const pageSize = 15;
 
   const bp = useBrowserPrint();
 
@@ -45,7 +54,8 @@ export default function ProductsBrowser() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewRows, setPreviewRows] = useState<LabelData[][]>([]);
+  type LabelSlot = LabelData | null;
+  const [previewRows, setPreviewRows] = useState<LabelSlot[][]>([]);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
   const [previewRowWidthPx, setPreviewRowWidthPx] = useState<number>(780);
 
@@ -55,11 +65,76 @@ export default function ProductsBrowser() {
 
   const [scanOpen, setScanOpen] = useState(false);
 
+  type RequestItemSnapshot = {
+    idProduct: number;
+    name: string;
+    reference: string | null;
+    measurementUnit: string | null;
+    createdAt: string | null;
+    barcodes: string[] | null;
+    qty: number;
+  };
+
+  type PrintRequest = {
+    requestId: string;
+    requestedAt: string;
+    status: string;
+    items: RequestItemSnapshot[];
+  };
+
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [requests, setRequests] = useState<PrintRequest[]>([]);
+  const [draftList, setDraftList] = useState<Record<number, RequestItemSnapshot>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      const res = await listPendingPrintLabelRequests();
+      if (cancelled) return;
+      if (res.error) {
+        // Keep UI usable even if persistence fails.
+        setMessage(res.error);
+        return;
+      }
+
+      const mapped: PrintRequest[] = (res.data ?? []).map((r: PrintLabelRequestDto) => ({
+        requestId: r.requestId,
+        requestedAt: r.requestedAt,
+        status: r.status,
+        items: (r.items ?? []).map((it) => ({
+          idProduct: Number(it.productId),
+          name: it.name,
+          reference: it.reference ?? null,
+          measurementUnit: it.measurementUnit ?? null,
+          createdAt: it.productCreatedAt ?? null,
+          barcodes: [it.primaryBarcode].filter(Boolean),
+          qty: Number(it.qty),
+        })),
+      }));
+
+      setRequests(mapped);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoverMounted, setHoverMounted] = useState(false);
+  const hoverPopoverRef = useRef<HTMLDivElement | null>(null);
+  const [hoverPopoverSize, setHoverPopoverSize] = useState<{ w: number; h: number }>({ w: 280, h: 220 });
 
   useEffect(() => {
     // BrowserPrint SDK is loaded/managed by useBrowserPrint()
+  }, []);
+
+  useEffect(() => {
+    setHoverMounted(true);
   }, []);
 
   useEffect(() => {
@@ -154,7 +229,7 @@ export default function ProductsBrowser() {
   const handleSelect = (idProduct: number, checked: boolean) => {
     setSelected((prev) => {
       const next = { ...prev };
-      if (checked) next[idProduct] = 1;
+      if (checked) next[idProduct] = Math.max(1, Number(next[idProduct] ?? 1) || 1);
       else delete next[idProduct];
       return next;
     });
@@ -169,6 +244,29 @@ export default function ProductsBrowser() {
     () => (hoveredProductId ? rows.find((r) => r.idProduct === hoveredProductId) ?? null : null),
     [hoveredProductId, rows]
   );
+
+  const hoverEnabled = useMemo(() => !previewOpen && !scanOpen && !printing && !previewLoading, [previewOpen, scanOpen, printing, previewLoading]);
+
+  useLayoutEffect(() => {
+    if (!hoverMounted) return;
+    if (!hoverEnabled) return;
+    if (!hoveredRow) return;
+    const el = hoverPopoverRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Number.isFinite(rect.width) ? Math.max(220, Math.round(rect.width)) : 280;
+      const h = Number.isFinite(rect.height) ? Math.max(140, Math.round(rect.height)) : 220;
+      setHoverPopoverSize({ w, h });
+    };
+
+    measure();
+
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hoverMounted, hoverEnabled, hoveredRow]);
 
   const formatName = (name: string) => {
     if (name.length <= 20) return [name];
@@ -192,6 +290,22 @@ export default function ProductsBrowser() {
     return String(value).split("T")[0];
   };
 
+  const draftSummary = useMemo(() => {
+    const items = Object.values(draftList);
+    const products = items.length;
+    const stickers = items.reduce((sum, it) => sum + Math.max(0, Number(it.qty) || 0), 0);
+    return { products, stickers };
+  }, [draftList]);
+
+  const requestsSummary = useMemo(() => {
+    const count = requests.length;
+    const stickers = requests.reduce(
+      (sum, r) => sum + r.items.reduce((s2, it) => s2 + Math.max(0, Number(it.qty) || 0), 0),
+      0
+    );
+    return { count, stickers };
+  }, [requests]);
+
   const renderStickerPreview = (label: LabelData, options?: { widthPx?: number }) => {
     // Preview tries to mirror the ZPL layout (see generate3UpLabelsRow in src/utils/zplGenerator.ts)
     // using the same physical measurements and DPI.
@@ -204,18 +318,18 @@ export default function ProductsBrowser() {
     const outerX = cmToDots(0.2);
     const marginTop = cmToDots(0.1);
     const marginBottom = cmToDots(0.1);
+    const xShift = cmToDots(0.3); // 3mm right shift (matches ZPL)
 
-    // Matches the ZPL generator tweak (lower name slightly to compensate upward drift)
-    const nameY = marginTop + cmToDots(0.23);
-    const posY = cmToDots(1.15);
-    const dateY = posY + cmToDots(0.25);
+    const layout = compute3UpStickerLayout(safeDpi, String(label.nombreProducto ?? ""));
 
-    const barcodeH = 40; // dots (as in ^BCN,40...)
-    const barcodeTextH = 18; // dots
-    const barcodeGap = cmToDots(0.1);
-    const bottomPad = marginBottom + cmToDots(0.1);
-    const barcodeY = Math.max(dateY + cmToDots(0.1), labelH - bottomPad - (barcodeH + barcodeGap + barcodeTextH));
-    const barcodeTextY = barcodeY + barcodeH + barcodeGap;
+    // Positions come from the shared layout (prevents overlaps)
+    const nameY = layout.nameY;
+    const nameLinesMax = layout.nameLinesMax;
+    const posY = layout.posY;
+    const dateY = layout.dateY;
+    const barcodeH = layout.barcodeH;
+    const barcodeY = layout.barcodeY;
+    const barcodeTextY = layout.barcodeTextY;
 
     const pxW = options?.widthPx ?? 200;
     const scale = pxW / labelW;
@@ -228,8 +342,8 @@ export default function ProductsBrowser() {
     const radius = Math.max(2, Math.round(8 * scale)); // ~0.1cm
 
     const nameLinesAll = formatName(name);
-    const nameLines = nameLinesAll.slice(0, 3);
-    if (nameLinesAll.length > 3 && nameLines.length) {
+    const nameLines = nameLinesAll.slice(0, nameLinesMax);
+    if (nameLinesAll.length > nameLinesMax && nameLines.length) {
       nameLines[nameLines.length - 1] = `${nameLines[nameLines.length - 1]}…`;
     }
 
@@ -261,7 +375,7 @@ export default function ProductsBrowser() {
             style={{
               position: "absolute",
               // Align with the default logo snippet (^FO32,0 ...)
-              left: Math.round(32 * scale),
+              left: Math.round((32 + xShift) * scale),
               top: 0,
               width: Math.round(90 * scale),
               height: Math.round(40 * scale),
@@ -276,7 +390,7 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round((32 + outerX) * scale),
+            left: Math.round((32 + outerX + xShift) * scale),
             top: Math.round(nameY * scale),
             fontSize: nameFont,
             fontWeight: 600,
@@ -300,7 +414,7 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round((32 + outerX) * scale),
+            left: Math.round((32 + outerX + xShift) * scale),
             top: Math.round(posY * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
@@ -316,7 +430,7 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round((32 + outerX) * scale),
+            left: Math.round((32 + outerX + xShift) * scale),
             top: Math.round(dateY * scale),
             fontSize: Math.max(8, Math.round(10 * scale)),
             whiteSpace: "nowrap",
@@ -332,7 +446,7 @@ export default function ProductsBrowser() {
         <div
           style={{
             position: "absolute",
-            left: Math.round((32 + outerX - 4) * scale),
+            left: Math.round((32 + outerX - 4 + xShift) * scale),
             top: Math.round(barcodeY * scale),
             width: pxW - Math.round(24 * scale),
             height: Math.max(0, pxH - Math.round(barcodeY * scale)),
@@ -362,7 +476,7 @@ export default function ProductsBrowser() {
     );
   };
 
-  const render3UpRowPreview = (rowLabels: LabelData[], options?: { totalWidthPx?: number }) => {
+  const render3UpRowPreview = (rowLabels: LabelSlot[], options?: { totalWidthPx?: number }) => {
     const dpi = Number(process.env.NEXT_PUBLIC_ZEBRA_DPI ?? 203);
     const safeDpi = Number.isFinite(dpi) ? Math.max(100, Math.trunc(dpi)) : 203;
     const cmToDots = (cm: number) => Math.round((cm * safeDpi) / 2.54);
@@ -465,7 +579,18 @@ export default function ProductsBrowser() {
 
         {slots.map((lbl, j) => (
           <div key={j} style={{ width: pxLabelW, flex: "0 0 auto" }}>
-            {renderStickerPreview(lbl, { widthPx: pxLabelW })}
+            {lbl ? (
+              renderStickerPreview(lbl, { widthPx: pxLabelW })
+            ) : (
+              <div
+                className="border bg-white"
+                style={{
+                  width: pxLabelW,
+                  height: pxLabelH,
+                  borderRadius: 6,
+                }}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -495,21 +620,311 @@ export default function ProductsBrowser() {
     };
   };
 
-  const buildPrintPlanRows = (
-    selectedIds: number[],
-    barcodesOverlay: Record<number, string[]>
-  ): LabelData[][] => {
-    // Qty means: number of ROWS to print for that product.
-    // Each row has 3 stickers (same product) and prints left-to-right.
-    const plan: LabelData[][] = [];
+  const mergeSelectedIntoDraft = async () => {
+    if (printing || previewLoading) return;
+
+    const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
+    if (selectedIds.length === 0) {
+      setMessage("No hay productos seleccionados para agregar.");
+      return;
+    }
+
+    try {
+      setMessage(null);
+
+      // Ensure barcodes for selected items so the list has stable data.
+      const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
+      let overlay: Record<number, string[]> = {};
+      if (missing.length > 0) {
+        const res = await getBarcodesForProducts(missing);
+        if (res.error) throw new Error(res.error);
+        overlay = res.data ?? {};
+        setRows((prev) =>
+          prev.map((r) => {
+            if (!selectedIds.includes(r.idProduct)) return r;
+            if (r.barcodes !== null) return r;
+            return { ...r, barcodes: overlay[r.idProduct] ?? [] };
+          })
+        );
+      }
+
+      setDraftList((prev) => {
+        const next = { ...prev };
+        for (const idProduct of selectedIds) {
+          const row = rows.find((r) => r.idProduct === idProduct);
+          if (!row) continue;
+          const qty = Math.max(1, Number(selected[idProduct] ?? 1) || 1);
+          const effectiveBarcodes =
+            row.barcodes === null ? (overlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
+
+          const existing = next[idProduct];
+          next[idProduct] = {
+            idProduct,
+            name: String(row.name ?? ""),
+            reference: row.reference ?? null,
+            measurementUnit: row.measurementUnit ?? null,
+            createdAt: row.createdAt ?? null,
+            barcodes: effectiveBarcodes,
+            qty: (existing?.qty ?? 0) + qty,
+          };
+        }
+        return next;
+      });
+
+      setSelected({});
+      setMessage("Agregado a la lista.");
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const sendPrintRequest = async () => {
+    if (printing || previewLoading) return;
+
+    const selectedIds = rows.filter((r) => selected[r.idProduct]).map((r) => r.idProduct);
+    if (selectedIds.length === 0) {
+      setMessage("No hay productos seleccionados para enviar solicitud.");
+      return;
+    }
+
+    try {
+      setMessage(null);
+
+      // Ensure barcodes for selected items so the request is stable.
+      const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
+      let overlay: Record<number, string[]> = {};
+      if (missing.length > 0) {
+        const res = await getBarcodesForProducts(missing);
+        if (res.error) throw new Error(res.error);
+        overlay = res.data ?? {};
+        setRows((prev) =>
+          prev.map((r) => {
+            if (!selectedIds.includes(r.idProduct)) return r;
+            if (r.barcodes !== null) return r;
+            return { ...r, barcodes: overlay[r.idProduct] ?? [] };
+          })
+        );
+      }
+
+      const map: Record<number, RequestItemSnapshot> = {};
+      for (const idProduct of selectedIds) {
+        const row = rows.find((r) => r.idProduct === idProduct);
+        if (!row) continue;
+        const qty = Math.max(1, Number(selected[idProduct] ?? 1) || 1);
+        const effectiveBarcodes = row.barcodes === null ? (overlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
+
+        map[idProduct] = {
+          idProduct,
+          name: String(row.name ?? ""),
+          reference: row.reference ?? null,
+          measurementUnit: row.measurementUnit ?? null,
+          createdAt: row.createdAt ?? null,
+          barcodes: effectiveBarcodes,
+          qty,
+        };
+      }
+
+      const items = Object.values(map).sort((a, b) => a.idProduct - b.idProduct);
+      if (items.length === 0) {
+        setMessage("No se pudo armar la solicitud con los seleccionados.");
+        return;
+      }
+
+      const payload: CreatePrintLabelRequestItemInput[] = items.map((it) => ({
+        productId: it.idProduct,
+        qty: it.qty,
+        name: it.name,
+        reference: it.reference,
+        measurementUnit: it.measurementUnit,
+        productCreatedAt: it.createdAt,
+        primaryBarcode: (it.barcodes?.[0] ?? it.reference ?? String(it.idProduct)).toString(),
+      }));
+
+      const created = await createPrintLabelRequest(payload);
+      if (created.error || !created.data) throw new Error(created.error ?? "No se pudo crear la solicitud");
+
+      const req: PrintRequest = {
+        requestId: created.data.requestId,
+        requestedAt: created.data.requestedAt,
+        status: created.data.status,
+        items: items,
+      };
+
+      setRequests((prev) => [...prev, req]);
+      setSelected({});
+      setMessage(`Solicitud enviada (${items.length} productos).`);
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const ensureLogoSnippet = async () => {
+    if (logoMode === "off") return;
+    const modeKey = logoMode;
+    if (logoZplByModeRef.current[modeKey] !== null) return;
+    const url = modeKey === "compat" ? "/labels/logo-compat.zpl" : "/labels/logo.zpl";
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      logoZplByModeRef.current[modeKey] = res.ok ? await res.text() : "";
+    } catch {
+      logoZplByModeRef.current[modeKey] = "";
+    }
+  };
+
+  const printRequestsNow = async () => {
+    if (printing) return;
+
+    if (bp.status !== "ready" || !bp.selectedPrinter) {
+      setMessage("BrowserPrint no está listo o no hay impresora seleccionada.");
+      return;
+    }
+
+    if (requests.length === 0) {
+      setMessage("No hay solicitudes pendientes.");
+      return;
+    }
+
+    setRequestsOpen(false);
+    setPrinting(true);
+    setMessage(null);
+
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    const printer = bp.selectedPrinter;
+    const requestsToPrint = [...requests];
+
+    const getLogoZpl = () => {
+      if (logoMode === "off") return "";
+      const v = logoZplByModeRef.current[logoMode] ?? "";
+      return String(v);
+    };
+
+    try {
+      await ensureLogoSnippet();
+
+      // Print requests in order; mark each as PRINTED on success.
+      for (let rIndex = 0; rIndex < requestsToPrint.length; rIndex++) {
+        if (abortRef.current.signal.aborted) throw new Error("Impresión detenida.");
+
+        const req = requestsToPrint[rIndex];
+        setMessage(`Imprimiendo solicitud ${rIndex + 1}/${requestsToPrint.length}…`);
+
+        // Ensure barcodes if missing
+        const missingIds = req.items
+          .filter((it) => it.barcodes === null)
+          .map((it) => it.idProduct);
+        let overlay: Record<number, string[]> = {};
+        if (missingIds.length > 0) {
+          const res = await getBarcodesForProducts(missingIds);
+          if (res.error) throw new Error(res.error);
+          overlay = res.data ?? {};
+        }
+
+        const stickers: LabelData[] = [];
+        for (const it of req.items) {
+          const qty = Math.max(0, Number(it.qty) || 0);
+          if (qty <= 0) continue;
+          const effectiveBarcodes = it.barcodes === null ? (overlay[it.idProduct] ?? []) : (it.barcodes ?? []);
+          const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+          const label: LabelData = {
+            nombreProducto: String(it.name ?? ""),
+            codigoBarras: String(primaryBarcode ?? ""),
+            lote: String(it.measurementUnit ?? ""),
+            fecha: toIsoDate(it.createdAt),
+          };
+          for (let i = 0; i < qty; i++) stickers.push(label);
+        }
+
+        const plan: LabelSlot[][] = [];
+        for (let i = 0; i < stickers.length; i += 3) {
+          plan.push([stickers[i] ?? null, stickers[i + 1] ?? null, stickers[i + 2] ?? null]);
+        }
+
+        let idx = 0;
+        let printedWithoutLogo = false;
+        while (idx < plan.length) {
+          if (abortRef.current.signal.aborted) throw new Error("Impresión detenida.");
+
+          const rowLabels = plan[idx++];
+          const buildZpl = (opts?: { disableLogo?: boolean }) =>
+            generate3UpLabelsRow(rowLabels, {
+              includeDefaultsHeader: true,
+              logoZpl: opts?.disableLogo ? "" : getLogoZpl(),
+              dpi: Number(process.env.NEXT_PUBLIC_ZEBRA_DPI ?? 203),
+              includeBorder: false,
+            });
+
+          try {
+            await sendZplWithRetry(printer, buildZpl(), {
+              timeoutMs: 6000,
+              retries: 2,
+              retryDelayMs: 250,
+              signal: abortRef.current.signal,
+            });
+          } catch (e: unknown) {
+            const hadLogo = logoMode !== "off" && Boolean(getLogoZpl().trim());
+            if (hadLogo) {
+              try {
+                printedWithoutLogo = true;
+                await sendZplWithRetry(printer, buildZpl({ disableLogo: true }), {
+                  timeoutMs: 6000,
+                  retries: 1,
+                  retryDelayMs: 250,
+                  signal: abortRef.current.signal,
+                });
+                continue;
+              } catch {
+                // fallthrough
+              }
+            }
+
+            throw new Error(
+              e instanceof Error
+                ? `Error al imprimir solicitud (fila ${idx}): ${e.message}`
+                : `Error al imprimir solicitud (fila ${idx}): ${String(e)}`
+            );
+          }
+        }
+
+        const upd = await setPrintLabelRequestStatus({ requestId: req.requestId, status: "PRINTED" });
+        if (!upd.ok) throw new Error(upd.error ?? "No se pudo marcar como impresa");
+
+        // Remove from pending list.
+        setRequests((prev) => prev.filter((x) => x.requestId !== req.requestId));
+
+        if (printedWithoutLogo) {
+          setMessage(`Solicitud ${rIndex + 1} impresa (sin logo por compatibilidad).`);
+        }
+      }
+
+      setMessage("¡Todas las solicitudes fueron enviadas a impresión!");
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const buildPrintPlanRows = (selectedIds: number[], barcodesOverlay: Record<number, string[]>): LabelSlot[][] => {
+    // Qty means: number of STICKERS to print for that product.
+    // We pack 3 stickers per row (left-to-right). The last row may contain empty slots.
+    const stickers: LabelData[] = [];
+
     for (const idProduct of selectedIds) {
       const row = rows.find((r) => r.idProduct === idProduct);
       if (!row) continue;
-      const qtyRows = selected[idProduct] ?? 1;
+
+      const qtyStickers = Math.max(0, Number(selected[idProduct] ?? 0) || 0);
+      if (qtyStickers <= 0) continue;
+
       const label = buildLabelFromRow(row, barcodesOverlay);
-      for (let i = 0; i < qtyRows; i++) {
-        plan.push([label, label, label]);
-      }
+      for (let i = 0; i < qtyStickers; i++) stickers.push(label);
+    }
+
+    const plan: LabelSlot[][] = [];
+    for (let i = 0; i < stickers.length; i += 3) {
+      plan.push([stickers[i] ?? null, stickers[i + 1] ?? null, stickers[i + 2] ?? null]);
     }
     return plan;
   };
@@ -530,18 +945,7 @@ export default function ProductsBrowser() {
     try {
       // Load logo snippet only if enabled.
       // NOTE: Zebra GC420t (USB) often fails with :Z64: (prints “error01”), so default is OFF.
-      if (logoMode !== "off") {
-        const modeKey = logoMode;
-        if (logoZplByModeRef.current[modeKey] === null) {
-          const url = modeKey === "compat" ? "/labels/logo-compat.zpl" : "/labels/logo.zpl";
-          try {
-            const res = await fetch(url, { cache: "no-store" });
-            logoZplByModeRef.current[modeKey] = res.ok ? await res.text() : "";
-          } catch {
-            logoZplByModeRef.current[modeKey] = "";
-          }
-        }
-      }
+      await ensureLogoSnippet();
 
       // Ensure barcodes for selected items
       const missing = rows.filter((r) => selected[r.idProduct] && r.barcodes === null).map((r) => r.idProduct);
@@ -731,29 +1135,41 @@ export default function ProductsBrowser() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="py-6 pl-4 pr-6 max-w-none">
       <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Impresión de Etiquetas Zebra</h1>
-        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={loading || page === 1 || printing}>
-              Anterior
-            </Button>
-            <div className="text-sm text-muted-foreground whitespace-nowrap">
-              {isSearching ? `Página ${page} (búsqueda)` : `Página ${page}`}
-            </div>
-            <Button variant="outline" onClick={() => setPage((p) => p + 1)} disabled={loading || !hasNext || printing}>
-              Siguiente
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:items-center">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="destructive" onClick={handleStopPrinting} disabled={!printing}>
               Detener impresión
             </Button>
             <Button onClick={preparePrintPreview} disabled={printing || selectedCount === 0 || previewLoading}>
               {previewLoading ? "Preparando preview..." : "Imprimir (ver preview)"}
             </Button>
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setRequestsOpen(true)}
+                disabled={printing}
+                className="relative"
+              >
+                Peticiones
+                {requestsSummary.count > 0 ? (
+                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] leading-[18px] text-center">
+                    {requestsSummary.count}
+                  </span>
+                ) : null}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={sendPrintRequest}
+                disabled={printing || selectedCount === 0}
+              >
+                Enviar solicitud
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -836,8 +1252,11 @@ export default function ProductsBrowser() {
       {loading ? (
         <div>Cargando productos...</div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
-          <div className="overflow-x-hidden overflow-y-auto border rounded">
+        <div className="grid gap-4">
+          <div
+            className="rounded-lg border bg-card overflow-x-hidden overflow-y-auto"
+            onMouseLeave={() => setHoveredProductId(null)}
+          >
             <table className="w-full table-fixed text-sm">
             <colgroup>
               <col style={{ width: "44px" }} />
@@ -846,9 +1265,9 @@ export default function ProductsBrowser() {
               <col style={{ width: "180px" }} />
               <col style={{ width: "160px" }} />
               <col style={{ width: "140px" }} />
-              <col style={{ width: "90px" }} />
+              <col style={{ width: "110px" }} />
             </colgroup>
-            <thead className="bg-muted/50">
+            <thead className="bg-muted/40">
               <tr>
                 <th className="p-2 w-10"></th>
                 <th className="p-2 text-left whitespace-nowrap">ID</th>
@@ -856,7 +1275,7 @@ export default function ProductsBrowser() {
                 <th className="p-2 text-left whitespace-nowrap">Referencia</th>
                 <th className="p-2 text-left whitespace-nowrap">Posición</th>
                 <th className="p-2 text-left whitespace-nowrap">Fecha creación</th>
-                <th className="p-2 text-left whitespace-nowrap">Filas</th>
+                <th className="p-2 text-left whitespace-nowrap">Stickers</th>
               </tr>
             </thead>
             <tbody>
@@ -867,8 +1286,9 @@ export default function ProductsBrowser() {
                 return (
                   <tr
                     key={r.idProduct}
-                    className="border-t"
+                    className="border-t hover:bg-muted/30 transition-colors"
                     onMouseEnter={() => setHoveredProductId(r.idProduct)}
+                    onMouseMove={(e) => setHoverPos({ x: e.clientX, y: e.clientY })}
                   >
                     <td className="p-2 align-top">
                       <Checkbox checked={checked} onCheckedChange={(v) => handleSelect(r.idProduct, Boolean(v))} />
@@ -896,79 +1316,127 @@ export default function ProductsBrowser() {
           </table>
           </div>
 
-          <div className="hidden xl:block">
-            <div className="sticky top-4 rounded border bg-muted/10 p-3">
-              <div className="text-sm font-medium mb-2">Vista previa (hover)</div>
-              {!hoveredRow ? (
-                <div className="text-sm text-muted-foreground">
-                  Pasa el mouse por una fila para ver el código de barras y el preview de la etiqueta.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold truncate" title={hoveredRow.name}>
-                      {hoveredRow.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate" title={hoveredRow.reference ?? ""}>
-                      Ref: {hoveredRow.reference ?? "—"}
-                    </div>
-                  </div>
-
-                  <div className="bg-white border rounded p-2">
-                    {hoveredRow.barcodes === null ? (
-                      <div className="text-sm text-muted-foreground">Cargando códigos…</div>
-                    ) : hoveredRow.barcodes && hoveredRow.barcodes.length ? (
-                      <div className="space-y-1">
-                        <BarcodeSvg value={hoveredRow.barcodes[0]} height={48} barWidth={1} className="w-full" />
-                        <div className="text-xs text-center text-muted-foreground truncate" title={hoveredRow.barcodes[0]}>
-                          {hoveredRow.barcodes[0]}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">Sin código de barras</div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Preview etiqueta</div>
-                    <div className="overflow-hidden">
-                      {(() => {
-                        const primaryBarcode =
-                          hoveredRow.barcodes && hoveredRow.barcodes.length
-                            ? hoveredRow.barcodes[0]
-                            : (hoveredRow.reference ?? String(hoveredRow.idProduct));
-
-                        const label: LabelData = {
-                          nombreProducto: String(hoveredRow.name ?? ""),
-                          codigoBarras: String(primaryBarcode ?? ""),
-                          lote: String(hoveredRow.measurementUnit ?? ""),
-                          fecha: toIsoDate(hoveredRow.createdAt),
-                        };
-
-                        return renderStickerPreview(label, { widthPx: 240 });
-                      })()}
-                    </div>
-                  </div>
-
-                  {hoveredRow.barcodes && hoveredRow.barcodes.length > 1 ? (
-                    <div className="text-xs text-muted-foreground">
-                      Otros: {hoveredRow.barcodes.slice(1, 6).join(", ")}
-                      {hoveredRow.barcodes.length > 6 ? "…" : ""}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Extra scroll space so the last row hover popover has room to show */}
+          <div aria-hidden className="h-56" />
         </div>
       )}
 
+      {hoverMounted && hoverEnabled && hoveredRow
+        ? createPortal(
+            (() => {
+              const pad = 12;
+              const offset = 14;
+              const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+              const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+
+              // Dead-zone near edges: if the cursor is too close to the bottom/right,
+              // do not show the popover to avoid covering actions/content.
+              const deadZoneRight = 220;
+              const deadZoneBottom = 160;
+              if (hoverPos.x > vw - deadZoneRight || hoverPos.y > vh - deadZoneBottom) {
+                return null;
+              }
+
+              let left = hoverPos.x + offset;
+              let top = hoverPos.y + offset;
+              if (left + hoverPopoverSize.w + pad > vw) left = Math.max(pad, vw - hoverPopoverSize.w - pad);
+              if (top + hoverPopoverSize.h + pad > vh) top = Math.max(pad, vh - hoverPopoverSize.h - pad);
+
+              const primaryBarcode =
+                hoveredRow.barcodes && hoveredRow.barcodes.length
+                  ? hoveredRow.barcodes[0]
+                  : (hoveredRow.reference ?? String(hoveredRow.idProduct));
+
+              const label: LabelData = {
+                nombreProducto: String(hoveredRow.name ?? ""),
+                codigoBarras: String(primaryBarcode ?? ""),
+                lote: String(hoveredRow.measurementUnit ?? ""),
+                fecha: toIsoDate(hoveredRow.createdAt),
+              };
+
+              return (
+                <div
+                  ref={hoverPopoverRef}
+                  style={{
+                    position: "fixed",
+                    left,
+                    top,
+                    zIndex: 80,
+                    pointerEvents: "none",
+                    width: 280,
+                    maxWidth: "min(86vw, 320px)",
+                  }}
+                  className="rounded-xl border bg-background/90 shadow-2xl backdrop-blur-sm p-2"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate" title={hoveredRow.name}>
+                        {hoveredRow.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate" title={hoveredRow.reference ?? ""}>
+                        Ref: {hoveredRow.reference ?? "—"}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground whitespace-nowrap">ID {hoveredRow.idProduct}</div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="bg-white border rounded-lg p-2">
+                      {hoveredRow.barcodes === null ? (
+                        <div className="text-sm text-muted-foreground">Cargando códigos…</div>
+                      ) : hoveredRow.barcodes && hoveredRow.barcodes.length ? (
+                        <div className="space-y-1">
+                          <BarcodeSvg value={hoveredRow.barcodes[0]} height={34} barWidth={1} className="w-full" />
+                          <div className="text-xs text-center text-muted-foreground truncate" title={hoveredRow.barcodes[0]}>
+                            {hoveredRow.barcodes[0]}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">Sin código de barras</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="overflow-hidden rounded-lg">
+                        {renderStickerPreview(label, { widthPx: 220 })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })(),
+            document.body
+          )
+        : null}
+
       <div className="flex items-center justify-between gap-4 mt-4">
         <div className="text-sm text-muted-foreground">
-          Mostrando {rows.length} items (página de {pageSize}). Seleccionados: {selectedCount}. Cada fila imprime 3 etiquetas.
+          Mostrando {rows.length} items (página de {pageSize}). Seleccionados: {selectedCount}. Se empacan 3 etiquetas por fila.
         </div>
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {printing ? "Imprimiendo…" : ""}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
+            {printing ? "Imprimiendo…" : ""}
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={loading || page === 1 || printing}
+            >
+              Anterior
+            </Button>
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
+              {isSearching ? `Página ${page} (búsqueda)` : `Página ${page}`}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={loading || !hasNext || printing}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -977,7 +1445,7 @@ export default function ProductsBrowser() {
           <DialogHeader>
             <DialogTitle>Preview de impresión</DialogTitle>
             <DialogDescription>
-              Se imprimirán {previewRows.length} filas (total {previewRows.length * 3} etiquetas). Orden: izquierda→derecha, empezando arriba.
+              Se imprimirán {previewRows.length} filas (hasta {previewRows.length * 3} posiciones). Orden: izquierda→derecha, empezando arriba.
             </DialogDescription>
           </DialogHeader>
 
@@ -1004,6 +1472,119 @@ export default function ProductsBrowser() {
             </Button>
             <Button onClick={confirmAndPrint} disabled={printing || previewLoading || previewRows.length === 0 || bp.status !== "ready" || !bp.selectedPrinter}>
               Confirmar e imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={requestsOpen} onOpenChange={(open) => (printing ? null : setRequestsOpen(open))}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Peticiones de impresión</DialogTitle>
+            <DialogDescription>
+              Pendientes: {requestsSummary.count} solicitudes ({requestsSummary.stickers} stickers). Lista actual: {draftSummary.products} productos ({draftSummary.stickers} stickers).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <div className="rounded-md border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">Lista actual</div>
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  {draftSummary.products} productos · {draftSummary.stickers} stickers
+                </div>
+              </div>
+              {draftSummary.products === 0 ? (
+                <div className="text-sm text-muted-foreground mt-2">
+                  Vacía. Selecciona productos en la tabla y usa “Agregar a la lista”.
+                </div>
+              ) : (
+                <div className="mt-2 max-h-48 overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs text-muted-foreground">
+                      <tr>
+                        <th className="text-left font-medium py-1">Producto</th>
+                        <th className="text-right font-medium py-1 w-20">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.values(draftList)
+                        .sort((a, b) => a.idProduct - b.idProduct)
+                        .map((it) => (
+                          <tr key={it.idProduct} className="border-t">
+                            <td className="py-1 pr-3 truncate" title={it.name}>
+                              {it.name}
+                            </td>
+                            <td className="py-1 text-right tabular-nums">{it.qty}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-md border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium">Solicitudes pendientes</div>
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  {requestsSummary.count} solicitudes · {requestsSummary.stickers} stickers
+                </div>
+              </div>
+
+              {requests.length === 0 ? (
+                <div className="text-sm text-muted-foreground mt-2">No hay solicitudes pendientes.</div>
+              ) : (
+                <div className="mt-2 max-h-[45vh] overflow-auto space-y-3">
+                  {requests.map((r, idx) => {
+                    const itemsCount = r.items.length;
+                    const stickers = r.items.reduce((s, it) => s + Math.max(0, Number(it.qty) || 0), 0);
+                    const when = new Date(r.requestedAt);
+                    return (
+                      <div key={r.requestId} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-medium">Solicitud #{idx + 1}</div>
+                          <div className="text-xs text-muted-foreground whitespace-nowrap">
+                            {when.toLocaleString()} · {itemsCount} productos · {stickers} stickers
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <table className="w-full text-sm">
+                            <thead className="text-xs text-muted-foreground">
+                              <tr>
+                                <th className="text-left font-medium py-1">Producto</th>
+                                <th className="text-right font-medium py-1 w-20">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {r.items
+                                .slice()
+                                .sort((a, b) => a.idProduct - b.idProduct)
+                                .map((it) => (
+                                  <tr key={it.idProduct} className="border-t">
+                                    <td className="py-1 pr-3 truncate" title={it.name}>
+                                      {it.name}
+                                    </td>
+                                    <td className="py-1 text-right tabular-nums">{it.qty}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={mergeSelectedIntoDraft} disabled={printing || previewLoading || selectedCount === 0}>
+              Agregar a la lista
+            </Button>
+            <Button onClick={printRequestsNow} disabled={printing || requests.length === 0 || bp.status !== "ready" || !bp.selectedPrinter}>
+              Imprimir
             </Button>
           </DialogFooter>
         </DialogContent>

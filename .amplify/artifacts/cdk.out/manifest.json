@@ -22,7 +22,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/031af83eb2c90fb6025e7ba652f9c0693b4ca23d9112560d9d4b6927637eb0de.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e5f6c5fe3a3431fdfdd9b551fcb02c3792a03dafb601f7fabffdca3bcd729d2c.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -21611,6 +21611,1236 @@
             "data": "amplifyDataDocumentNumberNestedStackDocumentNumberNestedStackResource7AD6AA84"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/DynamoDBModelTableReadIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableReadIOPS"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/DynamoDBModelTableWriteIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableWriteIOPS"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/DynamoDBBillingMode": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBBillingMode"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/DynamoDBEnablePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnablePointInTimeRecovery"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/DynamoDBEnableServerSideEncryption": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnableServerSideEncryption"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/HasEnvironmentParameter": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HasEnvironmentParameter"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/ShouldUsePayPerRequestBilling": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePayPerRequestBilling"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/ShouldUsePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePointInTimeRecovery"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestTable/Default/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestTable"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/CustomTablePrintLabelRequestTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/GetAttPrintLabelRequestTableStreamArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttPrintLabelRequestTableStreamArn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/GetAttPrintLabelRequestTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttPrintLabelRequestTableName"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestIAMRole": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestIAMRole"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestIAMRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestIAMRoleCDF61345"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestIAMRole"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestDataSource": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestTable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/PrintLabelRequestDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestDataSource"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestTable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerygetPrintLabelRequestpreAuth0Function/QuerygetPrintLabelRequestpreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestpreAuth0FunctionQuerygetPrintLabelRequestpreAuth0FunctionAppSyncFunction2786E7DE"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestpreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerygetPrintLabelRequestauth0Function/QuerygetPrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestauth0FunctionQuerygetPrintLabelRequestauth0FunctionAppSyncFunction14FFE65B"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerygetPrintLabelRequestpostAuth0Function/QuerygetPrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestpostAuth0FunctionQuerygetPrintLabelRequestpostAuth0FunctionAppSyncFunction26B5321E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QueryGetPrintLabelRequestDataResolverFn/QueryGetPrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryGetPrintLabelRequestDataResolverFnQueryGetPrintLabelRequestDataResolverFnAppSyncFunctionE2C36FCB"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryGetPrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/queryGetPrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetPrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.getPrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerylistPrintLabelRequestspreAuth0Function/QuerylistPrintLabelRequestspreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestspreAuth0FunctionQuerylistPrintLabelRequestspreAuth0FunctionAppSyncFunctionDBDC5C33"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestspreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerylistPrintLabelRequestsauth0Function/QuerylistPrintLabelRequestsauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestsauth0FunctionQuerylistPrintLabelRequestsauth0FunctionAppSyncFunction25CF02B6"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestsauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerylistPrintLabelRequestspostAuth0Function/QuerylistPrintLabelRequestspostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestspostAuth0FunctionQuerylistPrintLabelRequestspostAuth0FunctionAppSyncFunction057A694A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestspostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QueryListPrintLabelRequestsDataResolverFn/QueryListPrintLabelRequestsDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListPrintLabelRequestsDataResolverFnQueryListPrintLabelRequestsDataResolverFnAppSyncFunctionA9F74904"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListPrintLabelRequestsDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/queryListPrintLabelRequestsResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ListPrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listPrintLabelRequests"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationcreatePrintLabelRequestinit0Function/MutationcreatePrintLabelRequestinit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestinit0FunctionMutationcreatePrintLabelRequestinit0FunctionAppSyncFunction5B74D359"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestinit0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationcreatePrintLabelRequestinit1Function/MutationcreatePrintLabelRequestinit1Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestinit1FunctionMutationcreatePrintLabelRequestinit1FunctionAppSyncFunction15A08705"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestinit1Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationcreatePrintLabelRequestpreAuth0Function/MutationcreatePrintLabelRequestpreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestpreAuth0FunctionMutationcreatePrintLabelRequestpreAuth0FunctionAppSyncFunctionC1FA6B25"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestpreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationcreatePrintLabelRequestauth0Function/MutationcreatePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestauth0FunctionMutationcreatePrintLabelRequestauth0FunctionAppSyncFunctionC0962EEC"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationcreatePrintLabelRequestpostAuth0Function/MutationcreatePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestpostAuth0FunctionMutationcreatePrintLabelRequestpostAuth0FunctionAppSyncFunctionE3D00B3F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationCreatePrintLabelRequestDataResolverFn/MutationCreatePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationCreatePrintLabelRequestDataResolverFnMutationCreatePrintLabelRequestDataResolverFnAppSyncFunction55540A5A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationCreatePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/mutationCreatePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CreatePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.createPrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationupdatePrintLabelRequestinit0Function/MutationupdatePrintLabelRequestinit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestinit0FunctionMutationupdatePrintLabelRequestinit0FunctionAppSyncFunctionA7AE7524"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestinit0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationupdatePrintLabelRequestpreAuth0Function/MutationupdatePrintLabelRequestpreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestpreAuth0FunctionMutationupdatePrintLabelRequestpreAuth0FunctionAppSyncFunctionB917BF06"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestpreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationupdatePrintLabelRequestauth0Function/MutationupdatePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestauth0FunctionMutationupdatePrintLabelRequestauth0FunctionAppSyncFunctionFE9047D7"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationupdatePrintLabelRequestpostAuth0Function/MutationupdatePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestpostAuth0FunctionMutationupdatePrintLabelRequestpostAuth0FunctionAppSyncFunction094E72AF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationUpdatePrintLabelRequestDataResolverFn/MutationUpdatePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationUpdatePrintLabelRequestDataResolverFnMutationUpdatePrintLabelRequestDataResolverFnAppSyncFunctionC2E1F711"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationUpdatePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/mutationUpdatePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UpdatePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.updatePrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationdeletePrintLabelRequestpreAuth0Function/MutationdeletePrintLabelRequestpreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestpreAuth0FunctionMutationdeletePrintLabelRequestpreAuth0FunctionAppSyncFunction4B95F994"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestpreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationdeletePrintLabelRequestauth0Function/MutationdeletePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestauth0FunctionMutationdeletePrintLabelRequestauth0FunctionAppSyncFunctionC8B5CD9E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationdeletePrintLabelRequestpostAuth0Function/MutationdeletePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestpostAuth0FunctionMutationdeletePrintLabelRequestpostAuth0FunctionAppSyncFunctionF62E3DAC"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/MutationDeletePrintLabelRequestDataResolverFn/MutationDeletePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationDeletePrintLabelRequestDataResolverFnMutationDeletePrintLabelRequestDataResolverFnAppSyncFunction586221C2"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationDeletePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/mutationDeletePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeletePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.deletePrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononCreatePrintLabelRequestauth0Function/SubscriptiononCreatePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestauth0FunctionSubscriptiononCreatePrintLabelRequestauth0FunctionAppSyncFunctionCD9CE792"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreatePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononCreatePrintLabelRequestpostAuth0Function/SubscriptiononCreatePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestpostAuth0FunctionSubscriptiononCreatePrintLabelRequestpostAuth0FunctionAppSyncFunctionBA8A38F6"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreatePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptionOnCreatePrintLabelRequestDataResolverFn/SubscriptionOnCreatePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnCreatePrintLabelRequestDataResolverFnSubscriptionOnCreatePrintLabelRequestDataResolverFnAppSyncFunction0ED6471A"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnCreatePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/subscriptionOnCreatePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onCreatePrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononUpdatePrintLabelRequestauth0Function/SubscriptiononUpdatePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestauth0FunctionSubscriptiononUpdatePrintLabelRequestauth0FunctionAppSyncFunctionDAF5329D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdatePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononUpdatePrintLabelRequestpostAuth0Function/SubscriptiononUpdatePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestpostAuth0FunctionSubscriptiononUpdatePrintLabelRequestpostAuth0FunctionAppSyncFunction9A629C20"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdatePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptionOnUpdatePrintLabelRequestDataResolverFn/SubscriptionOnUpdatePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnUpdatePrintLabelRequestDataResolverFnSubscriptionOnUpdatePrintLabelRequestDataResolverFnAppSyncFunctionB6C47AC2"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnUpdatePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/subscriptionOnUpdatePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onUpdatePrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononDeletePrintLabelRequestauth0Function/SubscriptiononDeletePrintLabelRequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestauth0FunctionSubscriptiononDeletePrintLabelRequestauth0FunctionAppSyncFunctionDC1C4388"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeletePrintLabelRequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptiononDeletePrintLabelRequestpostAuth0Function/SubscriptiononDeletePrintLabelRequestpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestpostAuth0FunctionSubscriptiononDeletePrintLabelRequestpostAuth0FunctionAppSyncFunction4CFADF03"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeletePrintLabelRequestpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/SubscriptionOnDeletePrintLabelRequestDataResolverFn/SubscriptionOnDeletePrintLabelRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnDeletePrintLabelRequestDataResolverFnSubscriptionOnDeletePrintLabelRequestDataResolverFnAppSyncFunctionF1D9B0DE"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnDeletePrintLabelRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/subscriptionOnDeletePrintLabelRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onDeletePrintLabelRequest"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerylistPrintLabelRequestByStatusauth0Function/QuerylistPrintLabelRequestByStatusauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestByStatusauth0FunctionQuerylistPrintLabelRequestByStatusauth0FunctionAppSyncFunction1E37815F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestByStatusauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QuerylistPrintLabelRequestByStatuspostAuth0Function/QuerylistPrintLabelRequestByStatuspostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestByStatuspostAuth0FunctionQuerylistPrintLabelRequestByStatuspostAuth0FunctionAppSyncFunction4F50BA67"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestByStatuspostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/QueryListPrintLabelRequestByStatusDataResolverFn/QueryListPrintLabelRequestByStatusDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListPrintLabelRequestByStatusDataResolverFnQueryListPrintLabelRequestByStatusDataResolverFnAppSyncFunction8D1837FB"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListPrintLabelRequestByStatusDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/queryListPrintLabelRequestByStatusResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestByStatusResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listPrintLabelRequestByStatus"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderframeworkonEvent732AE14EArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderfraEE4B0F12"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest/amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequest.NestedStack/PrintLabelRequest.NestedStackResource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResource73A1E357"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/DynamoDBModelTableReadIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableReadIOPS"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/DynamoDBModelTableWriteIOPS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBModelTableWriteIOPS"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/DynamoDBBillingMode": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBBillingMode"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/DynamoDBEnablePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnablePointInTimeRecovery"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/DynamoDBEnableServerSideEncryption": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DynamoDBEnableServerSideEncryption"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/HasEnvironmentParameter": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HasEnvironmentParameter"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/ShouldUsePayPerRequestBilling": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePayPerRequestBilling"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/ShouldUsePointInTimeRecovery": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ShouldUsePointInTimeRecovery"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemTable/Default/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemTable"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/CustomTablePrintLabelRequestItemTable": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/GetAttPrintLabelRequestItemTableStreamArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttPrintLabelRequestItemTableStreamArn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/GetAttPrintLabelRequestItemTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetAttPrintLabelRequestItemTableName"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemIAMRole": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemIAMRole"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemIAMRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemIAMRole9A13AB98"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemIAMRole"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemDataSource": [
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemTable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/PrintLabelRequestItemDataSource/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemDataSource"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemTable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerygetPrintLabelRequestItempreAuth0Function/QuerygetPrintLabelRequestItempreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestItempreAuth0FunctionQuerygetPrintLabelRequestItempreAuth0FunctionAppSyncFunction0A3C1C35"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestItempreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerygetPrintLabelRequestItemauth0Function/QuerygetPrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestItemauth0FunctionQuerygetPrintLabelRequestItemauth0FunctionAppSyncFunction8D8923B5"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerygetPrintLabelRequestItempostAuth0Function/QuerygetPrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerygetPrintLabelRequestItempostAuth0FunctionQuerygetPrintLabelRequestItempostAuth0FunctionAppSyncFunction279C2C4E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerygetPrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QueryGetPrintLabelRequestItemDataResolverFn/QueryGetPrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryGetPrintLabelRequestItemDataResolverFnQueryGetPrintLabelRequestItemDataResolverFnAppSyncFunction48A6C153"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryGetPrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/queryGetPrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "GetPrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.getPrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerylistPrintLabelRequestItemspreAuth0Function/QuerylistPrintLabelRequestItemspreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemspreAuth0FunctionQuerylistPrintLabelRequestItemspreAuth0FunctionAppSyncFunction87DF77D4"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestItemspreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerylistPrintLabelRequestItemsauth0Function/QuerylistPrintLabelRequestItemsauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemsauth0FunctionQuerylistPrintLabelRequestItemsauth0FunctionAppSyncFunction630E1A06"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestItemsauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerylistPrintLabelRequestItemspostAuth0Function/QuerylistPrintLabelRequestItemspostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemspostAuth0FunctionQuerylistPrintLabelRequestItemspostAuth0FunctionAppSyncFunction69E221AA"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestItemspostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QueryListPrintLabelRequestItemsDataResolverFn/QueryListPrintLabelRequestItemsDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListPrintLabelRequestItemsDataResolverFnQueryListPrintLabelRequestItemsDataResolverFnAppSyncFunction621E91AD"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListPrintLabelRequestItemsDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/queryListPrintLabelRequestItemsResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ListPrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listPrintLabelRequestItems"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationcreatePrintLabelRequestIteminit0Function/MutationcreatePrintLabelRequestIteminit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestIteminit0FunctionMutationcreatePrintLabelRequestIteminit0FunctionAppSyncFunctionFAF96A6D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestIteminit0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationcreatePrintLabelRequestItempreAuth0Function/MutationcreatePrintLabelRequestItempreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestItempreAuth0FunctionMutationcreatePrintLabelRequestItempreAuth0FunctionAppSyncFunction86A63739"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestItempreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationcreatePrintLabelRequestItemauth0Function/MutationcreatePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestItemauth0FunctionMutationcreatePrintLabelRequestItemauth0FunctionAppSyncFunction73D9A28E"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationcreatePrintLabelRequestItempostAuth0Function/MutationcreatePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationcreatePrintLabelRequestItempostAuth0FunctionMutationcreatePrintLabelRequestItempostAuth0FunctionAppSyncFunctionD3D72143"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationcreatePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationCreatePrintLabelRequestItemDataResolverFn/MutationCreatePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationCreatePrintLabelRequestItemDataResolverFnMutationCreatePrintLabelRequestItemDataResolverFnAppSyncFunctionDF67611D"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationCreatePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/mutationCreatePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CreatePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.createPrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationupdatePrintLabelRequestIteminit0Function/MutationupdatePrintLabelRequestIteminit0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestIteminit0FunctionMutationupdatePrintLabelRequestIteminit0FunctionAppSyncFunctionDF0A1954"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestIteminit0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationupdatePrintLabelRequestItempreAuth0Function/MutationupdatePrintLabelRequestItempreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestItempreAuth0FunctionMutationupdatePrintLabelRequestItempreAuth0FunctionAppSyncFunction4454EE28"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestItempreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationupdatePrintLabelRequestItemauth0Function/MutationupdatePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestItemauth0FunctionMutationupdatePrintLabelRequestItemauth0FunctionAppSyncFunction2822E880"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationupdatePrintLabelRequestItempostAuth0Function/MutationupdatePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationupdatePrintLabelRequestItempostAuth0FunctionMutationupdatePrintLabelRequestItempostAuth0FunctionAppSyncFunctionE78EA9E0"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationupdatePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationUpdatePrintLabelRequestItemDataResolverFn/MutationUpdatePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationUpdatePrintLabelRequestItemDataResolverFnMutationUpdatePrintLabelRequestItemDataResolverFnAppSyncFunction71176234"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationUpdatePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/mutationUpdatePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UpdatePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.updatePrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationdeletePrintLabelRequestItempreAuth0Function/MutationdeletePrintLabelRequestItempreAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestItempreAuth0FunctionMutationdeletePrintLabelRequestItempreAuth0FunctionAppSyncFunctionDA834F6C"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestItempreAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationdeletePrintLabelRequestItemauth0Function/MutationdeletePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestItemauth0FunctionMutationdeletePrintLabelRequestItemauth0FunctionAppSyncFunction0A184D54"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationdeletePrintLabelRequestItempostAuth0Function/MutationdeletePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationdeletePrintLabelRequestItempostAuth0FunctionMutationdeletePrintLabelRequestItempostAuth0FunctionAppSyncFunction59E2889F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationdeletePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/MutationDeletePrintLabelRequestItemDataResolverFn/MutationDeletePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MutationDeletePrintLabelRequestItemDataResolverFnMutationDeletePrintLabelRequestItemDataResolverFnAppSyncFunctionD7C2DDB7"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "MutationDeletePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/mutationDeletePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeletePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Mutation.deletePrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononCreatePrintLabelRequestItemauth0Function/SubscriptiononCreatePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestItemauth0FunctionSubscriptiononCreatePrintLabelRequestItemauth0FunctionAppSyncFunction87788364"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreatePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononCreatePrintLabelRequestItempostAuth0Function/SubscriptiononCreatePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestItempostAuth0FunctionSubscriptiononCreatePrintLabelRequestItempostAuth0FunctionAppSyncFunction5B19285F"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononCreatePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptionOnCreatePrintLabelRequestItemDataResolverFn/SubscriptionOnCreatePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnCreatePrintLabelRequestItemDataResolverFnSubscriptionOnCreatePrintLabelRequestItemDataResolverFnAppSyncFunction1DC97D49"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnCreatePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/subscriptionOnCreatePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononCreatePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onCreatePrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononUpdatePrintLabelRequestItemauth0Function/SubscriptiononUpdatePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestItemauth0FunctionSubscriptiononUpdatePrintLabelRequestItemauth0FunctionAppSyncFunctionC37809CA"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdatePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononUpdatePrintLabelRequestItempostAuth0Function/SubscriptiononUpdatePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestItempostAuth0FunctionSubscriptiononUpdatePrintLabelRequestItempostAuth0FunctionAppSyncFunction781886B4"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononUpdatePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptionOnUpdatePrintLabelRequestItemDataResolverFn/SubscriptionOnUpdatePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnUpdatePrintLabelRequestItemDataResolverFnSubscriptionOnUpdatePrintLabelRequestItemDataResolverFnAppSyncFunction8F59A86C"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnUpdatePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/subscriptionOnUpdatePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononUpdatePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onUpdatePrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononDeletePrintLabelRequestItemauth0Function/SubscriptiononDeletePrintLabelRequestItemauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestItemauth0FunctionSubscriptiononDeletePrintLabelRequestItemauth0FunctionAppSyncFunction2C1B8439"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeletePrintLabelRequestItemauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptiononDeletePrintLabelRequestItempostAuth0Function/SubscriptiononDeletePrintLabelRequestItempostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestItempostAuth0FunctionSubscriptiononDeletePrintLabelRequestItempostAuth0FunctionAppSyncFunction27050DD5"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptiononDeletePrintLabelRequestItempostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/SubscriptionOnDeletePrintLabelRequestItemDataResolverFn/SubscriptionOnDeletePrintLabelRequestItemDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptionOnDeletePrintLabelRequestItemDataResolverFnSubscriptionOnDeletePrintLabelRequestItemDataResolverFnAppSyncFunction95730260"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "SubscriptionOnDeletePrintLabelRequestItemDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/subscriptionOnDeletePrintLabelRequestItemResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SubscriptiononDeletePrintLabelRequestItemResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Subscription.onDeletePrintLabelRequestItem"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerylistPrintLabelRequestItemByRequestIdauth0Function/QuerylistPrintLabelRequestItemByRequestIdauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemByRequestIdauth0FunctionQuerylistPrintLabelRequestItemByRequestIdauth0FunctionAppSyncFunction905A6D3C"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestItemByRequestIdauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QuerylistPrintLabelRequestItemByRequestIdpostAuth0Function/QuerylistPrintLabelRequestItemByRequestIdpostAuth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemByRequestIdpostAuth0FunctionQuerylistPrintLabelRequestItemByRequestIdpostAuth0FunctionAppSyncFunctionCA84DDAA"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QuerylistPrintLabelRequestItemByRequestIdpostAuth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/QueryListPrintLabelRequestItemByRequestIdDataResolverFn/QueryListPrintLabelRequestItemByRequestIdDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QueryListPrintLabelRequestItemByRequestIdDataResolverFnQueryListPrintLabelRequestItemByRequestIdDataResolverFnAppSyncFunction8594D2EF"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "QueryListPrintLabelRequestItemByRequestIdDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/queryListPrintLabelRequestItemByRequestIdResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "QuerylistPrintLabelRequestItemByRequestIdResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "Query.listPrintLabelRequestItemByRequestId"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderframeworkonEvent732AE14EArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource0C02A887OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyTableManagerTableManagerCustomProviderfraEE4B0F12"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/reference-to-amplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputs.amplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDataSource1BBF146CName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDataSource1BBF146CName"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem/amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTable047A1CA0TableArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTable047A1CA0TableArn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/PrintLabelRequestItem.NestedStack/PrintLabelRequestItem.NestedStackResource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource68C0E754"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/Userdocumentsauth0Function/Userdocumentsauth0Function.AppSyncFunction": [
           {
             "type": "aws:cdk:logicalId",
@@ -22569,6 +23799,36 @@
           {
             "type": "graphqltransformer:resourceName",
             "data": "PosOrder.items"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestitemsauth0Function/PrintLabelRequestitemsauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestitemsauth0FunctionPrintLabelRequestitemsauth0FunctionAppSyncFunction3B1A54D1"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestitemsauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemsDataResolverFn/PrintLabelRequestItemsDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemsDataResolverFnPrintLabelRequestItemsDataResolverFnAppSyncFunction5CB04E66"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemsDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/printLabelRequestItemsResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestitemsResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequest.items"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/UsersessionConfigauth0Function/UsersessionConfigauth0Function.AppSyncFunction": [
@@ -23651,6 +24911,36 @@
             "data": "SessionConfig.user"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemrequestauth0Function/PrintLabelRequestItemrequestauth0Function.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemrequestauth0FunctionPrintLabelRequestItemrequestauth0FunctionAppSyncFunction143427F1"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemrequestauth0Function"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemRequestDataResolverFn/PrintLabelRequestItemRequestDataResolverFn.AppSyncFunction": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemRequestDataResolverFnPrintLabelRequestItemRequestDataResolverFnAppSyncFunctionDE519F26"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItemRequestDataResolverFn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/printLabelRequestItemRequestResolver": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "PrintLabelRequestItemrequestResolver"
+          },
+          {
+            "type": "graphqltransformer:resourceName",
+            "data": "PrintLabelRequestItem.request"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/CDKMetadata/Default": [
           {
             "type": "aws:cdk:logicalId",
@@ -23921,6 +25211,18 @@
             "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPosOrderItemNestedStackPosOrderItemNestedStackResource83C23CF8OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPosOrderItemPosOrderItemTable37F583F7TableArn"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDataSource1BBF146CName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDaBA4B4055"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTable047A1CA0TableArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTaF743A9FE"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataSessionConfigNestedStackSessionConfigNestedStackResourceA3A0DF46Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataSessionConfigSessionConfigDataSourceF847E043Name": [
           {
             "type": "aws:cdk:logicalId",
@@ -24015,6 +25317,18 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPaymentTypeNestedStackPaymentTypeNestedStackResourceE65D51AEOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPaymentTypePaymentTypeTable5B215F19TableArn"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/reference-to-amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack.NestedStack/ConnectionStack.NestedStackResource": [

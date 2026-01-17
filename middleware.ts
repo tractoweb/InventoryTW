@@ -3,7 +3,6 @@ import { decodeSessionCookie, SESSION_COOKIE_NAME } from "@/lib/auth-cookies";
 
 const PUBLIC_PATH_PREFIXES = [
   "/login",
-  "/documentation",
   "/api",
   "/_next",
   "/favicon.ico",

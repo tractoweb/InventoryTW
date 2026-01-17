@@ -1,4 +1,5 @@
 import { LabelData } from '../types/label.types';
+import { compute3UpStickerLayout } from './labelLayout';
 
 function sanitizeZplField(value: unknown): string {
   // Remove control chars (including the stray \x10 seen sometimes when copy/pasting ZPL)
@@ -46,7 +47,10 @@ function offsetZplFo(zpl: string, xOffset: number, yOffset: number): string {
   });
 }
 
-export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpLabelOptions): string => {
+export const generate3UpLabelsRow = (
+  labels: Array<LabelData | null | undefined>,
+  options?: Generate3UpLabelOptions
+): string => {
   // Media layout (cm)
   // - 3 columns
   // - label: 3.2cm x 2.5cm
@@ -66,6 +70,10 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
   const cornerR = cmToDots(0.1, dpi);
   const includeBorder = options?.includeBorder ?? false;
 
+  // Printer drift compensation: move all content slightly to the RIGHT.
+  // 3mm = 0.3cm.
+  const xShift = cmToDots(0.3, dpi);
+
   const totalW = outerX + labelW + gapX + labelW + gapX + labelW + outerX;
   const pitchH = labelH + gapY;
 
@@ -80,55 +88,47 @@ export const generate3UpLabelsRow = (labels: LabelData[], options?: Generate3UpL
       const x0 = outerX + i * (labelW + gapX);
       const y0 = 0;
 
+      const border = includeBorder
+        ? `^FO${x0},${y0}^GB${labelW},${labelH},2,B,${Math.max(0, cornerR)}^FS`
+        : null;
+
+      if (!data) {
+        return [border].filter(Boolean).join("\n");
+      }
+
       const nombreRaw = sanitizeZplField(data.nombreProducto);
       const nombre = nombreRaw.slice(0, 90);
       const barcode = sanitizeZplField(data.codigoBarras);
       const lote = sanitizeZplField(data.lote ?? "").slice(0, 30);
       const fecha = sanitizeZplField(data.fecha ?? "").slice(0, 30);
 
-      const logoZpl = logoZplRaw ? offsetZplFo(logoZplRaw, x0, y0) : "";
+      const logoZpl = logoZplRaw ? offsetZplFo(logoZplRaw, x0 + xShift, y0) : "";
 
-      const border = includeBorder
-        ? `^FO${x0},${y0}^GB${labelW},${labelH},2,B,${Math.max(0, cornerR)}^FS`
-        : null;
-
-      const textX = x0 + outerX; // reuse 0.2cm as internal padding
-      const textW = Math.max(10, labelW - outerX * 2);
-      // Some printers (e.g. GC420t) can drift slightly upwards; keep name a bit lower
-      // to reduce the perceived gap before the next fields without moving them up.
-      const nameY = y0 + marginTop + cmToDots(0.23, dpi);
-
-      // Keep names inside the sticker:
-      // - allow wrapping to up to 3 lines
-      // - shrink font when the name is long (otherwise it would overlap the next fields)
-      const nameFont = nombre.length > 20 ? 20 : 28;
-
-      // Place "posición" and "fecha" as a stacked column below the name block.
-      // These Y positions are chosen to avoid colliding with the barcode block near the bottom.
-      const posY = y0 + cmToDots(1.15, dpi);
-      const dateY = posY + cmToDots(0.25, dpi);
-
+      const textX = x0 + xShift + outerX; // reuse 0.2cm as internal padding
+      const textW = Math.max(10, labelW - outerX * 2 - xShift);
       const barcodeX = textX;
-      const barcodeH = 40;
-      const barcodeTextH = 18;
-      const barcodeGap = cmToDots(0.1, dpi);
-      const bottomPad = marginBottom + cmToDots(0.1, dpi);
-      const barcodeY = Math.max(
-        // Keep barcode below the stacked fields (pos/date)
-        dateY + cmToDots(0.1, dpi),
-        // Also anchor to bottom
-        y0 + labelH - bottomPad - (barcodeH + barcodeGap + barcodeTextH)
-      );
-      const barcodeTextY = barcodeY + barcodeH + barcodeGap;
+      const layout = compute3UpStickerLayout(dpi, nombre);
+      const nameY = y0 + layout.nameY;
+      const nameFont = layout.nameFont;
+      const nameLinesMax = layout.nameLinesMax;
+      const posFont = layout.posFont;
+      const dateFont = layout.dateFont;
+      const posY = y0 + layout.posY;
+      const dateY = y0 + layout.dateY;
+      const barcodeH = layout.barcodeH;
+      const barcodeTextH = layout.barcodeTextH;
+      const barcodeGap = layout.barcodeGap;
+      const barcodeY = y0 + layout.barcodeY;
+      const barcodeTextY = y0 + layout.barcodeTextY;
 
       return [
         border,
         logoZpl ? logoZpl : null,
-        `^FO${textX},${nameY}^A0N,${nameFont},${nameFont}^FB${textW},3,0,L,0^FD${nombre}^FS`,
-        `^FO${textX},${posY}^A0N,22,22^FD${lote}^FS`,
-        `^FO${textX},${dateY}^A0N,20,20^FD${fecha}^FS`,
+        `^FO${textX},${nameY}^A0N,${nameFont},${nameFont}^FB${textW},${nameLinesMax},0,L,0^FD${nombre}^FS`,
+        `^FO${textX},${posY}^A0N,${posFont},${posFont}^FD${lote}^FS`,
+        `^FO${textX},${dateY}^A0N,${dateFont},${dateFont}^FD${fecha}^FS`,
         `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
-        `^FO${x0},${barcodeTextY}^FB${labelW},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcode}^FS`,
+        `^FO${x0 + xShift},${barcodeTextY}^FB${Math.max(10, labelW - xShift)},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcode}^FS`,
       ]
         .filter(Boolean)
         .join("\n");

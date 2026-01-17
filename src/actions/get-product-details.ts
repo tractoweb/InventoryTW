@@ -1,20 +1,25 @@
 "use server";
 
-import { unstable_noStore as noStore } from 'next/cache';
-
 import { inventoryService } from '@/services/inventory-service';
+import { cached } from '@/lib/server-cache';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 
 export async function getProductDetails(productId: number) {
-  // Siempre obtener datos frescos
-  noStore();
-  
   if (!productId) {
     return { error: 'Product ID is required.' };
   }
 
   try {
-    // Convertir el ID a string para el servicio
-    const data = await inventoryService.getProductDetails(String(productId));
+    const load = cached(
+      () => inventoryService.getProductDetails(String(productId)),
+      {
+        keyParts: ['product-details', String(productId)],
+        revalidateSeconds: 45,
+        tags: [CACHE_TAGS.heavy.productDetails],
+      }
+    );
+
+    const data = await load();
     return { data };
 
   } catch (error: any) {

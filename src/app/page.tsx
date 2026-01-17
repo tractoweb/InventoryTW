@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { getCurrentSession } from "@/lib/session";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { InventoryChart } from "@/components/dashboard/inventory-chart";
 import { RecentItems } from "@/components/dashboard/recent-items";
@@ -11,7 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardOverview } from "@/actions/get-dashboard-overview";
 import { getStockData } from "@/actions/get-stock-data";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getCurrentSession();
+  if (!session.data) {
+    redirect("/login?next=%2F");
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>

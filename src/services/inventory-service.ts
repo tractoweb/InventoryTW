@@ -5,6 +5,7 @@
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { listAllPages } from '@/services/amplify-list-all';
+import { computeLiquidation, type LiquidationConfig, type LiquidationLineInput } from '@/lib/liquidation';
 
 async function listDocumentItemsForProduct(productId: number, maxItems = 25): Promise<{ data: any[] } | { data: any[]; error: string }> {
   // NOTE:
@@ -111,6 +112,7 @@ export async function getProductDetails(productId: string): Promise<{
     documentItemId: number;
     quantity?: number | null;
     price?: number | null;
+    productCost?: number | null;
     total?: number | null;
     createdAt?: string | null;
   }>;
@@ -124,6 +126,33 @@ export async function getProductDetails(productId: string): Promise<{
     documentTypeId?: number | null;
     documentCategoryId?: number | null;
   }>;
+  pricingHistory?: Array<{
+    documentId: number;
+    documentNumber?: string | null;
+    date?: string | null;
+    ivaPercentage: number;
+    quantity: number;
+    discountPercentage: number;
+    marginPercentage: number;
+    freightName?: string | null;
+    freightCost: number;
+    unitCost: number;
+    unitDiscount: number;
+    unitIVA: number;
+    unitFreight: number;
+    unitFinalCost: number;
+    unitSalePrice: number;
+  }>;
+  pricingSummary?: {
+    latest?: {
+      documentId: number;
+      documentNumber?: string | null;
+      date?: string | null;
+      unitFinalCost: number;
+      unitSalePrice: number;
+    };
+    productPriceMatchesLatestDocument?: boolean;
+  };
   // Back-compat flattened fields used by existing UI
   id?: number;
   name?: string;
@@ -238,6 +267,7 @@ export async function getProductDetails(productId: string): Promise<{
         documentItemId: Number(di?.documentItemId ?? 0),
         quantity: di?.quantity !== undefined && di?.quantity !== null ? Number(di.quantity) : null,
         price: di?.price !== undefined && di?.price !== null ? Number(di.price) : null,
+        productCost: di?.productCost !== undefined && di?.productCost !== null ? Number(di.productCost) : null,
         total: di?.total !== undefined && di?.total !== null ? Number(di.total) : null,
         createdAt: di?.createdAt ? String(di.createdAt) : null,
       }))
@@ -245,6 +275,14 @@ export async function getProductDetails(productId: string): Promise<{
 
     const docIds = Array.from(new Set(recentDocumentItems.map((x) => x.documentId))).slice(0, 25);
     const docGets = await Promise.all(docIds.map((documentId) => amplifyClient.models.Document.get({ documentId } as any)));
+
+    const rawDocs = docGets.map((r: any) => r?.data).filter(Boolean) as any[];
+    const docById = new Map<number, any>();
+    for (const d of rawDocs) {
+      const did = Number(d?.documentId ?? 0);
+      if (Number.isFinite(did) && did > 0) docById.set(did, d);
+    }
+
     const relatedDocuments = docGets
       .map((r: any) => r?.data)
       .filter(Boolean)
@@ -264,6 +302,100 @@ export async function getProductDetails(productId: string): Promise<{
         const bd = String(b.stockDate ?? b.createdAt ?? '');
         return bd.localeCompare(ad);
       });
+
+    // Build a per-document pricing/freight/IVA history from internal liquidation snapshots.
+    const pricingHistory: Array<{
+      documentId: number;
+      documentNumber?: string | null;
+      date?: string | null;
+      ivaPercentage: number;
+      quantity: number;
+      discountPercentage: number;
+      marginPercentage: number;
+      freightName?: string | null;
+      freightCost: number;
+      unitCost: number;
+      unitDiscount: number;
+      unitIVA: number;
+      unitFreight: number;
+      unitFinalCost: number;
+      unitSalePrice: number;
+    }> = [];
+
+    for (const doc of relatedDocuments) {
+      const raw = docById.get(Number(doc.documentId));
+      const internal = raw?.internalNote ? String(raw.internalNote) : '';
+      if (!internal) continue;
+
+      let liquidationSnapshot: any = null;
+      try {
+        const parsed = JSON.parse(internal);
+        liquidationSnapshot = parsed?.liquidation ?? null;
+      } catch {
+        liquidationSnapshot = null;
+      }
+
+      if (!liquidationSnapshot?.config || !Array.isArray(liquidationSnapshot?.lineInputs)) continue;
+
+      const cfg: LiquidationConfig = {
+        ivaPercentage: Number(liquidationSnapshot.config.ivaPercentage ?? 0) || 0,
+        ivaIncludedInCost: Boolean(liquidationSnapshot.config.ivaIncludedInCost ?? false),
+        discountsEnabled: Boolean(liquidationSnapshot.config.discountsEnabled ?? true),
+        useMultipleFreights: Boolean(liquidationSnapshot.config.useMultipleFreights ?? false),
+        freightRates: Array.isArray(liquidationSnapshot.config.freightRates)
+          ? liquidationSnapshot.config.freightRates.map((r: any) => ({
+              id: String(r?.id ?? ''),
+              name: String(r?.name ?? r?.id ?? ''),
+              cost: Number(r?.cost ?? 0) || 0,
+            }))
+          : [],
+      };
+
+      const lineInputs: LiquidationLineInput[] = liquidationSnapshot.lineInputs.map((li: any, idx: number) => ({
+        id: String(li?.id ?? idx + 1),
+        productId: li?.productId !== undefined && li?.productId !== null ? Number(li.productId) : undefined,
+        name: li?.name ? String(li.name) : undefined,
+        purchaseReference: li?.purchaseReference ? String(li.purchaseReference) : undefined,
+        warehouseReference: li?.warehouseReference ? String(li.warehouseReference) : undefined,
+        quantity: Number(li?.quantity ?? 0) || 0,
+        totalCost: Number(li?.totalCost ?? 0) || 0,
+        discountPercentage: Number(li?.discountPercentage ?? 0) || 0,
+        marginPercentage: Number(li?.marginPercentage ?? 0) || 0,
+        freightId: String(li?.freightId ?? '1'),
+      }));
+
+      const computed = computeLiquidation(cfg, lineInputs);
+      for (const out of computed.lines) {
+        if (Number(out.productId ?? 0) !== Number(productId)) continue;
+        const freightRate = cfg.freightRates.find((r) => r.id === String(out.freightId)) ?? null;
+        const freightName = freightRate?.name ?? null;
+        const freightCost = Number(freightRate?.cost ?? 0) || 0;
+        pricingHistory.push({
+          documentId: Number(doc.documentId),
+          documentNumber: doc.number ?? null,
+          date: doc.stockDate ?? doc.createdAt ?? null,
+          ivaPercentage: Number(cfg.ivaPercentage ?? 0) || 0,
+          quantity: Number(out.quantity ?? 0) || 0,
+          discountPercentage: Number(out.discountPercentage ?? 0) || 0,
+          marginPercentage: Number(out.marginPercentage ?? 0) || 0,
+          freightName,
+          freightCost,
+          unitCost: Number(out.unitCost ?? 0) || 0,
+          unitDiscount: Number(out.unitDiscount ?? 0) || 0,
+          unitIVA: Number(out.unitIVA ?? 0) || 0,
+          unitFreight: Number(out.unitFreight ?? 0) || 0,
+          unitFinalCost: Number(out.unitFinalCost ?? 0) || 0,
+          unitSalePrice: Number(out.unitSalePrice ?? 0) || 0,
+        });
+      }
+    }
+
+    pricingHistory.sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')));
+    const latestPricing = pricingHistory[0];
+    const priceMatchesLatest =
+      latestPricing && productPlain.price !== null && productPlain.price !== undefined
+        ? Math.abs(Number(productPlain.price) - Number(latestPricing.unitSalePrice)) < 0.5
+        : undefined;
 
     const taxIds = Array.from(
       new Set(productTaxes.map((pt: any) => Number(pt?.taxId)).filter((id: any) => Number.isFinite(id)))
@@ -359,6 +491,19 @@ export async function getProductDetails(productId: string): Promise<{
       stockControls,
       recentDocumentItems,
       relatedDocuments,
+      pricingHistory,
+      pricingSummary: {
+        latest: latestPricing
+          ? {
+              documentId: latestPricing.documentId,
+              documentNumber: latestPricing.documentNumber ?? null,
+              date: latestPricing.date ?? null,
+              unitFinalCost: latestPricing.unitFinalCost,
+              unitSalePrice: latestPricing.unitSalePrice,
+            }
+          : undefined,
+        productPriceMatchesLatestDocument: typeof priceMatchesLatest === 'boolean' ? priceMatchesLatest : undefined,
+      },
       id: productPlain.idProduct,
       name: productPlain.name,
       code: productPlain.code,

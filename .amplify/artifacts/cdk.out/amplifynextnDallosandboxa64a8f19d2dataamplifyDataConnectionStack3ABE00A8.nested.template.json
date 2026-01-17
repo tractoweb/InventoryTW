@@ -4576,6 +4576,149 @@
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/posOrderItemsResolver"
    }
   },
+  "PrintLabelRequestitemsauth0FunctionPrintLabelRequestitemsauth0FunctionAppSyncFunction3B1A54D1": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "PrintLabelRequestitemsauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/98d57dc1efb9e47547e4d43b376202499240f34e43676c88c84fab62008b2bf5.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestitemsauth0Function/PrintLabelRequestitemsauth0Function.AppSyncFunction"
+   }
+  },
+  "PrintLabelRequestItemsDataResolverFnPrintLabelRequestItemsDataResolverFnAppSyncFunction5CB04E66": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDaBA4B4055"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "PrintLabelRequestItemsDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/21858a73e6bc45b04b6d1b5937d41646cb4f00c0c78671d74b031c460d207c54.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/49e7a1f2fb4c809b82bed6b0242a2a3bcfa2c5276ebd2539ff330fee36f8fe18.vtl"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemsDataResolverFn/PrintLabelRequestItemsDataResolverFn.AppSyncFunction"
+   }
+  },
+  "PrintLabelRequestitemsResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "items",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "PrintLabelRequestitemsauth0FunctionPrintLabelRequestitemsauth0FunctionAppSyncFunction3B1A54D1",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "PrintLabelRequestItemsDataResolverFnPrintLabelRequestItemsDataResolverFnAppSyncFunction5CB04E66",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"PrintLabelRequest\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"items\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTaF743A9FE"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "PrintLabelRequest"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/printLabelRequestItemsResolver"
+   }
+  },
   "UsersessionConfigauth0FunctionUsersessionConfigauth0FunctionAppSyncFunction154E1423": {
    "Type": "AWS::AppSync::FunctionConfiguration",
    "Properties": {
@@ -9724,6 +9867,149 @@
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/sessionConfigUserResolver"
    }
   },
+  "PrintLabelRequestItemrequestauth0FunctionPrintLabelRequestItemrequestauth0FunctionAppSyncFunction143427F1": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPINONEDSACDC7157Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "PrintLabelRequestItemrequestauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/98d57dc1efb9e47547e4d43b376202499240f34e43676c88c84fab62008b2bf5.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemrequestauth0Function/PrintLabelRequestItemrequestauth0Function.AppSyncFunction"
+   }
+  },
+  "PrintLabelRequestItemRequestDataResolverFnPrintLabelRequestItemRequestDataResolverFnAppSyncFunctionDE519F26": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "PrintLabelRequestItemRequestDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/57df015a7bab3ed2534558965e68acf46c4a71d35755f758fcab26b13c52dd59.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/dcb70e4856bc9a423e02b8b9e9c2ab3f71479784572d4c04a02d1f5b61a9f9ac.vtl"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/PrintLabelRequestItemRequestDataResolverFn/PrintLabelRequestItemRequestDataResolverFn.AppSyncFunction"
+   }
+  },
+  "PrintLabelRequestItemrequestResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+    },
+    "FieldName": "request",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "PrintLabelRequestItemrequestauth0FunctionPrintLabelRequestItemrequestauth0FunctionAppSyncFunction143427F1",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "PrintLabelRequestItemRequestDataResolverFnPrintLabelRequestItemRequestDataResolverFnAppSyncFunctionDE519F26",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"PrintLabelRequestItem\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"request\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPI95D9729BApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthunauthenticatedUserRole190BB8AFRef"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthIdentityPool8B868244Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "PrintLabelRequestItem"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack/printLabelRequestItemRequestResolver"
+   }
+  },
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
@@ -10131,6 +10417,12 @@
   "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPosOrderItemNestedStackPosOrderItemNestedStackResource83C23CF8OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPosOrderItemPosOrderItemTable37F583F7TableArn": {
    "Type": "String"
   },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemDaBA4B4055": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemNestedStackPrintLabelRequestItemNestedStackResource13652C08OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestItemPrintLabelRequestItemTaF743A9FE": {
+   "Type": "String"
+  },
   "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataSessionConfigNestedStackSessionConfigNestedStackResourceA3A0DF46OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataSessionConfigSessionConfigDataSourceF847E043Name": {
    "Type": "String"
   },
@@ -10177,6 +10469,12 @@
    "Type": "String"
   },
   "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPaymentTypeNestedStackPaymentTypeNestedStackResourceE65D51AEOutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPaymentTypePaymentTypeTable5B215F19TableArn": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestDataSource6905ACE3Name": {
+   "Type": "String"
+  },
+  "referencetoamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestNestedStackPrintLabelRequestNestedStackResourceFB224DF9OutputsamplifynextnDallosandboxa64a8f19d2dataamplifyDataPrintLabelRequestPrintLabelRequestTable14B8F6D6TableArn": {
    "Type": "String"
   }
  }

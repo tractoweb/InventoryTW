@@ -1,0 +1,148 @@
+.root {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: radial-gradient(1400px 900px at 20% 15%, rgba(255, 0, 153, 0.14), transparent 55%),
+    radial-gradient(1200px 900px at 80% 70%, rgba(0, 212, 255, 0.14), transparent 55%),
+    radial-gradient(900px 700px at 55% 35%, rgba(120, 120, 255, 0.10), transparent 55%),
+    rgba(252, 252, 255, 1);
+}
+
+.root::before {
+  content: "";
+  position: absolute;
+  inset: -40vmax;
+  background:
+    radial-gradient(closest-side, rgba(255, 0, 153, 0.20), transparent 62%),
+    radial-gradient(closest-side, rgba(0, 212, 255, 0.18), transparent 62%),
+    radial-gradient(closest-side, rgba(0, 255, 163, 0.14), transparent 62%);
+  filter: blur(40px);
+  opacity: 0.55;
+  transform: translate3d(0, 0, 0);
+  animation: floatBlobs 14s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* put background behind content */
+.bg {
+  z-index: 1;
+  mix-blend-mode: multiply;
+  opacity: 0.95;
+}
+
+.center {
+  position: relative;
+  z-index: 2;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 4vw, 2.5rem);
+}
+
+/* glassy card feel, without breaking shadcn Card */
+.cardWrap {
+  width: 100%;
+  max-width: 26rem;
+  backdrop-filter: blur(10px);
+}
+
+.card {
+  position: relative;
+  border-radius: 14px;
+  border: 0;
+  background:
+    radial-gradient(600px 240px at 35% 0%, rgba(0, 0, 0, 0.06), transparent 60%),
+    radial-gradient(260px 180px at 80% 20%, rgba(0, 0, 0, 0.04), transparent 60%),
+    rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 24px 70px rgba(17, 24, 39, 0.14),
+    0 6px 18px rgba(17, 24, 39, 0.10);
+  backdrop-filter: blur(12px);
+  will-change: transform, opacity;
+}
+
+@property --border-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--border-angle),
+    rgba(255, 0, 153, 0.95),
+    rgba(121, 40, 202, 0.95),
+    rgba(0, 212, 255, 0.95),
+    rgba(0, 255, 163, 0.90),
+    rgba(255, 0, 153, 0.95)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.9;
+  filter: blur(0px);
+  animation: spinBorder 8s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 22px;
+  background: radial-gradient(closest-side, rgba(0, 212, 255, 0.20), transparent 65%),
+    radial-gradient(closest-side, rgba(255, 0, 153, 0.18), transparent 65%);
+  filter: blur(18px);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: -2;
+}
+
+
+@keyframes spinBorder {
+  0% {
+    --border-angle: 0deg;
+  }
+  100% {
+    --border-angle: 360deg;
+  }
+}
+
+@keyframes floatBlobs {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, 1%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg {
+    filter: none;
+  }
+}

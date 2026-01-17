@@ -484,6 +484,33 @@ const schema = a.schema({
     sequence: a.integer().required(),
     lastNumber: a.integer().required(),
   }).identifier(['documentTypeId', 'warehouseId', 'year']).authorization((allow) => [allow.publicApiKey()]),
+
+  // 11. IMPRESIÓN DE ETIQUETAS (SOLICITUDES PERSISTENTES)
+  PrintLabelRequest: a.model({
+    requestId: a.id().required(),
+    requestedAt: a.datetime().required(),
+    status: a.string().default('PENDING'),
+    items: a.hasMany('PrintLabelRequestItem', 'requestId'),
+  })
+    .identifier(['requestId'])
+    .secondaryIndexes((index) => [index('status').name('byStatus')])
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  PrintLabelRequestItem: a.model({
+    requestItemId: a.id().required(),
+    requestId: a.id().required(),
+    productId: a.integer().required(),
+    qty: a.integer().required(),
+    name: a.string().required(),
+    reference: a.string(),
+    measurementUnit: a.string(),
+    productCreatedAt: a.string(),
+    primaryBarcode: a.string().required(),
+    request: a.belongsTo('PrintLabelRequest', 'requestId'),
+  })
+    .identifier(['requestItemId'])
+    .secondaryIndexes((index) => [index('requestId').name('byRequestId')])
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

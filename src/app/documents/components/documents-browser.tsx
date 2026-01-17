@@ -755,6 +755,68 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 })()}
               </div>
 
+              {(() => {
+                const raw = String(details.internalnote ?? "").trim();
+                if (!raw || !(raw.startsWith('{') || raw.startsWith('['))) return null;
+                try {
+                  const parsed = JSON.parse(raw);
+                  const products = parsed?.products;
+                  const created = Array.isArray(products?.created) ? products.created : [];
+                  const existing = Array.isArray(products?.existing) ? products.existing : [];
+                  if (created.length === 0 && existing.length === 0) return null;
+
+                  return (
+                    <div className="grid gap-2 rounded-md border p-3">
+                      <div className="text-sm font-medium">Productos (en este documento)</div>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">Nuevos</div>
+                          <div className="font-medium">{created.length}</div>
+                          {created.length > 0 ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {created
+                                .slice(0, 8)
+                                .map((p: any) => {
+                                  const name = String(p?.name ?? '');
+                                  const code = p?.code ? String(p.code) : '';
+                                  const id = Number(p?.idProduct ?? 0);
+                                  return `${id}${code ? ` · ${code}` : ''}${name ? ` · ${name}` : ''}`;
+                                })
+                                .join(' | ')}
+                              {created.length > 8 ? ' …' : ''}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">Existentes (reusados)</div>
+                          <div className="font-medium">{existing.length}</div>
+                          {existing.length > 0 ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {existing
+                                .slice(0, 8)
+                                .map((p: any) => {
+                                  const name = String(p?.name ?? '');
+                                  const code = p?.code ? String(p.code) : '';
+                                  const id = Number(p?.idProduct ?? 0);
+                                  return `${id}${code ? ` · ${code}` : ''}${name ? ` · ${name}` : ''}`;
+                                })
+                                .join(' | ')}
+                              {existing.length > 8 ? ' …' : ''}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Nota: si se detecta un código existente, el sistema reutiliza ese producto para evitar duplicados.
+                      </div>
+                    </div>
+                  );
+                } catch {
+                  return null;
+                }
+              })()}
+
               {details.liquidation?.result?.totals && (
                 <Card className="border-0 bg-indigo-600 text-white">
                   <CardHeader>
@@ -762,6 +824,37 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                     <div className="text-xs text-indigo-100">Vista general de costos y ganancias</div>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-4 grid gap-2 rounded-md bg-indigo-900/20 p-3 text-xs text-indigo-100 md:grid-cols-4">
+                      <div>
+                        <div className="opacity-80">IVA (%)</div>
+                        <div className="font-semibold text-white">{Number(details.liquidation.config.ivaPercentage ?? 0).toFixed(2)}%</div>
+                      </div>
+                      <div>
+                        <div className="opacity-80">IVA incluido en costo</div>
+                        <div className="font-semibold text-white">{details.liquidation.config.ivaIncludedInCost ? 'Sí' : 'No'}</div>
+                      </div>
+                      <div>
+                        <div className="opacity-80">Descuentos</div>
+                        <div className="font-semibold text-white">{details.liquidation.config.discountsEnabled ? 'Sí' : 'No'}</div>
+                      </div>
+                      <div>
+                        <div className="opacity-80">Fletes múltiples</div>
+                        <div className="font-semibold text-white">{details.liquidation.config.useMultipleFreights ? 'Sí' : 'No'}</div>
+                      </div>
+                      {Array.isArray(details.liquidation.config.freightRates) && details.liquidation.config.freightRates.length > 0 ? (
+                        <div className="md:col-span-4">
+                          <div className="opacity-80">Fletes configurados</div>
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                            {details.liquidation.config.freightRates.map((f: any) => (
+                              <div key={String(f.id)} className="text-white">
+                                {String(f.name ?? f.id)}: <span className="font-semibold">{formatMoney(Number(f.cost ?? 0))}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-4">
                       <div>
                         <div className="text-xs text-indigo-100">Costo Total de Compra</div>
@@ -843,12 +936,15 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                       const totalSale = liqLine ? liqLine.totalSalePrice : 0;
 
                       const freightId = liqLine ? String((liqLine as any).freightId ?? '') : '';
-                      const freightName =
-                        details.liquidation?.config?.freightRates?.find((f: any) => String(f.id) === freightId)?.name ??
+                      const freightRate =
+                        details.liquidation?.config?.freightRates?.find((f: any) => String(f.id) === freightId) ??
                         (!details.liquidation?.config?.useMultipleFreights
-                          ? details.liquidation?.config?.freightRates?.[0]?.name
-                          : '') ??
-                        '';
+                          ? details.liquidation?.config?.freightRates?.[0]
+                          : null);
+
+                      const freightName = freightRate?.name ? String(freightRate.name) : '';
+                      const freightCost = freightRate?.cost !== undefined && freightRate?.cost !== null ? Number(freightRate.cost) : 0;
+                      const freightLabel = freightName ? `${freightName}${freightCost ? ` (${formatMoney(freightCost)})` : ''}` : '—';
 
                       return (
                         <TableRow key={it.id}>
@@ -858,7 +954,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                           <TableCell className="text-right">{it.quantity}</TableCell>
                           <TableCell className="text-right">{formatMoney(it.unitcost)}</TableCell>
                           <TableCell className="text-right">{formatMoney(unitFreight)}</TableCell>
-                          <TableCell>{freightName || '—'}</TableCell>
+                          <TableCell>{freightLabel}</TableCell>
                           <TableCell className="text-right">{formatMoney(unitFinalCost)}</TableCell>
                           <TableCell className="text-right">{formatMoney(unitSale)}</TableCell>
                           <TableCell className="text-right">{formatMoney(totalSale)}</TableCell>

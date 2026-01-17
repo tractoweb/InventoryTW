@@ -5,9 +5,10 @@ import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { inventoryService } from "@/services/inventory-service";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default async function LowStockReportPage() {
   await requireSession(ACCESS_LEVELS.CASHIER);
@@ -21,9 +22,9 @@ export default async function LowStockReportPage() {
             <h1 className="text-3xl font-bold tracking-tight">Bajo stock</h1>
             <p className="text-muted-foreground">Productos que requieren atención.</p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/reports">Volver</Link>
-          </Button>
+          <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
+            Volver
+          </Link>
         </div>
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -43,12 +44,12 @@ export default async function LowStockReportPage() {
           <p className="text-muted-foreground">Productos bajo el umbral configurado.</p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/reports">Volver</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/stock">Ir a Stock</Link>
-          </Button>
+          <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
+            Volver
+          </Link>
+          <Link href="/stock" className={cn(buttonVariants({}))}>
+            Ir a Stock
+          </Link>
         </div>
       </div>
 
@@ -79,9 +80,12 @@ export default async function LowStockReportPage() {
                       <TableCell className="text-right">{r.warningQuantity}</TableCell>
                       <TableCell className="hidden md:table-cell">{r.warehouseName}</TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/stock?q=${encodeURIComponent(r.productName)}`}>Ver en Stock</Link>
-                        </Button>
+                        <Link
+                          href={`/stock?q=${encodeURIComponent(r.productName)}`}
+                          className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                        >
+                          Ver en Stock
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}

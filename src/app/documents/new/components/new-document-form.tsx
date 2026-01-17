@@ -55,12 +55,11 @@ import { searchProductsAction, type ProductSearchResult } from '@/actions/search
 import { createDocumentAction } from '@/actions/create-document';
 import { finalizeDocumentAction } from '@/actions/finalize-document';
 import { createCustomerAction } from '@/actions/create-customer';
-import { createProductAction } from '@/actions/create-product';
 import { getCountries, type CountryListItem } from '@/actions/get-countries';
 import { searchCustomersAction, type CustomerSearchResult } from '@/actions/search-customers';
 import { getProductGroups, type ProductGroup } from '@/actions/get-product-groups';
-import { getTaxes, type Tax } from '@/actions/get-taxes';
 import { getCurrencies, type CurrencyListItem } from '@/actions/get-currencies';
+import { createProductsFromDocumentLinesAction } from '@/actions/create-products-from-document-lines';
 
 import {
   computeLiquidation,
@@ -71,9 +70,21 @@ import {
 
 type SelectOption = { value: number; label: string };
 
+type DraftProduct = {
+  name: string;
+  code?: string;
+  productGroupId?: number;
+  currencyId?: number;
+  measurementUnit?: string;
+  isService?: boolean;
+  isEnabled?: boolean;
+};
+
 type DraftItem = {
-  productId: number;
+  lineId: string;
+  productId: number | null;
   productLabel: string;
+  draftProduct?: DraftProduct;
   quantity: number;
   totalCost: number;
   discountPercentage: number;
@@ -93,8 +104,17 @@ function formatMoney(amount: number) {
   }).format(Number.isFinite(n) ? n : 0);
 }
 
+function newLineId() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `line-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
 export function NewDocumentForm() {
   const { toast } = useToast();
+  const submitLockRef = React.useRef(false);
 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -106,7 +126,6 @@ export function NewDocumentForm() {
   const [customers, setCustomers] = React.useState<SelectOption[]>([]);
   const [countries, setCountries] = React.useState<CountryListItem[]>([]);
   const [productGroups, setProductGroups] = React.useState<ProductGroup[]>([]);
-  const [taxes, setTaxes] = React.useState<Tax[]>([]);
   const [currencies, setCurrencies] = React.useState<CurrencyListItem[]>([]);
   const [warehouses, setWarehousesState] = React.useState<SelectOption[]>([]);
   const [documentTypes, setDocumentTypesState] = React.useState<SelectOption[]>([]);
@@ -163,21 +182,11 @@ export function NewDocumentForm() {
   const [createProductOpen, setCreateProductOpen] = React.useState(false);
   const [newProductName, setNewProductName] = React.useState('');
   const [newProductCode, setNewProductCode] = React.useState('');
-  const [newProductCost, setNewProductCost] = React.useState<number | ''>('');
-  const [newProductPrice, setNewProductPrice] = React.useState<number | ''>('');
   const [newProductGroupId, setNewProductGroupId] = React.useState<number | ''>('');
   const [newProductCurrencyId, setNewProductCurrencyId] = React.useState<number | ''>('');
   const [newProductMeasurementUnit, setNewProductMeasurementUnit] = React.useState('');
-  const [newProductPlu, setNewProductPlu] = React.useState<number | ''>('');
-  const [newProductMarkup, setNewProductMarkup] = React.useState<number | ''>('');
-  const [newProductDescription, setNewProductDescription] = React.useState('');
   const [newProductIsEnabled, setNewProductIsEnabled] = React.useState(true);
   const [newProductIsService, setNewProductIsService] = React.useState(false);
-  const [newProductIsTaxInclusivePrice, setNewProductIsTaxInclusivePrice] = React.useState(true);
-  const [newProductIsPriceChangeAllowed, setNewProductIsPriceChangeAllowed] = React.useState(false);
-  const [newProductIsUsingDefaultQuantity, setNewProductIsUsingDefaultQuantity] = React.useState(true);
-  const [newProductBarcodesText, setNewProductBarcodesText] = React.useState('');
-  const [newProductTaxIds, setNewProductTaxIds] = React.useState<number[]>([]);
 
   // Product search dialog
   const [productDialogOpen, setProductDialogOpen] = React.useState(false);
@@ -199,8 +208,8 @@ export function NewDocumentForm() {
 
   const liquidation = React.useMemo(() => {
     const lines: LiquidationLineInput[] = items.map((it, idx) => ({
-      id: `${it.productId}-${idx}`,
-      productId: it.productId,
+      id: it.lineId,
+      productId: typeof it.productId === 'number' ? it.productId : undefined,
       name: it.productLabel,
       purchaseReference: it.purchaseReference,
       warehouseReference: it.warehouseReference,
@@ -217,19 +226,17 @@ export function NewDocumentForm() {
     async function boot() {
       setLoading(true);
       try {
-        const [countriesRes, suppliersRes, wh, dt, pgRes, taxesRes, curRes] = await Promise.all([
+        const [countriesRes, suppliersRes, wh, dt, pgRes, curRes] = await Promise.all([
           getCountries(),
           searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true }),
           getWarehouses({ onlyEnabled: true }),
           getDocumentTypes(),
           getProductGroups(),
-          getTaxes(),
           getCurrencies(),
         ]);
 
         setCountries(countriesRes.data ?? []);
         setProductGroups(pgRes.data ?? []);
-        setTaxes(taxesRes.data ?? []);
         setCurrencies(curRes.data ?? []);
 
         // Default currency to COP if available.
@@ -292,6 +299,7 @@ export function NewDocumentForm() {
     setItems((prev) => [
       ...prev,
       {
+        lineId: newLineId(),
         productId: p.idProduct,
         productLabel: label,
         quantity: 1,
@@ -303,6 +311,32 @@ export function NewDocumentForm() {
         warehouseReference: '',
       },
     ]);
+    setProductDialogOpen(false);
+    setProductQuery('');
+    setProductResults([]);
+  }
+
+  function addDraftProduct(p: DraftProduct) {
+    const label = p.code ? `${p.name} (${p.code})` : p.name;
+    const marginSeed = typeof globalMargin === 'number' ? globalMargin : 30;
+    setItems((prev) => [
+      ...prev,
+      {
+        lineId: newLineId(),
+        productId: null,
+        productLabel: `${label} (nuevo)`,
+        draftProduct: p,
+        quantity: 1,
+        totalCost: 0,
+        discountPercentage: 0,
+        marginPercentage: marginSeed,
+        freightId: freightRates[0]?.id ?? '1',
+        purchaseReference: p.code ? String(p.code) : '',
+        warehouseReference: '',
+      },
+    ]);
+
+    setCreateProductOpen(false);
     setProductDialogOpen(false);
     setProductQuery('');
     setProductResults([]);
@@ -387,78 +421,146 @@ export function NewDocumentForm() {
     const name = newProductName.trim();
     if (!name) return;
     try {
-      const barcodes = newProductBarcodesText
-        .split(/\r?\n|,|;|\t/g)
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-      const res = await createProductAction({
+      addDraftProduct({
         name,
         code: newProductCode || undefined,
-        cost: typeof newProductCost === 'number' ? newProductCost : undefined,
-        price: typeof newProductPrice === 'number' ? newProductPrice : undefined,
         productGroupId: typeof newProductGroupId === 'number' ? newProductGroupId : undefined,
         currencyId: typeof newProductCurrencyId === 'number' ? newProductCurrencyId : undefined,
         measurementUnit: newProductMeasurementUnit || undefined,
-        plu: typeof newProductPlu === 'number' ? newProductPlu : undefined,
-        description: newProductDescription || undefined,
-        markup: typeof newProductMarkup === 'number' ? newProductMarkup : undefined,
-        isPriceChangeAllowed: Boolean(newProductIsPriceChangeAllowed),
-        isUsingDefaultQuantity: Boolean(newProductIsUsingDefaultQuantity),
         isEnabled: Boolean(newProductIsEnabled),
         isService: Boolean(newProductIsService),
-        isTaxInclusivePrice: Boolean(newProductIsTaxInclusivePrice),
-        barcodes: barcodes.length ? barcodes : undefined,
-        taxIds: newProductTaxIds.length ? newProductTaxIds : undefined,
-      });
-      if (!res.success || !res.idProduct) throw new Error(res.error || 'No se pudo crear el producto');
-
-      addProduct({
-        idProduct: res.idProduct,
-        name,
-        code: newProductCode || undefined,
-        cost: typeof newProductCost === 'number' ? newProductCost : 0,
-        price: typeof newProductPrice === 'number' ? newProductPrice : 0,
       });
 
-      setCreateProductOpen(false);
       setNewProductName('');
       setNewProductCode('');
-      setNewProductCost('');
-      setNewProductPrice('');
       setNewProductGroupId('');
       setNewProductMeasurementUnit('');
-      setNewProductPlu('');
-      setNewProductMarkup('');
-      setNewProductDescription('');
       setNewProductIsEnabled(true);
       setNewProductIsService(false);
-      setNewProductIsTaxInclusivePrice(true);
-      setNewProductIsPriceChangeAllowed(false);
-      setNewProductIsUsingDefaultQuantity(true);
-      setNewProductBarcodesText('');
-      setNewProductTaxIds([]);
-      toast({ title: 'Producto creado', description: `ID ${res.idProduct}` });
+      toast({ title: 'Producto agregado', description: 'Se creará al guardar/finalizar el documento.' });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el producto' });
     }
   }
 
   async function handleSave(finalize: boolean) {
-    if (!warehouseId || !documentTypeId) {
-      toast({ variant: 'destructive', title: 'Faltan datos', description: 'Selecciona Almacén y Tipo de documento.' });
-      return;
-    }
-    if (items.length === 0) {
-      toast({ variant: 'destructive', title: 'Sin items', description: 'Agrega al menos 1 item.' });
+    if (submitLockRef.current) {
+      toast({ variant: 'destructive', title: 'En proceso', description: 'Ya hay un guardado/finalización en curso.' });
       return;
     }
 
+    submitLockRef.current = true;
     setSaving(!finalize);
     setFinalizing(finalize);
 
+    const progress = toast({
+      title: finalize ? 'Finalizando…' : 'Guardando…',
+      description: 'Preparando datos…',
+    });
+
     try {
+      if (!warehouseId || !documentTypeId) {
+        throw new Error('Selecciona Almacén y Tipo de documento.');
+      }
+      if (items.length === 0) {
+        throw new Error('Agrega al menos 1 item.');
+      }
+
       const liqLines = liquidation.lines;
+
+      const productsMeta: {
+        created: Array<{ lineId: string; idProduct: number; name: string; code?: string }>;
+        existing: Array<{ lineId: string; idProduct: number; name: string; code?: string }>;
+      } = { created: [], existing: [] };
+
+      // Create any draft products right before saving/finalizing.
+      const draftToCreate = items
+        .map((it, idx) => ({ it, idx }))
+        .filter(({ it }) => typeof it.productId !== 'number' && it.draftProduct);
+
+      let resolvedItems: DraftItem[] = items;
+      if (draftToCreate.length > 0) {
+        (progress as any).update({
+          title: 'Creando productos…',
+          description: `${draftToCreate.length} producto(s) nuevo(s) en este documento…`,
+        });
+
+        const createRes = await createProductsFromDocumentLinesAction({
+          lines: draftToCreate.map(({ it, idx }) => {
+            const li = liqLines[idx];
+            const name = it.draftProduct?.name ?? it.productLabel;
+            const code = it.draftProduct?.code || it.purchaseReference || undefined;
+            return {
+              lineId: it.lineId,
+              name,
+              code,
+              productGroupId: it.draftProduct?.productGroupId,
+              currencyId: it.draftProduct?.currencyId,
+              measurementUnit: it.draftProduct?.measurementUnit,
+              isEnabled: it.draftProduct?.isEnabled ?? true,
+              isService: it.draftProduct?.isService ?? false,
+              isTaxInclusivePrice: true,
+              cost: li?.unitFinalCost ?? 0,
+              price: li?.unitSalePrice ?? 0,
+              markup: Number(it.marginPercentage) || 0,
+            };
+          }),
+        });
+
+        if (!createRes.success || !createRes.created) {
+          throw new Error(createRes.error || 'No se pudieron crear productos pendientes');
+        }
+
+        const idByLineId = new Map(createRes.created.map((x: any) => [x.lineId, Number(x.idProduct)] as const));
+        const createdByLineId = new Map(createRes.created.map((x: any) => [x.lineId, Boolean(x.created)] as const));
+
+        resolvedItems = items.map((it) => {
+          if (typeof it.productId === 'number') return it;
+          const idProduct = idByLineId.get(it.lineId);
+          if (!idProduct) return it;
+
+          const name = it.draftProduct?.name ?? it.productLabel;
+          const code = it.draftProduct?.code || it.purchaseReference || undefined;
+          const label = code ? `${name} (${code})` : name;
+          const created = createdByLineId.get(it.lineId) ?? true;
+
+          (created ? productsMeta.created : productsMeta.existing).push({
+            lineId: it.lineId,
+            idProduct,
+            name,
+            ...(code ? { code } : {}),
+          });
+
+          return {
+            ...it,
+            productId: idProduct,
+            productLabel: label,
+            draftProduct: undefined,
+          };
+        });
+      }
+
+      if (resolvedItems.some((it) => typeof it.productId !== 'number' || it.productId <= 0)) {
+        throw new Error('Hay productos pendientes sin ID. Revisa los ítems antes de guardar.');
+      }
+
+      // Add already-existing selected products to metadata (so the document can report new vs existing lines).
+      {
+        const seenLineIds = new Set<string>([
+          ...productsMeta.created.map((p) => p.lineId),
+          ...productsMeta.existing.map((p) => p.lineId),
+        ]);
+
+        for (const it of resolvedItems) {
+          if (typeof it.productId !== 'number' || it.productId <= 0) continue;
+          if (seenLineIds.has(it.lineId)) continue;
+          productsMeta.existing.push({
+            lineId: it.lineId,
+            idProduct: Number(it.productId),
+            name: String(it.productLabel ?? `#${it.productId}`),
+          });
+        }
+      }
 
       const liquidationSnapshot = {
         version: 1,
@@ -469,9 +571,9 @@ export function NewDocumentForm() {
           useMultipleFreights,
           freightRates,
         },
-        lineInputs: items.map((it, idx) => ({
+        lineInputs: resolvedItems.map((it, idx) => ({
           id: String(idx + 1),
-          productId: it.productId,
+          productId: it.productId ?? undefined,
           name: it.productLabel,
           purchaseReference: it.purchaseReference,
           warehouseReference: it.warehouseReference,
@@ -484,6 +586,11 @@ export function NewDocumentForm() {
         totals: liquidation.totals,
       };
 
+      (progress as any).update({
+        title: 'Creando documento…',
+        description: 'Subiendo encabezado e ítems…',
+      });
+
       const created = await createDocumentAction({
         userId: 1,
         customerId: customerId ? Number(customerId) : undefined,
@@ -494,9 +601,10 @@ export function NewDocumentForm() {
         note: note || undefined,
         internalNote: JSON.stringify({
           liquidation: liquidationSnapshot,
+          products: productsMeta,
         }),
-        items: items.map((it, idx) => ({
-          productId: it.productId,
+        items: resolvedItems.map((it, idx) => ({
+          productId: Number(it.productId ?? 0),
           quantity: it.quantity,
           price: liqLines[idx]?.unitFinalCost ?? 0,
           productCost: liqLines[idx]?.unitFinalCost ?? 0,
@@ -507,25 +615,35 @@ export function NewDocumentForm() {
         throw new Error(created.error || 'No se pudo crear el documento');
       }
 
+      (progress as any).update({
+        title: 'Documento creado',
+        description: created.documentNumber ? `Número: ${created.documentNumber}` : 'Documento creado. Continuando…',
+      });
+
       if (finalize) {
+        (progress as any).update({
+          title: 'Finalizando…',
+          description: 'Impactando Stock y generando Kardex…',
+        });
         const fin = await finalizeDocumentAction({ documentId: created.documentId, userId: 1 });
         if (!fin.success) {
           throw new Error(fin.error || 'No se pudo finalizar el documento');
         }
       }
 
-      toast({
+      (progress as any).update({
         title: finalize ? 'Documento finalizado' : 'Documento guardado',
         description: created.documentNumber ? `Número: ${created.documentNumber}` : 'OK',
       });
 
-      // Redirect back to documents list
       window.location.href = '/documents';
     } catch (e: any) {
+      (progress as any).dismiss?.();
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'Error inesperado' });
     } finally {
       setSaving(false);
       setFinalizing(false);
+      submitLockRef.current = false;
     }
   }
 
@@ -742,8 +860,15 @@ export function NewDocumentForm() {
                   {items.map((it, idx) => {
                     const li = liquidation.lines[idx];
                     return (
-                      <TableRow key={`${it.productId}-${idx}`}>
-                        <TableCell className="font-medium">{it.productLabel}</TableCell>
+                      <TableRow key={it.lineId}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{it.productLabel}</span>
+                            {typeof it.productId !== 'number' ? (
+                              <span className="text-xs text-muted-foreground">Pendiente: se creará al guardar/finalizar</span>
+                            ) : null}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Input value={it.purchaseReference} onChange={(e) => updateItem(idx, { purchaseReference: e.target.value })} />
                         </TableCell>
@@ -942,6 +1067,7 @@ export function NewDocumentForm() {
                   variant="outline"
                   onClick={() => {
                     setNewProductName(productQuery.trim());
+                    setNewProductCode('');
                     setCreateProductOpen(true);
                   }}
                 >
@@ -1141,7 +1267,9 @@ export function NewDocumentForm() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Crear producto</DialogTitle>
-            <DialogDescription>Agrega un producto rápido y selecciónalo.</DialogDescription>
+            <DialogDescription>
+              Aquí solo se capturan los datos mínimos. Costos, IVA, fletes, descuentos y margen se toman de la línea del documento al guardar/finalizar.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 max-h-[70vh] overflow-auto pr-1">
             <div className="grid gap-2">
@@ -1196,112 +1324,18 @@ export function NewDocumentForm() {
                   placeholder="Ej: UND"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label>PLU</Label>
-                <Input
-                  type="number"
-                  value={newProductPlu}
-                  onChange={(e) => setNewProductPlu(e.target.value === '' ? '' : Number(e.target.value))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Markup (%)</Label>
-                <Input
-                  type="number"
-                  value={newProductMarkup}
-                  onChange={(e) => setNewProductMarkup(e.target.value === '' ? '' : Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label>Costo</Label>
-                <Input type="number" value={newProductCost} onChange={(e) => setNewProductCost(e.target.value === '' ? '' : Number(e.target.value))} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Precio venta</Label>
-                <Input type="number" value={newProductPrice} onChange={(e) => setNewProductPrice(e.target.value === '' ? '' : Number(e.target.value))} />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Descripción</Label>
-              <Textarea value={newProductDescription} onChange={(e) => setNewProductDescription(e.target.value)} placeholder="(Opcional)" />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Códigos de barras (uno por línea o separados por coma)</Label>
-              <Textarea
-                value={newProductBarcodesText}
-                onChange={(e) => setNewProductBarcodesText(e.target.value)}
-                placeholder="7701234567890\n7700000000000"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Impuestos</Label>
-              {taxes.length === 0 ? (
-                <div className="text-xs text-muted-foreground">No hay impuestos cargados.</div>
-              ) : (
-                <div className="max-h-32 overflow-auto rounded-md border p-2">
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {taxes.map((t) => {
-                      const checked = newProductTaxIds.includes(t.id);
-                      return (
-                        <label key={t.id} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) => {
-                              const on = Boolean(v);
-                              setNewProductTaxIds((prev) =>
-                                on ? Array.from(new Set([...prev, t.id])) : prev.filter((x) => x !== t.id)
-                              );
-                            }}
-                          />
-                          <span>
-                            {t.name} ({Number(t.rate ?? 0)}%)
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
+              <div className="md:col-span-2 grid gap-2">
+                <Label>Opciones</Label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={newProductIsEnabled} onCheckedChange={(v) => setNewProductIsEnabled(Boolean(v))} />
+                    Activo
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={newProductIsService} onCheckedChange={(v) => setNewProductIsService(Boolean(v))} />
+                    Es servicio
+                  </label>
                 </div>
-              )}
-            </div>
-
-            <div className="grid gap-2 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={newProductIsEnabled} onCheckedChange={(v) => setNewProductIsEnabled(Boolean(v))} />
-                  Activo
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={newProductIsService} onCheckedChange={(v) => setNewProductIsService(Boolean(v))} />
-                  Es servicio
-                </label>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={newProductIsTaxInclusivePrice}
-                    onCheckedChange={(v) => setNewProductIsTaxInclusivePrice(Boolean(v))}
-                  />
-                  Precio incluye impuestos
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={newProductIsPriceChangeAllowed}
-                    onCheckedChange={(v) => setNewProductIsPriceChangeAllowed(Boolean(v))}
-                  />
-                  Permitir cambiar precio
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={newProductIsUsingDefaultQuantity}
-                    onCheckedChange={(v) => setNewProductIsUsingDefaultQuantity(Boolean(v))}
-                  />
-                  Usar cantidad por defecto
-                </label>
               </div>
             </div>
           </div>
@@ -1310,7 +1344,7 @@ export function NewDocumentForm() {
               Cancelar
             </Button>
             <Button type="button" onClick={handleCreateProduct}>
-              Crear y agregar
+              Agregar al documento
             </Button>
           </DialogFooter>
         </DialogContent>

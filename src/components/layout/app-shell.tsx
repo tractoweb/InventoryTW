@@ -1,7 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SessionGuard } from "@/components/auth/session-guard";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
+import { getCurrentSessionAction } from "@/actions/auth/get-current-session";
 
 import {
   SidebarProvider,
@@ -15,15 +18,55 @@ import { AnimatedPage } from "@/components/ui-preferences/animated-page";
 import { AnimeTopLoader } from "@/components/ui-preferences/top-loader";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
 
+  const [sessionChecked, setSessionChecked] = React.useState(false);
+  const [sessionOk, setSessionOk] = React.useState(false);
+
   if (pathname === "/login") {
-    return <div className="min-h-svh p-6">{children}</div>;
+    return <>{children}</>
+  }
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      // Si por alguna razón entramos acá sin sesión válida (cookie stale),
+      // no mostramos contenido: mostramos loader y redirigimos.
+      setSessionChecked(false);
+      const res = await getCurrentSessionAction();
+      if (cancelled) return;
+
+      if (!res?.data) {
+        setSessionOk(false);
+        setSessionChecked(true);
+        const next = encodeURIComponent(pathname || "/");
+        router.replace(`/login?next=${next}`);
+        router.refresh();
+        return;
+      }
+
+      setSessionOk(true);
+      setSessionChecked(true);
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router]);
+
+  if (!sessionChecked || !sessionOk) {
+    return (
+      <div className="min-h-svh w-full grid place-items-center p-6">
+        <div className="text-sm text-muted-foreground">Cargando…</div>
+      </div>
+    );
   }
 
   return (
     <SidebarProvider>
-      <SessionGuard />
       <UiPreferencesProvider>
         <AnimeTopLoader />
         <AppSidebar />

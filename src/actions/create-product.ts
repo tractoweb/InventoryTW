@@ -40,28 +40,58 @@ export async function createProductAction(raw: CreateProductInput): Promise<{ su
     const parsed = CreateProductSchema.safeParse(raw);
     if (!parsed.success) return { success: false, error: 'Datos inválidos' };
 
-    // Seed counter from existing data to avoid collisions after imports.
-    const existingProducts = await listAllPages((args) => amplifyClient.models.Product.list(args));
-    if ('error' in existingProducts) {
-      return { success: false, error: existingProducts.error };
+    let seededCounter = false;
+    let collisionCount = 0;
+
+    async function seedCounterFromExisting() {
+      const existingProducts = await listAllPages((args) => amplifyClient.models.Product.list(args));
+      if ('error' in existingProducts) {
+        throw new Error(existingProducts.error);
+      }
+      const maxExistingId = existingProducts.data.reduce((max, p: any) => {
+        const id = Number(p?.idProduct ?? 0);
+        return Number.isFinite(id) ? Math.max(max, id) : max;
+      }, 0);
+      await ensureCounterAtLeast('productId', maxExistingId);
+      seededCounter = true;
     }
-    const maxExistingId = existingProducts.data.reduce((max, p: any) => {
-      const id = Number(p?.idProduct ?? 0);
-      return Number.isFinite(id) ? Math.max(max, id) : max;
-    }, 0);
-    await ensureCounterAtLeast('productId', maxExistingId);
+
+    // Seed counter ONLY if it doesn't exist yet.
+    const counterRes = await amplifyClient.models.Counter.get({ name: 'productId' });
+    if (!counterRes.data) {
+      await seedCounterFromExisting();
+    }
 
     const input = parsed.data;
+
+    const code = input.code ? String(input.code).trim() : '';
+    if (code) {
+      const existing: any = await amplifyClient.models.Product.list({
+        filter: { code: { eq: code } },
+        limit: 1,
+      } as any);
+      const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+      if (found?.idProduct !== undefined && found?.idProduct !== null) {
+        return { success: false, error: `Ya existe un producto con el código: ${code}` };
+      }
+    }
 
     for (let attempt = 0; attempt < 50; attempt++) {
       const [idProduct] = await allocateCounterRange('productId', 1);
       const existing = await amplifyClient.models.Product.get({ idProduct });
-      if ((existing as any)?.data) continue;
+      if ((existing as any)?.data) {
+        collisionCount++;
+        // If we keep colliding, the counter is likely behind (imports). Reseed once.
+        if (!seededCounter && collisionCount >= 5) {
+          await seedCounterFromExisting();
+        }
+        continue;
+      }
 
       const createRes: any = await createProduct({
         idProduct,
         name: input.name,
-        code: input.code,
+        code: code || undefined,
         cost: input.cost ?? 0,
         price: input.price ?? 0,
         productGroupId: input.productGroupId,

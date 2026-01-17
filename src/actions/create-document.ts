@@ -96,6 +96,21 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
 
     const input = parsed.data;
 
+    const referenceDocumentNumber = input.referenceDocumentNumber ? String(input.referenceDocumentNumber).trim() : '';
+    if (referenceDocumentNumber) {
+      const existing: any = await amplifyClient.models.Document.list({
+        filter: { referenceDocumentNumber: { eq: referenceDocumentNumber } },
+        limit: 1,
+      } as any);
+      const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+      if (found) {
+        return {
+          success: false,
+          error: `Ya existe un documento con la referencia: ${referenceDocumentNumber}`,
+        };
+      }
+    }
+
     // Allocate IDs
     const documentId = await allocateFreeDocumentId();
     const itemIds = await allocateFreeDocumentItemIds(input.items.length);
@@ -110,7 +125,7 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
       documentTypeId: input.documentTypeId,
       warehouseId: input.warehouseId,
       date,
-      referenceDocumentNumber: input.referenceDocumentNumber,
+      referenceDocumentNumber: referenceDocumentNumber || undefined,
       note: input.note,
       internalNote: input.internalNote,
       items: input.items.map((it, idx) => ({
