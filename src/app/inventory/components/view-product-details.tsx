@@ -50,6 +50,16 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
       return new Intl.NumberFormat("es-CO", { style: "currency", currency: currencyCode || 'COP', minimumFractionDigits: 0 }).format(amount);
   }
 
+    const fmtDocDate = (raw: any) => {
+        const s = raw ? String(raw) : '';
+        if (!s) return 'N/A';
+        try {
+            return format(new Date(s), "d MMM, yyyy HH:mm:ss", { locale: es });
+        } catch {
+            return s;
+        }
+    };
+
   const renderDetail = (label: string, value: any) => {
     const displayValue = value === null || value === undefined || value === '' ? 'N/A' : String(value);
     return (
@@ -141,6 +151,18 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("Costo", formatCurrency(details.cost, details.currencycode))}
                     {renderDetail("Margen (Markup)", `${details.markup}%`)}
                     {renderDetail("Último Precio Compra", formatCurrency(details.lastpurchaseprice, details.currencycode))}
+                                        {details.pricingSummary?.latest ? (
+                                            <>
+                                                {renderDetail(
+                                                    "Último costo final (por documento)",
+                                                    formatCurrency(details.pricingSummary.latest.unitFinalCost, details.currencycode)
+                                                )}
+                                                {renderDetail(
+                                                    "Último precio sugerido (por documento)",
+                                                    formatCurrency(details.pricingSummary.latest.unitSalePrice, details.currencycode)
+                                                )}
+                                            </>
+                                        ) : null}
                     {renderDetail("Moneda", `${details.currencyname || 'N/A'} (${details.currencycode || 'N/A'})`)}
                     {renderDetail(
                       "Impuestos Aplicados",
@@ -215,7 +237,21 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                                             Ver documento
                                         </Link>
                                     </span>
-                                    {d.stockDate ? ` — ${d.stockDate}` : d.createdAt ? ` — ${d.createdAt}` : ""}
+                                                                        <span className="text-muted-foreground">
+                                                                            {d.stockDate || d.createdAt ? ` — ${fmtDocDate(d.stockDate ?? d.createdAt)}` : ""}
+                                                                            {d.totalFinalCost !== null && d.totalFinalCost !== undefined ? (
+                                                                                <>
+                                                                                    <span className="mx-2">·</span>
+                                                                                    <span>Costo factura: {formatCurrency(Number(d.totalFinalCost), details.currencycode)}</span>
+                                                                                </>
+                                                                            ) : null}
+                                                                            {d.totalSalePrice !== null && d.totalSalePrice !== undefined ? (
+                                                                                <>
+                                                                                    <span className="mx-2">·</span>
+                                                                                    <span>Venta total: {formatCurrency(Number(d.totalSalePrice), details.currencycode)}</span>
+                                                                                </>
+                                                                            ) : null}
+                                                                        </span>
                                 </li>
                             ))}
                         </ul>
@@ -226,6 +262,45 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                         Nota: se muestran los documentos más recientes (máx. 15).
                     </p>
                 </div>
+
+                                <div className="space-y-3 md:col-span-2">
+                                    <h3 className="font-semibold text-lg border-b pb-2">Historial de documentación por proyecto (referencia)</h3>
+                                    {Array.isArray(details.projectHistory) && details.projectHistory.length > 0 ? (
+                                        <div className="w-full overflow-auto rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/50">
+                                                    <tr>
+                                                        <th className="px-3 py-2 text-left">Proyecto (Referencia)</th>
+                                                        <th className="px-3 py-2 text-right">Docs</th>
+                                                        <th className="px-3 py-2 text-right">Costo total factura</th>
+                                                        <th className="px-3 py-2 text-right">Precio de venta total</th>
+                                                        <th className="px-3 py-2 text-left">Último</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {details.projectHistory.slice(0, 25).map((p: any) => (
+                                                        <tr key={String(p.referenceDocumentNumber)} className="border-t">
+                                                            <td className="px-3 py-2 font-medium">{String(p.referenceDocumentNumber)}</td>
+                                                            <td className="px-3 py-2 text-right">{Number(p.documentsCount ?? 0) || 0}</td>
+                                                            <td className="px-3 py-2 text-right">
+                                                                {formatCurrency(Number(p.totalFinalCost ?? 0) || 0, details.currencycode)}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right">
+                                                                {formatCurrency(Number(p.totalSalePrice ?? 0) || 0, details.currencycode)}
+                                                            </td>
+                                                            <td className="px-3 py-2">{p.latestDate ? fmtDocDate(p.latestDate) : 'N/A'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            Sin datos por proyecto. (Se calcula desde snapshots de liquidación guardados en documentos con referencia.)
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">Nota: se agrupa por “Referencia” del documento (proyecto).</p>
+                                </div>
 
                                 <div className="space-y-3 md:col-span-2">
                                         <h3 className="font-semibold text-lg border-b pb-2">Historial de liquidación (por documento)</h3>
@@ -330,8 +405,8 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                                                             <th className="px-3 py-2 text-left">Documento</th>
                                                             <th className="px-3 py-2 text-left">Fecha</th>
                                                             <th className="px-3 py-2 text-right">Cant.</th>
-                                                            <th className="px-3 py-2 text-right">Costo (guardado)</th>
-                                                            <th className="px-3 py-2 text-right">Precio (guardado)</th>
+                                                            <th className="px-3 py-2 text-right">Costo (documento)</th>
+                                                            <th className="px-3 py-2 text-right">Precio (documento)</th>
                                                             <th className="px-3 py-2 text-right">Total</th>
                                                         </tr>
                                                     </thead>

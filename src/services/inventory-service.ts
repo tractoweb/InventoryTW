@@ -129,6 +129,15 @@ export async function getProductDetails(productId: string): Promise<{
     warehouseId?: number | null;
     documentTypeId?: number | null;
     documentCategoryId?: number | null;
+    totalFinalCost?: number | null;
+    totalSalePrice?: number | null;
+  }>;
+  projectHistory?: Array<{
+    referenceDocumentNumber: string;
+    documentsCount: number;
+    totalFinalCost: number;
+    totalSalePrice: number;
+    latestDate?: string | null;
   }>;
   pricingHistory?: Array<{
     documentId: number;
@@ -331,6 +340,7 @@ export async function getProductDetails(productId: string): Promise<{
       .sort((a: any, b: any) => String(b?.date ?? b?.createdAt ?? '').localeCompare(String(a?.date ?? a?.createdAt ?? '')));
 
     // Build a per-document pricing/freight/IVA history from internal liquidation snapshots.
+    const liquidationTotalsByDocumentId = new Map<number, { totalFinalCost: number; totalSalePrice: number }>();
     const pricingHistory: Array<{
       documentId: number;
       documentNumber?: string | null;
@@ -392,6 +402,12 @@ export async function getProductDetails(productId: string): Promise<{
       }));
 
       const computed = computeLiquidation(cfg, lineInputs);
+
+      liquidationTotalsByDocumentId.set(Number(doc.documentId), {
+        totalFinalCost: Number(computed.totals?.totalFinalCost ?? 0) || 0,
+        totalSalePrice: Number(computed.totals?.totalSalePrice ?? 0) || 0,
+      });
+
       for (const out of computed.lines) {
         if (Number(out.productId ?? 0) !== Number(productId)) continue;
         const freightRate = cfg.freightRates.find((r) => r.id === String(out.freightId)) ?? null;
@@ -423,6 +439,57 @@ export async function getProductDetails(productId: string): Promise<{
       latestPricing && productPlain.price !== null && productPlain.price !== undefined
         ? Math.abs(Number(productPlain.price) - Number(latestPricing.unitSalePrice)) < 0.5
         : undefined;
+
+    // Attach doc totals to relatedDocuments (best-effort; only when snapshot exists)
+    const relatedDocumentsWithTotals = relatedDocuments.map((d) => {
+      const totals = liquidationTotalsByDocumentId.get(Number(d.documentId));
+      return {
+        ...d,
+        totalFinalCost: totals ? totals.totalFinalCost : null,
+        totalSalePrice: totals ? totals.totalSalePrice : null,
+      };
+    });
+
+    // Build project-level aggregation ("proyecto" ~= referenceDocumentNumber)
+    const projectAgg = new Map<
+      string,
+      { documentsCount: number; totalFinalCost: number; totalSalePrice: number; latestDate?: string | null }
+    >();
+    for (const d of relatedDocumentsWithTotals) {
+      const ref = String(d.referenceDocumentNumber ?? '').trim();
+      if (!ref) continue;
+
+      const totals = liquidationTotalsByDocumentId.get(Number(d.documentId));
+      if (!totals) continue; // only aggregate when liquidation snapshot exists
+
+      const prev = projectAgg.get(ref) ?? {
+        documentsCount: 0,
+        totalFinalCost: 0,
+        totalSalePrice: 0,
+        latestDate: null,
+      };
+
+      const date = String(d.stockDate ?? d.createdAt ?? '') || null;
+      const latest = prev.latestDate ? String(prev.latestDate) : '';
+      const nextLatestDate = !latest || (date && date.localeCompare(latest) > 0) ? date : prev.latestDate;
+
+      projectAgg.set(ref, {
+        documentsCount: prev.documentsCount + 1,
+        totalFinalCost: prev.totalFinalCost + (Number(totals.totalFinalCost) || 0),
+        totalSalePrice: prev.totalSalePrice + (Number(totals.totalSalePrice) || 0),
+        latestDate: nextLatestDate,
+      });
+    }
+
+    const projectHistory = Array.from(projectAgg.entries())
+      .map(([referenceDocumentNumber, v]) => ({
+        referenceDocumentNumber,
+        documentsCount: v.documentsCount,
+        totalFinalCost: v.totalFinalCost,
+        totalSalePrice: v.totalSalePrice,
+        latestDate: v.latestDate ?? null,
+      }))
+      .sort((a, b) => String(b.latestDate ?? '').localeCompare(String(a.latestDate ?? '')));
 
     const taxIds = Array.from(
       new Set(productTaxes.map((pt: any) => Number(pt?.taxId)).filter((id: any) => Number.isFinite(id)))
@@ -517,7 +584,8 @@ export async function getProductDetails(productId: string): Promise<{
       stocks,
       stockControls,
       recentDocumentItems: recentDocumentItemsEnriched,
-      relatedDocuments,
+      relatedDocuments: relatedDocumentsWithTotals,
+      projectHistory,
       pricingHistory,
       pricingSummary: {
         latest: latestPricing
