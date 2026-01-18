@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
+import { formatDateTimeInBogota } from "@/lib/datetime";
+
 import type { KardexEntryRow } from "@/actions/get-kardex-entries";
 
 function fmtNumber(value: number | null | undefined) {
@@ -87,7 +89,7 @@ export function KardexEntryDetailsSheet(props: {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-sm text-muted-foreground">Fecha</div>
-                      <div className="text-sm">{entry.date ? new Date(entry.date).toLocaleString("es-CO") : ""}</div>
+                      <div className="text-sm">{entry.date ? formatDateTimeInBogota(entry.date) : ""}</div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Tipo</div>

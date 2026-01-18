@@ -29,6 +29,8 @@ import { Info, RefreshCw } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 
+import { formatDateTimeInBogota, ymdToBogotaEndOfDayUtc, ymdToBogotaMidnightUtc } from '@/lib/datetime';
+
 import { getWarehouses } from '@/actions/get-warehouses';
 import { searchProductsAction, type ProductSearchResult } from '@/actions/search-products';
 import { getKardexEntriesAction, type KardexEntryRow } from '@/actions/get-kardex-entries';
@@ -65,6 +67,8 @@ export default function KardexPage() {
 
   const [refreshNonce, setRefreshNonce] = React.useState(0);
 
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = React.useState(true);
+
   const [warehouseOptions, setWarehouseOptions] = React.useState<WarehouseOption[]>([
     { value: 'all', label: 'Todas' },
   ]);
@@ -93,6 +97,11 @@ export default function KardexPage() {
   const [entries, setEntries] = React.useState<KardexEntryRow[]>([]);
   const [nextToken, setNextToken] = React.useState<string | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
+
+  const entriesRef = React.useRef<KardexEntryRow[]>([]);
+  React.useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
 
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailsEntry, setDetailsEntry] = React.useState<KardexEntryRow | null>(null);
@@ -207,19 +216,42 @@ export default function KardexPage() {
     });
   }, [selectedProduct?.idProduct, warehouseId, type, dateFrom, dateTo, refreshNonce]);
 
+  const liveQueryParamsRef = React.useRef({
+    productId: undefined as number | undefined,
+    warehouseId: 'all' as string,
+    type: 'all' as 'all' | 'ENTRADA' | 'SALIDA' | 'AJUSTE',
+    dateFrom: '' as string,
+    dateTo: '' as string,
+  });
+
+  React.useEffect(() => {
+    liveQueryParamsRef.current = {
+      productId: selectedProduct?.idProduct,
+      warehouseId,
+      type,
+      dateFrom,
+      dateTo,
+    };
+  }, [selectedProduct?.idProduct, warehouseId, type, dateFrom, dateTo]);
+
   function toIsoStartOfDay(dateOnly: string): string | undefined {
     const d = String(dateOnly ?? '').trim();
     if (!d) return undefined;
-    // Keep local day boundaries stable.
-    const dt = new Date(`${d}T00:00:00.000`);
-    return Number.isFinite(dt.getTime()) ? dt.toISOString() : undefined;
+    try {
+      return ymdToBogotaMidnightUtc(d).toISOString();
+    } catch {
+      return undefined;
+    }
   }
 
   function toIsoEndOfDay(dateOnly: string): string | undefined {
     const d = String(dateOnly ?? '').trim();
     if (!d) return undefined;
-    const dt = new Date(`${d}T23:59:59.999`);
-    return Number.isFinite(dt.getTime()) ? dt.toISOString() : undefined;
+    try {
+      return ymdToBogotaEndOfDayUtc(d).toISOString();
+    } catch {
+      return undefined;
+    }
   }
 
   React.useEffect(() => {
@@ -252,6 +284,72 @@ export default function KardexPage() {
       cancelled = true;
     };
   }, [filtersKey, toast]);
+
+  React.useEffect(() => {
+    if (!autoRefreshEnabled) return;
+
+    const intervalMs = 8000;
+    let cancelled = false;
+    let running = false;
+
+    async function refreshLatest() {
+      if (cancelled) return;
+      if (running) return;
+      if (document.visibilityState !== 'visible') return;
+      if (loading || loadingMore) return;
+
+      const currentEntries = entriesRef.current ?? [];
+      const currentNewestId = currentEntries.length > 0 ? Math.max(...currentEntries.map((e) => Number(e.kardexId) || 0)) : 0;
+
+      const p = liveQueryParamsRef.current;
+
+      running = true;
+      try {
+        const res = await getKardexEntriesAction({
+          productId: p.productId,
+          warehouseId: p.warehouseId === 'all' ? undefined : Number(p.warehouseId),
+          type: p.type === 'all' ? undefined : p.type,
+          dateFrom: toIsoStartOfDay(p.dateFrom),
+          dateTo: toIsoEndOfDay(p.dateTo),
+          limit: 80,
+          nextToken: undefined,
+        });
+
+        if (cancelled) return;
+        if (res.error) return;
+
+        const incoming = res.data ?? [];
+        const hasNew = incoming.some((e) => (Number(e.kardexId) || 0) > currentNewestId);
+        if (!hasNew && currentEntries.length > 0) return;
+
+        setEntries((prev) => {
+          const byId = new Map<number, KardexEntryRow>();
+          for (const e of prev ?? []) byId.set(e.kardexId, e);
+          for (const e of incoming) byId.set(e.kardexId, e);
+
+          return Array.from(byId.values())
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 750);
+        });
+      } finally {
+        running = false;
+      }
+    }
+
+    const id = window.setInterval(() => {
+      refreshLatest();
+    }, intervalMs);
+
+    // Also refresh shortly after entering (gives the feeling of being "live").
+    window.setTimeout(() => {
+      refreshLatest();
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [autoRefreshEnabled, loading, loadingMore]);
 
   async function loadMore() {
     if (loading || loadingMore) return;
@@ -300,6 +398,15 @@ export default function KardexPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={autoRefreshEnabled ? "default" : "outline"}
+            disabled={loading}
+            onClick={() => setAutoRefreshEnabled((v) => !v)}
+            title={autoRefreshEnabled ? "Auto-actualización activada" : "Auto-actualización desactivada"}
+          >
+            {autoRefreshEnabled ? "En vivo" : "Pausado"}
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -623,7 +730,7 @@ export default function KardexPage() {
 
                       return (
                         <TableRow key={e.kardexId}>
-                          <TableCell className="whitespace-nowrap">{e.date ? new Date(e.date).toLocaleString('es-CO') : ''}</TableCell>
+                          <TableCell className="whitespace-nowrap">{e.date ? formatDateTimeInBogota(e.date) : ''}</TableCell>
                           <TableCell><TypeBadge type={e.type} /></TableCell>
                           <TableCell className="max-w-[320px] truncate" title={productLabel}>
                             {productLabel}

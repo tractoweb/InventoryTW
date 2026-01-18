@@ -2,6 +2,7 @@
 
 import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
+import { ymdToBogotaMidnightUtc } from "@/lib/datetime";
 import { cached } from "@/lib/server-cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
@@ -554,7 +555,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
 
         let daysOverdue = 0;
         if (dueDate) {
-          const due = new Date(`${dueDate}T00:00:00Z`);
+          const due = ymdToBogotaMidnightUtc(dueDate);
           const diffMs = now.getTime() - due.getTime();
           daysOverdue = diffMs > 0 ? Math.floor(diffMs / 86400000) : 0;
         }

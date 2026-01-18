@@ -32,6 +32,7 @@ import { generate3UpLabelsRow } from "@/utils/zplGenerator";
 import { compute3UpStickerLayout } from "@/utils/labelLayout";
 import type { LabelData } from "@/types/label.types";
 import { sendZplWithRetry } from "@/lib/browserprint-client";
+import { formatDateTimeInBogota } from "@/lib/datetime";
 import { BarcodeSvg } from "@/components/print-labels/barcode-svg";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import {
@@ -1875,7 +1876,7 @@ export default function ProductsBrowser() {
                           <div className="font-medium truncate">Solicitud #{idx + 1}</div>
 
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
-                            {when.toLocaleString()} · {itemsCount} productos · {stickers} stickers
+                            {formatDateTimeInBogota(when, { second: undefined })} · {itemsCount} productos · {stickers} stickers
                           </div>
                         </div>
 

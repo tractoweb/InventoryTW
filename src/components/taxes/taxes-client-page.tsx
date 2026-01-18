@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,12 +41,23 @@ function formatRate(value: number) {
 export default function TaxesClientPage() {
   const { toast } = useToast();
 
+  const searchParams = useSearchParams();
+  const didInitFromQuery = React.useRef(false);
+
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [rows, setRows] = React.useState<TaxAdminRow[]>([]);
 
   const [q, setQ] = React.useState("");
   const dq = useDebounce(q, 250);
+
+  React.useEffect(() => {
+    if (didInitFromQuery.current) return;
+    const qp = searchParams?.get("q");
+    if (qp && String(qp).trim()) setQ(String(qp));
+    didInitFromQuery.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 import { getAnime } from "@/components/ui-preferences/anime";
 
@@ -17,6 +18,7 @@ import { RingParticlesBackground } from "./components/ring-particles-background"
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setTheme } = useTheme();
   const [next, setNext] = React.useState("/");
 
   const cardRef = React.useRef<HTMLDivElement | null>(null);
@@ -31,6 +33,32 @@ export default function LoginPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [exiting, setExiting] = React.useState(false);
   const [navigating, setNavigating] = React.useState(false);
+
+  React.useEffect(() => {
+    // Login must always render with a safe default UI (no user session).
+    // Reset theme + UI customization that may have been applied previously.
+    try {
+      setTheme("light");
+    } catch {
+      // ignore
+    }
+
+    try {
+      const root = document.documentElement;
+      delete root.dataset.uiAnimejs;
+      delete root.dataset.uiAnimationPreset;
+
+      root.style.fontSize = "";
+      root.style.removeProperty("--radius");
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--ring");
+      root.style.removeProperty("--chart-1");
+      root.style.removeProperty("--sidebar-primary");
+      root.style.removeProperty("--sidebar-ring");
+    } catch {
+      // ignore
+    }
+  }, [setTheme]);
 
   React.useEffect(() => {
     try {

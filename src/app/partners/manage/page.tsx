@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,8 +66,19 @@ function boolLabel(v: any) {
 export default function PartnersManagePage() {
   const { toast } = useToast();
 
+  const searchParams = useSearchParams();
+  const didInitFromQuery = React.useRef(false);
+
   const [q, setQ] = React.useState("");
   const dq = useDebounce(q, 250);
+
+  React.useEffect(() => {
+    if (didInitFromQuery.current) return;
+    const qp = searchParams?.get("q");
+    if (qp && String(qp).trim()) setQ(String(qp));
+    didInitFromQuery.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const [onlyEnabled, setOnlyEnabled] = React.useState(false);
   const [onlySuppliers, setOnlySuppliers] = React.useState(false);

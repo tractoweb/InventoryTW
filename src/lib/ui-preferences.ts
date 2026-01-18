@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const UserUiPreferencesSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).default("light"),
   enableAnimeJs: z.boolean().default(false),
   animationPreset: z.enum(["standard", "show"]).default("standard"),
   primaryColorHex: z
@@ -15,6 +16,7 @@ export const UserUiPreferencesSchema = z.object({
 export type UserUiPreferences = z.infer<typeof UserUiPreferencesSchema>;
 
 export const DEFAULT_USER_UI_PREFERENCES: UserUiPreferences = {
+  theme: "light",
   enableAnimeJs: false,
   animationPreset: "standard",
   primaryColorHex: null,

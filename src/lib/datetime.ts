@@ -69,3 +69,23 @@ export function ymdToBogotaMidnightUtc(ymd: string): Date {
   }
   return d;
 }
+
+export function ymdToBogotaEndOfDayUtc(ymd: string): Date {
+  const start = ymdToBogotaMidnightUtc(ymd);
+  // End of Bogotá day == start + 24h - 1ms.
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+}
+
+export function formatTimeInBogota(input: DateInput, options?: Intl.DateTimeFormatOptions): string {
+  const date = toDate(input);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('es-CO', {
+    timeZone: BOGOTA_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    ...options,
+  }).format(date);
+}

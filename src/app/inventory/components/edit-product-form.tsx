@@ -150,13 +150,15 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
     setIsSubmitting(false);
 
     if (result.success) {
-            const when = new Date().toLocaleString("es-CO", {
+            const when = new Intl.DateTimeFormat("es-CO", {
+                timeZone: "America/Bogota",
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit",
-            });
+                hour12: false,
+            }).format(new Date());
             const who = (currentUserName ?? "").trim() || "Usuario";
             const whatName = String(values.name ?? "").trim() || `Producto #${values.id}`;
             const whatRef = String(values.code ?? "").trim() || String(values.id);

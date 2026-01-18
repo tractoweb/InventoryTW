@@ -10,6 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Tabs,
   TabsContent,
@@ -39,13 +48,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { cn } from "@/lib/utils";
+import { ymdToBogotaEndOfDayUtc, ymdToBogotaMidnightUtc } from "@/lib/datetime";
+
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 
 import { listAuditLogsAction, type AuditLogRow } from "@/actions/list-audit-logs";
 import { listUsersAction, type UserListRow } from "@/actions/list-users";
 
-import { RefreshCw, X } from "lucide-react";
+import { Check, ChevronsUpDown, RefreshCw, X } from "lucide-react";
 
 const ACTION_OPTIONS = [
   "all",
@@ -179,11 +191,11 @@ function pickHref(tableName: string, recordId: number): string | null {
   if (!Number.isFinite(id) || id <= 0) return null;
   if (table === "Document") return `/documents/${id}/pdf`;
   if (table === "Product") return `/inventory/${id}`;
-  if (table === "Warehouse") return `/warehouses`;
-  if (table === "Customer") return `/partners`;
-  if (table === "Tax") return `/settings/taxes`;
-  if (table === "PaymentType") return `/settings/payment-types`;
-  if (table === "User") return `/settings/users`;
+  if (table === "Warehouse") return `/warehouses?q=${id}`;
+  if (table === "Customer") return `/partners/manage?q=${id}`;
+  if (table === "Tax") return `/settings/taxes?q=${id}`;
+  if (table === "PaymentType") return `/settings/payment-methods?q=${id}`;
+  if (table === "User") return `/settings/users?q=${id}`;
   if (table === "Company") return `/company`;
   if (table === "ApplicationSettings") return `/settings`;
   return null;
@@ -209,8 +221,23 @@ function ActionBadge({ action }: { action: string }) {
 function fmtDateTime(ts: string): { date: string; time: string } {
   const d = new Date(String(ts ?? ""));
   if (!Number.isFinite(d.getTime())) return { date: String(ts ?? ""), time: "" };
-  const date = d.toLocaleDateString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
-  const time = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  // Force Colombia time regardless of the user's device timezone.
+  const date = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+
+  const time = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(d);
+
   return { date, time };
 }
 
@@ -253,6 +280,134 @@ function summarizeChange(row: AuditLogRow): string {
   return `${moduleLabel}: ${action || "evento"}`;
 }
 
+function safeJsonObject(raw: string | null): Record<string, any> | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as any;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function pickChangedFieldKeys(row: AuditLogRow): string[] {
+  const changed = Array.isArray(row.changedFields) ? row.changedFields : [];
+  return changed
+    .map((k) => String(k))
+    .filter((k) => k && !IGNORED_CHANGED_FIELDS.has(k) && !/^(id|_)/i.test(k));
+}
+
+function buildChangedObjects(row: AuditLogRow): { before: Record<string, any> | null; after: Record<string, any> | null } {
+  const action = String(row.action ?? "").toUpperCase();
+
+  const oldObj = safeJsonObject(row.oldValues);
+  const newObj = safeJsonObject(row.newValues);
+
+  if (action === "CREATE") {
+    return { before: null, after: newObj };
+  }
+
+  if (action === "DELETE" || action === "HARD_DELETE" || action === "SOFT_DELETE") {
+    return { before: oldObj, after: null };
+  }
+
+  if (action === "UPDATE") {
+    let keys = pickChangedFieldKeys(row);
+    if (!keys.length && oldObj && newObj) {
+      // Fallback: compute a shallow diff if changedFields wasn't recorded.
+      const union = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
+      keys = Array.from(union).filter((k) => {
+        if (!k || IGNORED_CHANGED_FIELDS.has(k) || /^(id|_)/i.test(k)) return false;
+        const a = (oldObj as any)[k];
+        const b = (newObj as any)[k];
+        if (a === b) return false;
+        try {
+          return JSON.stringify(a) !== JSON.stringify(b);
+        } catch {
+          return true;
+        }
+      });
+    }
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+    for (const k of keys) {
+      before[k] = oldObj ? (oldObj as any)[k] : undefined;
+      after[k] = newObj ? (newObj as any)[k] : undefined;
+    }
+    return {
+      before: Object.keys(before).length ? before : null,
+      after: Object.keys(after).length ? after : null,
+    };
+  }
+
+  return { before: oldObj, after: newObj };
+}
+
+function formatSimpleValue(v: any): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "Sí" : "No";
+  if (typeof v === "number") return Number.isFinite(v) ? v.toLocaleString("es-CO") : String(v);
+  if (typeof v === "string") {
+    const s = v.trim();
+    const d = new Date(s);
+    if (s.length >= 10 && Number.isFinite(d.getTime()) && /\d{4}-\d{2}-\d{2}T/.test(s)) {
+      return new Intl.DateTimeFormat("es-CO", {
+        timeZone: "America/Bogota",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(d);
+    }
+    return s || "—";
+  }
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+function detailedSummary(row: AuditLogRow): string {
+  const action = String(row.action ?? "").toUpperCase();
+  const table = String(row.tableName ?? "");
+  const moduleLabel = (MODULE_LABELS[table] ?? table) || "Módulo";
+  const who = row.userName ? String(row.userName) : row.userId ? `Usuario #${row.userId}` : "Usuario";
+  const what = row.recordLabel ? String(row.recordLabel) : `#${row.recordId}`;
+
+  if (action === "CREATE") return `${who} creó ${moduleLabel}: ${what}`;
+  if (action === "DELETE" || action === "HARD_DELETE" || action === "SOFT_DELETE") return `${who} eliminó ${moduleLabel}: ${what}`;
+
+  if (action === "UPDATE") {
+    const { before, after } = buildChangedObjects(row);
+    const labelsMap = FIELD_LABELS_BY_TABLE[table] ?? {};
+    const keys = pickChangedFieldKeys(row).slice(0, 3);
+    const examples = keys
+      .map((k) => {
+        const label = labelsMap[k] ?? k;
+        const a = before ? (before as any)[k] : undefined;
+        const b = after ? (after as any)[k] : undefined;
+        return `${label}: ${formatSimpleValue(a)} → ${formatSimpleValue(b)}`;
+      })
+      .filter((s) => s && s.trim().length > 0);
+
+    if (examples.length) return `${who} actualizó ${moduleLabel}: ${what} · ${examples.join(" · ")}`;
+
+    const labels = friendlyChangedLabels(row, 6);
+    if (labels.length) return `${who} actualizó ${moduleLabel}: ${what} · Cambios: ${labels.join(", ")}`;
+
+    return `${who} actualizó ${moduleLabel}: ${what}`;
+  }
+
+  return `${who} registró un evento en ${moduleLabel}: ${what}`;
+}
+
 function friendlyChangedLabels(row: AuditLogRow, max = 8): string[] {
   const table = String(row.tableName ?? "");
   const changed = Array.isArray(row.changedFields) ? row.changedFields : [];
@@ -275,8 +430,16 @@ function toIsoDate(value: string) {
   return String(value).split("T")[0];
 }
 
-function prettyJson(raw: string | null): string {
-  if (!raw) return "";
+function prettyJson(raw: unknown): string {
+  if (raw === null || raw === undefined) return "";
+  if (typeof raw !== "string") {
+    try {
+      return JSON.stringify(raw, null, 2);
+    } catch {
+      return String(raw);
+    }
+  }
+
   const trimmed = String(raw).trim();
   if (!trimmed) return "";
   try {
@@ -303,6 +466,7 @@ export default function AuditClientPage() {
   const [userId, setUserId] = React.useState<string>("all");
   const [users, setUsers] = React.useState<UserListRow[]>([]);
   const [usersLoading, setUsersLoading] = React.useState(false);
+  const [userPickerOpen, setUserPickerOpen] = React.useState(false);
   const [tableName, setTableName] = React.useState<(typeof TABLE_OPTIONS)[number]>("all");
   const [action, setAction] = React.useState<(typeof ACTION_OPTIONS)[number]>("all");
 
@@ -314,6 +478,11 @@ export default function AuditClientPage() {
   const [selected, setSelected] = React.useState<AuditLogRow | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [valuesTab, setValuesTab] = React.useState<"before" | "after">("after");
+
+  const selectedChanged = React.useMemo(() => {
+    if (!selected) return { before: null as Record<string, any> | null, after: null as Record<string, any> | null };
+    return buildChangedObjects(selected);
+  }, [selected]);
 
   const [sortKey, setSortKey] = React.useState<SortKey>("timestamp");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
@@ -332,8 +501,8 @@ export default function AuditClientPage() {
       userId: userId && userId !== "all" ? Number(userId) : undefined,
       tableName: tableName === "all" ? undefined : tableName,
       action: action === "all" ? undefined : action,
-      dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-      dateTo: dateTo ? new Date(dateTo).toISOString() : undefined,
+      dateFrom: dateFrom ? ymdToBogotaMidnightUtc(dateFrom).toISOString() : undefined,
+      dateTo: dateTo ? ymdToBogotaEndOfDayUtc(dateTo).toISOString() : undefined,
       limit,
       nextToken: reset ? null : nextToken,
     });
@@ -400,6 +569,15 @@ export default function AuditClientPage() {
       cancelled = true;
     };
   }, [toast]);
+
+  const selectedUserLabel = React.useMemo(() => {
+    if (userId === "all") return "Todos";
+    const id = Number(userId);
+    const match = users.find((u) => Number(u.userId) === id);
+    if (!match) return `#${userId}`;
+    const name = String(match.username ?? "").trim() || `#${match.userId}`;
+    return `${name} · #${match.userId}${match.isEnabled ? "" : " (Inactivo)"}`;
+  }, [userId, users]);
 
   const displayedRows = React.useMemo(() => {
     const copy = rows.slice();
@@ -508,23 +686,60 @@ export default function AuditClientPage() {
 
             <div className="md:col-span-2">
               <Label>Usuario</Label>
-              <Select value={userId} onValueChange={(v) => setUserId(v)} disabled={usersLoading}>
-                <SelectTrigger>
-                  <SelectValue placeholder={usersLoading ? "Cargando…" : "Todos"} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[320px]">
-                  <SelectItem value="all">Todos</SelectItem>
-                  {users.map((u) => {
-                    const name = String(u.username ?? "").trim();
-                    const suffix = u.isEnabled ? "" : " (Inactivo)";
-                    return (
-                      <SelectItem key={u.userId} value={String(u.userId)}>
-                        {name} · #{u.userId}{suffix}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={userPickerOpen}
+                    className="w-full justify-between"
+                    disabled={usersLoading}
+                  >
+                    <span className="truncate">{usersLoading ? "Cargando…" : selectedUserLabel}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar usuario (nombre o #id)…" />
+                    <CommandList>
+                      <CommandEmpty>No se encontraron usuarios.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="Todos"
+                          onSelect={() => {
+                            setUserId("all");
+                            setUserPickerOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", userId === "all" ? "opacity-100" : "opacity-0")} />
+                          Todos
+                        </CommandItem>
+                        {users.map((u) => {
+                          const id = String(u.userId);
+                          const name = String(u.username ?? "").trim();
+                          const suffix = u.isEnabled ? "" : " (Inactivo)";
+                          const label = `${name} · #${id}${suffix}`;
+                          return (
+                            <CommandItem
+                              key={id}
+                              value={`${name} #${id}`}
+                              onSelect={() => {
+                                setUserId(id);
+                                setUserPickerOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", userId === id ? "opacity-100" : "opacity-0")} />
+                              <span className="truncate">{label}</span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="md:col-span-3">
@@ -710,21 +925,21 @@ export default function AuditClientPage() {
           <SheetHeader>
             <SheetTitle>Detalle de Auditoría</SheetTitle>
             <SheetDescription>
-              {selected ? summarizeChange(selected) : ""}
+              {selected ? detailedSummary(selected) : ""}
             </SheetDescription>
           </SheetHeader>
 
           {selected ? (
             <div className="grid gap-4 pt-4">
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
                 <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">Timestamp</div>
-                  <div className="font-mono text-xs break-all">{selected.timestamp}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">IP / User-Agent</div>
-                  <div className="font-mono text-xs break-all">{selected.ipAddress ?? "-"}</div>
-                  <div className="text-xs break-all mt-1">{selected.userAgent ?? "-"}</div>
+                  <div className="text-xs text-muted-foreground">Fecha de modificación (Bogotá)</div>
+                  <div className="text-sm font-medium">
+                    {(() => {
+                      const { date, time } = fmtDateTime(selected.timestamp);
+                      return `${date} ${time}`.trim();
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -759,7 +974,7 @@ export default function AuditClientPage() {
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">Resumen</div>
-                  <div className="text-sm font-medium mt-1">{summarizeChange(selected)}</div>
+                  <div className="text-sm font-medium mt-1">{detailedSummary(selected)}</div>
 
                   <div className="mt-2 text-xs text-muted-foreground">Cambios principales</div>
                   <div className="text-xs mt-1">
@@ -787,36 +1002,46 @@ export default function AuditClientPage() {
 
                   <TabsContent value="before" className="mt-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium">OldValues</div>
+                      <div className="text-sm font-medium">Antes</div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          await navigator.clipboard.writeText(prettyJson(selected.oldValues));
-                          toast({ title: "Copiado", description: "OldValues copiado al portapapeles" });
+                          await navigator.clipboard.writeText(prettyJson(selectedChanged.before));
+                          toast({ title: "Copiado", description: "Datos anteriores copiados al portapapeles" });
                         }}
+                        disabled={!selectedChanged.before}
                       >
                         Copiar
                       </Button>
                     </div>
-                    <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selected.oldValues)}</pre>
+                    {selectedChanged.before ? (
+                      <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selectedChanged.before)}</pre>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">(no aplica)</div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="after" className="mt-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium">NewValues</div>
+                      <div className="text-sm font-medium">Después</div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          await navigator.clipboard.writeText(prettyJson(selected.newValues));
-                          toast({ title: "Copiado", description: "NewValues copiado al portapapeles" });
+                          await navigator.clipboard.writeText(prettyJson(selectedChanged.after));
+                          toast({ title: "Copiado", description: "Datos nuevos copiados al portapapeles" });
                         }}
+                        disabled={!selectedChanged.after}
                       >
                         Copiar
                       </Button>
                     </div>
-                    <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selected.newValues)}</pre>
+                    {selectedChanged.after ? (
+                      <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selectedChanged.after)}</pre>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">(no aplica)</div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </div>
@@ -825,35 +1050,45 @@ export default function AuditClientPage() {
               <div className="hidden md:grid gap-4 md:grid-cols-2">
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="text-sm font-medium">OldValues</div>
+                    <div className="text-sm font-medium">Antes</div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(prettyJson(selected.oldValues));
-                        toast({ title: "Copiado", description: "OldValues copiado al portapapeles" });
+                        await navigator.clipboard.writeText(prettyJson(selectedChanged.before));
+                        toast({ title: "Copiado", description: "Datos anteriores copiados al portapapeles" });
                       }}
+                      disabled={!selectedChanged.before}
                     >
                       Copiar
                     </Button>
                   </div>
-                  <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selected.oldValues)}</pre>
+                  {selectedChanged.before ? (
+                    <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selectedChanged.before)}</pre>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">(no aplica)</div>
+                  )}
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="text-sm font-medium">NewValues</div>
+                    <div className="text-sm font-medium">Después</div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(prettyJson(selected.newValues));
-                        toast({ title: "Copiado", description: "NewValues copiado al portapapeles" });
+                        await navigator.clipboard.writeText(prettyJson(selectedChanged.after));
+                        toast({ title: "Copiado", description: "Datos nuevos copiados al portapapeles" });
                       }}
+                      disabled={!selectedChanged.after}
                     >
                       Copiar
                     </Button>
                   </div>
-                  <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selected.newValues)}</pre>
+                  {selectedChanged.after ? (
+                    <pre className="max-h-[420px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">{prettyJson(selectedChanged.after)}</pre>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">(no aplica)</div>
+                  )}
                 </div>
               </div>
             </div>

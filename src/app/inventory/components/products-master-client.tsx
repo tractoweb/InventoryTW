@@ -195,13 +195,15 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       const target = (rows ?? []).find((r) => r.id === productId);
       const result = await deleteProduct(productId);
       if (result.success) {
-        const when = new Date().toLocaleString("es-CO", {
+        const when = new Intl.DateTimeFormat("es-CO", {
+          timeZone: "America/Bogota",
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
           hour: "2-digit",
           minute: "2-digit",
-        });
+          hour12: false,
+        }).format(new Date());
         const whatName = target?.name ? String(target.name) : `Producto #${productId}`;
         const whatRef = target?.code ? String(target.code) : String(productId);
         toast({

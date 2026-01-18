@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTheme } from "next-themes";
 
 import { getUserUiPreferences } from "@/actions/get-user-ui-preferences";
 import {
@@ -96,6 +97,7 @@ function prefersReducedMotion(): boolean {
 }
 
 export function UiPreferencesProvider({ children }: { children: React.ReactNode }) {
+  const { setTheme } = useTheme();
   const [preferences, setPreferences] = React.useState<UserUiPreferences>(DEFAULT_USER_UI_PREFERENCES);
   const [loading, setLoading] = React.useState(true);
 
@@ -116,6 +118,13 @@ export function UiPreferencesProvider({ children }: { children: React.ReactNode 
   React.useEffect(() => {
     applyUiPreferencesToDom(preferences);
   }, [preferences]);
+
+  React.useEffect(() => {
+    // Ensure the global theme matches the logged-in user's preference.
+    // This avoids leaking a previous user's theme into the login page.
+    if (!preferences?.theme) return;
+    setTheme(preferences.theme);
+  }, [preferences?.theme, setTheme]);
 
   React.useEffect(() => {
     if (!preferences.enableAnimeJs) return;

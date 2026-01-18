@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,12 +65,23 @@ function accessLevelLabel(level: number) {
 export default function UsersClientPage() {
   const { toast } = useToast();
 
+  const searchParams = useSearchParams();
+  const didInitFromQuery = React.useRef(false);
+
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [rows, setRows] = React.useState<UserListRow[]>([]);
 
   const [q, setQ] = React.useState("");
   const dq = useDebounce(q, 250);
+
+  React.useEffect(() => {
+    if (didInitFromQuery.current) return;
+    const qp = searchParams?.get("q");
+    if (qp && String(qp).trim()) setQ(String(qp));
+    didInitFromQuery.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [dialogMode, setDialogMode] = React.useState<"create" | "edit">("create");

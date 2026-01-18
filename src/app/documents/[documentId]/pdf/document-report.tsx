@@ -9,6 +9,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
+import { formatDateTimeInBogota } from "@/lib/datetime";
+
 import type { DocumentDetails } from "@/actions/get-document-details";
 
 const styles = StyleSheet.create({
@@ -441,7 +443,7 @@ export function DocumentReportPdf({ details }: { details: DocumentDetails }) {
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.sub}>{new Date().toLocaleString("es-CO")}</Text>
+          <Text style={styles.sub}>{formatDateTimeInBogota(new Date())}</Text>
           <Text style={styles.sub}>Reporte - Tracto Agrícola</Text>
           <Text style={styles.h1}>TRACTO AGRÍCOLA</Text>
           <Text style={styles.h2}>{details.documenttypename}</Text>

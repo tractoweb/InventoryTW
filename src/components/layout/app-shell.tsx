@@ -55,6 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (hasValidatedRef.current && sessionVersion === 0) return;
 
     let cancelled = false;
+    const timeoutMs = 8000;
 
     async function run() {
       // Si por alguna razón entramos acá sin sesión válida (cookie stale),
@@ -64,11 +65,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       let res: Awaited<ReturnType<typeof getCurrentSessionAction>> | null = null;
       try {
-        res = await getCurrentSessionAction();
+        res = (await Promise.race([
+          getCurrentSessionAction(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("session_check_timeout")), timeoutMs)
+          ),
+        ])) as Awaited<ReturnType<typeof getCurrentSessionAction>>;
       } catch {
-        // If server actions are temporarily unavailable, don't force logout.
-        // Keep the current session state (if any) and let pages handle auth.
+        // If the session check fails (server actions unavailable on the host,
+        // missing env/config, networking issues), do not hang on a loader.
+        // Redirect to login as a safe fallback.
+        setSessionOk(false);
+        setSession(null);
         setSessionChecked(true);
+        const next = encodeURIComponent(pathnameRef.current || "/");
+        router.replace(`/login?next=${next}`);
+        router.refresh();
         return;
       }
       if (cancelled) return;
