@@ -112,6 +112,7 @@ export type DashboardOverview = {
     lowStock: Array<{
       productId: string;
       productName: string;
+      productCode: string;
       currentStock: number;
       warningQuantity: number;
       warehouseName: string;
@@ -601,9 +602,18 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
         const currentStock = safeNumber(stockTotalByProductId.get(productIdNum) ?? 0, 0);
         if (currentStock <= warningQuantity) {
           const product = productById.get(productIdNum);
+          const code =
+            String(
+              (product as any)?.code ??
+                (product as any)?.reference ??
+                (product as any)?.sku ??
+                (product as any)?.idProduct ??
+                productIdNum
+            ).trim() || String(productIdNum);
           lowStockAlerts.push({
             productId: String(productIdNum),
             productName: String(product?.name ?? `#${productIdNum}`),
+            productCode: code,
             currentStock,
             warningQuantity,
             warehouseName: "Total",

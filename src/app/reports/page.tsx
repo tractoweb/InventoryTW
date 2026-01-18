@@ -85,10 +85,10 @@ export default async function ReportsPage() {
 						<CardTitle>Stock</CardTitle>
 						<CardDescription>Gestión por almacén.</CardDescription>
 					</CardHeader>
-					<CardContent className="flex items-center justify-end">
-						<Link href="/stock" className={cn(buttonVariants({}))}>
-							Ir a Stock
-						</Link>
+					<CardContent>
+						<div className="text-sm text-muted-foreground">
+							Accede desde el menú principal.
+						</div>
 					</CardContent>
 				</Card>
 			</div>

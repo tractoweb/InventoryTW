@@ -16026,5 +16026,13 @@
     {
         "DocumentItemId": 4099,
         "Price": 245478.3325
+    },
+    {
+        "DocumentItemId": 4100,
+        "Price": 4169130
+    },
+    {
+        "DocumentItemId": 4101,
+        "Price": 463946
     }
 ]

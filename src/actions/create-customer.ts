@@ -8,6 +8,8 @@ import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { createCustomer } from '@/services/customer-service';
 import { listAllPages } from '@/services/amplify-list-all';
+import { getCurrentSession } from '@/lib/session';
+import { writeAuditLog } from '@/services/audit-log-service';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 
 const CreateCustomerSchema = z.object({
@@ -80,6 +82,33 @@ export async function createCustomerAction(raw: CreateCustomerInput): Promise<{ 
       } as any);
 
       if (createRes?.data) {
+        const sessionRes = await getCurrentSession();
+        if (sessionRes.data?.userId) {
+          writeAuditLog({
+            userId: sessionRes.data.userId,
+            action: 'CREATE',
+            tableName: 'Customer',
+            recordId: idCustomer,
+            newValues: {
+              idCustomer,
+              name: input.name,
+              code: input.code ?? null,
+              taxNumber: input.taxNumber ?? null,
+              email: input.email ?? null,
+              phoneNumber: input.phoneNumber ?? null,
+              address: input.address ?? null,
+              postalCode: input.postalCode ?? null,
+              city: input.city ?? null,
+              countryId: input.countryId ?? null,
+              isEnabled: input.isEnabled ?? true,
+              isSupplier: input.isSupplier,
+              isCustomer: input.isCustomer,
+              dueDatePeriod: input.dueDatePeriod ?? 0,
+              isTaxExempt: input.isTaxExempt ?? false,
+            },
+          }).catch(() => {});
+        }
+
         revalidateTag(CACHE_TAGS.heavy.customers);
         return { success: true, idCustomer };
       }

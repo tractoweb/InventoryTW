@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,16 +35,37 @@ type EditProductFormProps = {
   productId: number | null;
   productGroups: ProductGroup[];
   taxes: Tax[];
+    currentUserName?: string;
   onClose: () => void;
 };
+
+function parseMoneyInt(input: unknown): number {
+    const digits = String(input ?? "").replace(/[^0-9]/g, "");
+    if (!digits) return 0;
+    const n = Number.parseInt(digits, 10);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+function formatMoneyInt(value: unknown): string {
+    const n = Math.trunc(Number(value ?? 0));
+    const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+    try {
+        return new Intl.NumberFormat("es-CO", {
+            maximumFractionDigits: 0,
+            minimumFractionDigits: 0,
+        }).format(safe);
+    } catch {
+        return String(safe).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+}
 
 const formSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, "El precio no puede ser negativo."),
-  cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
+        price: z.preprocess(parseMoneyInt, z.number().int().min(1, "El precio debe ser mayor a 0.")),
+        cost: z.preprocess(parseMoneyInt, z.number().int().min(1, "El costo debe ser mayor a 0.")),
   measurementunit: z.string().min(1, "La posición es obligatoria."),
   isenabled: z.boolean(),
   productgroupid: z.coerce.number().min(1, "Debe seleccionar una categoría."),
@@ -55,11 +76,12 @@ const formSchema = z.object({
 });
 
 
-export function EditProductForm({ productId, productGroups, taxes, onClose }: EditProductFormProps) {
+export function EditProductForm({ productId, productGroups, taxes, currentUserName, onClose }: EditProductFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -123,21 +145,34 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+        setSubmitStatus(null);
     const result = await updateProduct(values as UpdateProductInput);
     setIsSubmitting(false);
 
     if (result.success) {
+            const when = new Date().toLocaleString("es-CO", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+            const who = (currentUserName ?? "").trim() || "Usuario";
+            const whatName = String(values.name ?? "").trim() || `Producto #${values.id}`;
+            const whatRef = String(values.code ?? "").trim() || String(values.id);
       toast({
         title: "Producto Actualizado",
-        description: result.message || "Los cambios se han guardado correctamente.",
+                description: `${who} · ${when} · ${whatName} (${whatRef})`,
       });
-      onClose();
+            setSubmitStatus({ type: "success", message: result.message || "Cambios guardados correctamente." });
+            setTimeout(() => onClose(), 600);
     } else {
       toast({
         variant: "destructive",
         title: "Error al actualizar",
         description: result.error || "No se pudieron guardar los cambios.",
       });
+            setSubmitStatus({ type: "error", message: result.error || "No se pudieron guardar los cambios." });
     }
   }
   
@@ -164,6 +199,15 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
   return (
     <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        {submitStatus ? (
+                            <Alert variant={submitStatus.type === "error" ? "destructive" : "default"}>
+                                <AlertTitle>
+                                    {submitStatus.type === "success" ? "Guardado exitoso" : "No se pudo guardar"}
+                                </AlertTitle>
+                                <AlertDescription>{submitStatus.message}</AlertDescription>
+                            </Alert>
+                        ) : null}
+
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="details">Detalles</TabsTrigger>
@@ -262,7 +306,12 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                                 <FormItem>
                                 <FormLabel>Precio</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.01" {...field} />
+                                    <Input
+                                                                            inputMode="numeric"
+                                                                            pattern="[0-9]*"
+                                                                            value={formatMoneyInt(field.value)}
+                                                                            onChange={(e) => field.onChange(parseMoneyInt(e.target.value))}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -275,7 +324,12 @@ export function EditProductForm({ productId, productGroups, taxes, onClose }: Ed
                                 <FormItem>
                                 <FormLabel>Costo</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.01" {...field} />
+                                    <Input
+                                                                            inputMode="numeric"
+                                                                            pattern="[0-9]*"
+                                                                            value={formatMoneyInt(field.value)}
+                                                                            onChange={(e) => field.onChange(parseMoneyInt(e.target.value))}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

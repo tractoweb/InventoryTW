@@ -34,6 +34,7 @@ function mulberry32(seed: number) {
 type RingParticlesBackgroundProps = {
   className?: string;
   anchorRef?: React.RefObject<HTMLElement | null>;
+  paused?: boolean;
 };
 
 type Particle = {
@@ -98,9 +99,18 @@ function makeParticles(seed: number): Particle[] {
   return particles;
 }
 
-export function RingParticlesBackground({ className, anchorRef }: RingParticlesBackgroundProps) {
+export function RingParticlesBackground({ className, anchorRef, paused }: RingParticlesBackgroundProps) {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const rafRef = React.useRef<number | null>(null);
+  const pausedRef = React.useRef<boolean>(Boolean(paused));
+
+  React.useEffect(() => {
+    pausedRef.current = Boolean(paused);
+    if (pausedRef.current && rafRef.current) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, [paused]);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -168,6 +178,7 @@ export function RingParticlesBackground({ className, anchorRef }: RingParticlesB
 
     const draw = (ts: number) => {
       if (destroyed) return;
+      if (pausedRef.current) return;
 
       const dt = Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000));
       lastTs = ts;
@@ -256,10 +267,14 @@ export function RingParticlesBackground({ className, anchorRef }: RingParticlesB
 
       ctx.restore();
 
-      rafRef.current = window.requestAnimationFrame(draw);
+      if (!pausedRef.current) {
+        rafRef.current = window.requestAnimationFrame(draw);
+      }
     };
 
-    rafRef.current = window.requestAnimationFrame(draw);
+    if (!pausedRef.current) {
+      rafRef.current = window.requestAnimationFrame(draw);
+    }
 
     return () => {
       destroyed = true;

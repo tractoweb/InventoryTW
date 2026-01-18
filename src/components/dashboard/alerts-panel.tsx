@@ -11,6 +11,7 @@ import { HelpPopover } from "@/components/dashboard/help-popover";
 type LowStockAlertRow = {
   productId: string;
   productName: string;
+  productCode: string;
   currentStock: number;
   warningQuantity: number;
   warehouseName: string;
@@ -77,7 +78,7 @@ export function AlertsPanel({ lowStock }: AlertsPanelProps) {
                       key={`${r.productId}-${r.warehouseName}`}
                       className="cursor-pointer"
                       onClick={() => {
-                        const term = String(r.productName ?? "").trim();
+                        const term = String(r.productCode ?? r.productName ?? "").trim();
                         if (!term) {
                           router.push("/stock");
                           return;

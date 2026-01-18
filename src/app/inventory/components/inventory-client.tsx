@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
@@ -31,20 +31,38 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
   const [search, setSearch] = useState(String(initialSearch ?? ""));
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  const normalizeLoose = useCallback((value: unknown): string => {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .trim();
+  }, []);
   
   const filteredItems = useMemo(() => {
     if (!items) return [];
+    const q = normalizeLoose(search);
+    if (!q) return items;
+
     return items.filter((item) => {
-      const searchLower = search.toLowerCase();
-      const name = item.name || '';
-      const code = item.code || '';
-      const warehouse = item.warehousename || '';
-      
-      return name.toLowerCase().includes(searchLower) ||
-             code.toLowerCase().includes(searchLower) ||
-             warehouse.toLowerCase().includes(searchLower);
+      const idText = String((item as any)?.id ?? "");
+      const name = normalizeLoose(item.name);
+      const code = normalizeLoose(item.code);
+      const warehouse = normalizeLoose((item as any)?.warehousename);
+      const idx = normalizeLoose((item as any)?.searchindex);
+      const barcodes = Array.isArray((item as any)?.barcodes)
+        ? normalizeLoose(((item as any).barcodes as any[]).join(" "))
+        : "";
+
+      const hay = `${idText} ${name} ${code} ${warehouse} ${idx} ${barcodes}`;
+      return hay.includes(q);
     });
-  }, [items, search]);
+  }, [items, search, normalizeLoose]);
 
   const handleDeleteProduct = useCallback(async (productId: number) => {
     const result = await deleteProduct(productId);
@@ -69,6 +87,7 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
     warehouses,
     taxes,
     handleDeleteProduct,
+    pageType,
   }), [productGroups, warehouses, taxes, handleDeleteProduct]);
 
   const isStockPage = pageType === 'stock';
@@ -85,26 +104,28 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"
           />
-          
-          <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
-            <DialogTrigger asChild>
-              <Button className="ml-auto">
-                {isStockPage ? "Ajustar Stock" : "Añadir Producto"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{isStockPage ? "Ajustar Stock de Producto" : "Añadir Nuevo Producto"}</DialogTitle>
-                <DialogDescription>
-                  {isStockPage 
-                    ? "Modifica la cantidad de un producto en un almacén específico." 
-                    : "Completa los detalles para añadir un nuevo producto al catálogo."
-                  }
-                </DialogDescription>
-              </DialogHeader>
-              {isStockPage ? <AdjustStockForm setOpen={setAddModalOpen} products={uniqueProductsForAdjust} warehouses={warehouses} /> : <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups || []} warehouses={warehouses} taxes={taxes} />}
-            </DialogContent>
-          </Dialog>
+
+          {!isStockPage ? (
+            <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="ml-auto">Añadir Producto</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Añadir Nuevo Producto</DialogTitle>
+                  <DialogDescription>
+                    Completa los detalles para añadir un nuevo producto al catálogo.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddProductForm
+                  setOpen={setAddModalOpen}
+                  productGroups={productGroups || []}
+                  warehouses={warehouses}
+                  taxes={taxes}
+                />
+              </DialogContent>
+            </Dialog>
+          ) : null}
         </div>
         <DataTable columns={columns} data={filteredItems} meta={tableMeta} />
       </div>

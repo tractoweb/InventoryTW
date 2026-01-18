@@ -39,6 +39,8 @@ export type StockInfo = {
   id: number;
   name: string;
   code?: string;
+  barcodes?: string[];
+  searchindex?: string;
   measurementunit?: string;
   quantity?: number;
   price?: number;

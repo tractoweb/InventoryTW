@@ -22,10 +22,15 @@ export default function LoginPage() {
   const cardRef = React.useRef<HTMLDivElement | null>(null);
   const cardWrapRef = React.useRef<HTMLDivElement | null>(null);
 
+  const introAnimRef = React.useRef<any>(null);
+  const floatAnimRef = React.useRef<any>(null);
+
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [pending, startTransition] = React.useTransition();
+  const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [exiting, setExiting] = React.useState(false);
+  const [navigating, setNavigating] = React.useState(false);
 
   React.useEffect(() => {
     try {
@@ -49,7 +54,7 @@ export default function LoginPage() {
         if (cancelled) return;
         if (!anime) return;
 
-        anime.animate(el, {
+        introAnimRef.current = anime.animate(el, {
           opacity: [0, 1],
           translateY: [12, 0],
           scale: [0.985, 1],
@@ -57,7 +62,7 @@ export default function LoginPage() {
           duration: 750,
         });
 
-        anime.animate(el, {
+        floatAnimRef.current = anime.animate(el, {
           translateY: [0, -4],
           direction: "alternate",
           loop: true,
@@ -72,26 +77,83 @@ export default function LoginPage() {
 
     return () => {
       cancelled = true;
+      try {
+        introAnimRef.current?.cancel?.();
+        floatAnimRef.current?.cancel?.();
+      } catch {
+        // ignore
+      }
     };
   }, []);
+
+  async function playExitAnimation(): Promise<void> {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+
+    const wrap = cardWrapRef.current;
+    const card = cardRef.current;
+    if (!wrap || !card) return;
+
+    try {
+      const anime = await getAnime();
+      if (!anime) return;
+
+      try {
+        introAnimRef.current?.cancel?.();
+        floatAnimRef.current?.cancel?.();
+      } catch {
+        // ignore
+      }
+
+      anime.animate(wrap, {
+        opacity: [1, 0],
+        scale: [1, 0.92],
+        translateY: [0, 10],
+        easing: "easeInOutQuad",
+        duration: 520,
+
+      });
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 520));
+    } catch {
+      // ignore
+    }
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    startTransition(async () => {
+
+    if (pending) return;
+
+    void (async () => {
+      setPending(true);
       const res = await loginAction({ username, password });
       if (!res.success) {
         setError(res.error || "No se pudo iniciar sesión");
+        setPending(false);
         return;
       }
+
+      setExiting(true);
+      await playExitAnimation();
+      setNavigating(true);
       router.replace(next);
-      router.refresh();
-    });
+    })();
   }
 
   return (
-    <div className={styles.root}>
-      <RingParticlesBackground className={styles.bg} anchorRef={cardWrapRef} />
+    <div className={styles.root} data-exiting={exiting ? "true" : "false"}>
+      <RingParticlesBackground
+        className={styles.bg}
+        anchorRef={cardWrapRef}
+        paused={exiting || navigating}
+      />
+
+      {exiting || navigating ? (
+        <div className={styles.loading} aria-live="polite">
+          Cargando…
+        </div>
+      ) : null}
 
       <div className={styles.center}>
         <div className={styles.cardWrap} ref={cardWrapRef}>

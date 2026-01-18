@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
-import { listAllPages } from '@/services/amplify-list-all';
 
 const KardexTypeSchema = z.enum(['ENTRADA', 'SALIDA', 'AJUSTE']);
 
@@ -15,6 +14,7 @@ const GetKardexEntriesSchema = z.object({
   dateFrom: z.string().optional(), // ISO string
   dateTo: z.string().optional(), // ISO string
   limit: z.coerce.number().int().min(1).max(1000).default(200),
+  nextToken: z.string().optional(),
 });
 
 export type KardexEntryRow = {
@@ -26,6 +26,8 @@ export type KardexEntryRow = {
   productCode: string | null;
   warehouseId: number | null;
   warehouseName: string | null;
+  userId: number | null;
+  userName: string | null;
   quantity: number;
   balance: number;
   unitCost: number | null;
@@ -41,6 +43,7 @@ export type KardexEntryRow = {
 
 export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntriesSchema>): Promise<{
   data: KardexEntryRow[];
+  nextToken?: string | null;
   error?: string;
 }> {
   noStore();
@@ -48,7 +51,7 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
   const parsed = GetKardexEntriesSchema.safeParse(raw ?? {});
   if (!parsed.success) return { data: [], error: 'Filtros inválidos' };
 
-  const { productId, warehouseId, type, dateFrom, dateTo, limit } = parsed.data;
+  const { productId, warehouseId, type, dateFrom, dateTo, limit, nextToken } = parsed.data;
 
   function safeIso(value: string | undefined): string | undefined {
     if (!value) return undefined;
@@ -60,10 +63,14 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
   }
 
   try {
-    const and: any[] = [];
-    if (Number.isFinite(productId)) and.push({ productId: { eq: Number(productId) } });
-    if (Number.isFinite(warehouseId)) and.push({ warehouseId: { eq: Number(warehouseId) } });
-    if (type) and.push({ type: { eq: type } });
+    const productClause = Number.isFinite(productId) ? { productId: { eq: Number(productId) } } : null;
+    const warehouseClause = Number.isFinite(warehouseId) ? { warehouseId: { eq: Number(warehouseId) } } : null;
+    const typeClause = type ? { type: { eq: type } } : null;
+
+    const clauses: any[] = [];
+    if (productClause) clauses.push(productClause);
+    if (warehouseClause) clauses.push(warehouseClause);
+    if (typeClause) clauses.push(typeClause);
 
     let df = safeIso(dateFrom);
     let dt = safeIso(dateTo);
@@ -74,29 +81,185 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
     }
 
     if (df && dt) {
-      and.push({ date: { between: [df, dt] } });
+      clauses.push({ date: { between: [df, dt] } });
     } else if (df) {
-      and.push({ date: { ge: df } });
+      clauses.push({ date: { ge: df } });
     } else if (dt) {
-      and.push({ date: { le: dt } });
+      clauses.push({ date: { le: dt } });
     }
 
-    const filter = and.length === 0 ? undefined : and.length === 1 ? and[0] : { and };
+    const wantsProductIndex = productClause && Number(productId) > 0;
+    const wantsWarehouseIndex = !wantsProductIndex && warehouseClause && Number(warehouseId) > 0;
 
-    const result = await listAllPages<any>((args) => amplifyClient.models.Kardex.list(args), {
+    const filterClauses = clauses.filter((c) => {
+      if (wantsProductIndex && c === productClause) return false;
+      if (wantsWarehouseIndex && c === warehouseClause) return false;
+      return true;
+    });
+    const filter =
+      filterClauses.length === 0 ? undefined : filterClauses.length === 1 ? filterClauses[0] : { and: filterClauses };
+
+    const qListByProductId = /* GraphQL */ `
+      query ListKardexByProductId(
+        $productId: Int!
+        $sortDirection: ModelSortDirection
+        $filter: ModelKardexFilterInput
+        $limit: Int
+        $nextToken: String
+      ) {
+        listKardexByProductId(
+          productId: $productId
+          sortDirection: $sortDirection
+          filter: $filter
+          limit: $limit
+          nextToken: $nextToken
+        ) {
+          items {
+            kardexId
+            date
+            type
+            productId
+            warehouseId
+            userId
+            quantity
+            balance
+            unitCost
+            totalCost
+            unitPrice
+            totalPrice
+            totalPriceAfterDiscount
+            documentId
+            documentItemId
+            documentNumber
+            note
+          }
+          nextToken
+        }
+      }
+    `;
+
+    const qListByWarehouseId = /* GraphQL */ `
+      query ListKardexByWarehouseId(
+        $warehouseId: Int!
+        $sortDirection: ModelSortDirection
+        $filter: ModelKardexFilterInput
+        $limit: Int
+        $nextToken: String
+      ) {
+        listKardexByWarehouseId(
+          warehouseId: $warehouseId
+          sortDirection: $sortDirection
+          filter: $filter
+          limit: $limit
+          nextToken: $nextToken
+        ) {
+          items {
+            kardexId
+            date
+            type
+            productId
+            warehouseId
+            userId
+            quantity
+            balance
+            unitCost
+            totalCost
+            unitPrice
+            totalPrice
+            totalPriceAfterDiscount
+            documentId
+            documentItemId
+            documentNumber
+            note
+          }
+          nextToken
+        }
+      }
+    `;
+
+    const qListAll = /* GraphQL */ `
+      query ListKardexes(
+        $filter: ModelKardexFilterInput
+        $limit: Int
+        $nextToken: String
+        $sortDirection: ModelSortDirection
+      ) {
+        listKardexes(filter: $filter, limit: $limit, nextToken: $nextToken, sortDirection: $sortDirection) {
+          items {
+            kardexId
+            date
+            type
+            productId
+            warehouseId
+            userId
+            quantity
+            balance
+            unitCost
+            totalCost
+            unitPrice
+            totalPrice
+            totalPriceAfterDiscount
+            documentId
+            documentItemId
+            documentNumber
+            note
+          }
+          nextToken
+        }
+      }
+    `;
+
+    const commonVars = {
+      sortDirection: 'DESC',
       filter,
       limit: Math.min(limit, 1000),
-    } as any);
+      nextToken,
+    };
 
-    if ('error' in result) return { data: [], error: result.error };
+    let conn: any = null;
+    try {
+      if (wantsProductIndex) {
+        const resp: any = await (amplifyClient as any).graphql({
+          query: qListByProductId,
+          variables: { ...commonVars, productId: Number(productId) },
+        });
+        conn = resp?.data?.listKardexByProductId;
+      } else if (wantsWarehouseIndex) {
+        const resp: any = await (amplifyClient as any).graphql({
+          query: qListByWarehouseId,
+          variables: { ...commonVars, warehouseId: Number(warehouseId) },
+        });
+        conn = resp?.data?.listKardexByWarehouseId;
+      } else {
+        const resp: any = await (amplifyClient as any).graphql({
+          query: qListAll,
+          variables: commonVars,
+        });
+        conn = resp?.data?.listKardexes;
+      }
+    } catch (err) {
+      // Fallback to model list (scan) if the GraphQL client isn't available in this runtime.
+      const page: any = await amplifyClient.models.Kardex.list({
+        filter: clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses },
+        limit: Math.min(limit, 1000),
+        nextToken,
+      } as any);
 
-    const entries = (result.data ?? [])
+      if (page?.errors) return { data: [], error: 'No se pudieron cargar movimientos' };
+      conn = { items: page?.data ?? [], nextToken: (page as any)?.nextToken ?? null };
+    }
+
+    const items = (conn?.items ?? []) as any[];
+    const pageNextToken = (conn?.nextToken ?? null) as string | null;
+
+    const entries = items
       .map((k: any) => ({
         kardexId: Number(k?.kardexId ?? 0),
         date: String(k?.date ?? ''),
         type: String(k?.type ?? '') as any,
         productId: Number(k?.productId ?? 0),
         warehouseId: k?.warehouseId !== undefined && k?.warehouseId !== null ? Number(k.warehouseId) : null,
+        userId: k?.userId !== undefined && k?.userId !== null ? Number(k.userId) : null,
         quantity: Number(k?.quantity ?? 0) || 0,
         balance: Number(k?.balance ?? 0) || 0,
         unitCost: k?.unitCost !== undefined && k?.unitCost !== null ? Number(k.unitCost) : null,
@@ -114,19 +277,25 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
         productName: null as string | null,
         productCode: null as string | null,
         warehouseName: null as string | null,
+        userName: null as string | null,
       }))
       .filter((k) => Number.isFinite(k.kardexId) && k.kardexId > 0 && Number.isFinite(k.productId) && k.productId > 0)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, limit);
+      // NOTE: list() order is not guaranteed; we sort client-side for usability.
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const productIds = Array.from(new Set(entries.map((e) => e.productId)));
     const warehouseIds = Array.from(
       new Set(entries.map((e) => e.warehouseId).filter((id): id is number => typeof id === 'number' && Number.isFinite(id)))
     );
 
-    const [productGets, warehouseGets] = await Promise.all([
+    const userIds = Array.from(
+      new Set(entries.map((e) => e.userId).filter((id): id is number => typeof id === 'number' && Number.isFinite(id)))
+    );
+
+    const [productGets, warehouseGets, userGets] = await Promise.all([
       Promise.all(productIds.map((idProduct) => amplifyClient.models.Product.get({ idProduct } as any))),
       Promise.all(warehouseIds.map((idWarehouse) => amplifyClient.models.Warehouse.get({ idWarehouse } as any))),
+      Promise.all(userIds.map((userId) => amplifyClient.models.User.get({ userId } as any))),
     ]);
 
     const productById = new Map<number, { name: string; code: string | null }>();
@@ -141,18 +310,26 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
       if (w) warehouseById.set(warehouseIds[i], String(w?.name ?? String(warehouseIds[i])));
     }
 
+    const userById = new Map<number, string>();
+    for (let i = 0; i < userIds.length; i++) {
+      const u: any = (userGets[i] as any)?.data;
+      if (u) userById.set(userIds[i], String(u?.username ?? String(userIds[i])));
+    }
+
     const data: KardexEntryRow[] = entries.map((e) => {
       const p = productById.get(e.productId);
       const w = e.warehouseId ? warehouseById.get(e.warehouseId) : null;
+      const u = e.userId ? userById.get(e.userId) : null;
       return {
         ...e,
         productName: p?.name ?? null,
         productCode: p?.code ?? null,
         warehouseName: w ?? null,
+        userName: u ?? null,
       };
     });
 
-    return { data };
+    return { data, nextToken: pageNextToken };
   } catch (e) {
     return { data: [], error: formatAmplifyError(e) };
   }

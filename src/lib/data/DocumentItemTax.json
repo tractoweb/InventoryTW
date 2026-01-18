@@ -18543,5 +18543,15 @@
         "Amount": 156776.0779,
         "DocumentItemId": 4099,
         "TaxId": 2
+    },
+    {
+        "Amount": 665659.4118,
+        "DocumentItemId": 4100,
+        "TaxId": 2
+    },
+    {
+        "Amount": 74075.4118,
+        "DocumentItemId": 4101,
+        "TaxId": 2
     }
 ]

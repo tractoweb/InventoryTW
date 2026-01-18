@@ -21,12 +21,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const pathnameRef = React.useRef<string>(pathname ?? "/");
+  pathnameRef.current = pathname ?? "/";
+
   const isLogin = pathname === "/login";
+  const isDocumentPrintRoute = Boolean(
+    pathname && /^\/documents\/[^/]+\/print(\/preview)?\/?$/.test(pathname)
+  );
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
   const [sessionOk, setSessionOk] = React.useState(false);
   const [session, setSession] = React.useState<any>(null);
   const [sessionVersion, setSessionVersion] = React.useState(0);
+  const hasValidatedRef = React.useRef(false);
 
   React.useEffect(() => {
     // Allows child pages (e.g., Profile) to request a session re-fetch.
@@ -43,6 +50,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Avoid re-checking on every client navigation.
+    // Server components already protect routes; this is a safety net for stale cookies.
+    if (hasValidatedRef.current && sessionVersion === 0) return;
+
     let cancelled = false;
 
     async function run() {
@@ -55,9 +66,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       try {
         res = await getCurrentSessionAction();
       } catch {
-        // If server actions are unavailable / transient network error,
-        // treat as unauthenticated and redirect.
-        res = null;
+        // If server actions are temporarily unavailable, don't force logout.
+        // Keep the current session state (if any) and let pages handle auth.
+        setSessionChecked(true);
+        return;
       }
       if (cancelled) return;
 
@@ -65,7 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         setSessionOk(false);
         setSession(null);
         setSessionChecked(true);
-        const next = encodeURIComponent(pathname || "/");
+        const next = encodeURIComponent(pathnameRef.current || "/");
         router.replace(`/login?next=${next}`);
         router.refresh();
         return;
@@ -74,13 +86,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       setSessionOk(true);
       setSession(res.data);
       setSessionChecked(true);
+      hasValidatedRef.current = true;
     }
 
     run();
     return () => {
       cancelled = true;
     };
-  }, [isLogin, pathname, router, sessionVersion]);
+  }, [isLogin, router, sessionChecked, sessionOk, sessionVersion]);
 
   if (isLogin) {
     return <>{children}</>;
@@ -88,6 +101,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const showSessionLoader = !sessionChecked || !sessionOk;
   const accessLevel = typeof session?.accessLevel === "number" ? Number(session.accessLevel) : 0;
+
+  if (isDocumentPrintRoute) {
+    return showSessionLoader ? (
+      <div className="min-h-svh w-full grid place-items-center">
+        <div className="text-sm text-muted-foreground">Cargando…</div>
+      </div>
+    ) : (
+      <>{children}</>
+    );
+  }
 
   return (
     <SidebarProvider>

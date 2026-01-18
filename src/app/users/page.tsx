@@ -2,7 +2,6 @@ import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { getCurrentSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { AccessDenied } from "@/components/auth/access-denied";
-import UsersClientPage from "./users-client-page";
 
 export default async function UsersPage() {
   const res = await getCurrentSession();
@@ -10,5 +9,5 @@ export default async function UsersPage() {
   if (Number(res.data.accessLevel) < ACCESS_LEVELS.ADMIN) {
     return <AccessDenied backHref="/" backLabel="Volver al panel" />;
   }
-  return <UsersClientPage />;
+  redirect("/settings/users");
 }

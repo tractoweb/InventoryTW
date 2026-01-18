@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -23,33 +22,32 @@ import type { Tax } from "@/actions/get-taxes";
 import type { ProductsMasterRow } from "@/actions/list-products-for-master";
 import { useProductsCatalog } from "@/components/catalog/products-catalog-provider";
 import { listProductsByGroup, type ProductTreeItem } from "@/actions/list-products-by-group";
-import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
-import { getTaxesForProducts } from "@/actions/get-taxes-for-products";
 
 import { DataTable } from "./data-table";
 import { productsMasterColumns } from "./products-master-columns";
 import { AddProductForm } from "./add-product-form";
 import { deleteProduct } from "@/actions/delete-product";
 import { ViewProductDetails } from "./view-product-details";
+import { EditProductForm } from "./edit-product-form";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
 import { ScanLine } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
-  taxesText?: string;
-  barcodesText?: string;
 };
 
 type Props = {
   productGroups: ProductGroup[];
   warehouses: Warehouse[];
   taxes: Tax[];
+  currentUserName: string;
   initialQuery?: string;
   initialGroupId?: number | null;
 };
 
-export function ProductsMasterClient({ productGroups, warehouses, taxes, initialQuery, initialGroupId }: Props) {
+export function ProductsMasterClient({ productGroups, warehouses, taxes, currentUserName, initialQuery, initialGroupId }: Props) {
   const { toast } = useToast();
 
   const productsCatalog = useProductsCatalog();
@@ -122,8 +120,6 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
         r.productGroupId && groupNameById.has(Number(r.productGroupId))
           ? groupNameById.get(Number(r.productGroupId))
           : null,
-      taxesText: "",
-      barcodesText: "",
     })) as ProductsMasterTableRow[];
     setRows(base);
     setLoading(false);
@@ -196,9 +192,22 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
 
   const handleDeleteProduct = React.useCallback(
     async (productId: number) => {
+      const target = (rows ?? []).find((r) => r.id === productId);
       const result = await deleteProduct(productId);
       if (result.success) {
-        toast({ title: "Producto eliminado", description: result.message });
+        const when = new Date().toLocaleString("es-CO", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const whatName = target?.name ? String(target.name) : `Producto #${productId}`;
+        const whatRef = target?.code ? String(target.code) : String(productId);
+        toast({
+          title: "Producto desactivado",
+          description: `${currentUserName} · ${when} · ${whatName} (${whatRef})`,
+        });
         setRows((prev) => prev.filter((r) => r.id !== productId));
         setGroupProducts((prev) => {
           const next = { ...prev };
@@ -212,7 +221,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
         toast({ variant: "destructive", title: "Error al eliminar", description: result.error });
       }
     },
-    [toast]
+    [toast, currentUserName, rows]
   );
 
   const tableMeta = React.useMemo(
@@ -221,6 +230,11 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
       warehouses,
       taxes,
       handleDeleteProduct,
+      disableRowExpansion: true,
+      openProductDetails: (productId: number) => {
+        setDetailsProductId(Number(productId));
+        setDetailsOpen(true);
+      },
     }),
     [productGroups, warehouses, taxes, handleDeleteProduct]
   );
@@ -308,23 +322,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <Card className="hidden lg:block h-[calc(100vh-220px)]">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Grupos y productos</CardTitle>
-          <Input placeholder="Buscar en el árbol…" value={leftQuery} onChange={(e) => setLeftQuery(e.target.value)} />
-        </CardHeader>
-        <CardContent className="pt-0">
-          <ScrollArea className="h-[calc(100vh-300px)] pr-2">
-            <div className="space-y-2">
-              {filteredRoots.map((g) => (
-                <GroupNode key={g.id} group={g} depth={0} />
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-4 min-w-0">
       <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md">
           <SheetHeader>
@@ -345,88 +343,93 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
         </SheetContent>
       </Sheet>
 
-      <div className="space-y-4 min-w-0">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-            <Button variant="outline" className="lg:hidden w-full sm:w-auto" onClick={() => setGroupsOpen(true)}>
-              Grupos
-            </Button>
-            <Input
-              placeholder="Buscar productos (nombre, código o barcode)…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full sm:w-[420px] min-w-0"
-            />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setGroupsOpen(true)}>
+            Grupos
+          </Button>
+          <Input
+            placeholder="Buscar productos (nombre, código o barcode)…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full sm:w-[420px] min-w-0"
+          />
 
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => setScanOpen(true)}
-              title="Escanear código de barras"
-            >
-              <ScanLine className="h-4 w-4 mr-2" />
-              Escanear
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                setLoading(true);
-                setError(null);
-                try {
-                  await productsCatalog.refresh();
-                  setRefreshNonce((n) => n + 1);
-                } catch (e: any) {
-                  setError(e?.message ?? "No se pudo refrescar");
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              disabled={loading}
-              title="Refrescar"
-            >
-              Refrescar
-            </Button>
-            {selectedGroupId ? (
-              <Button variant="outline" onClick={() => setSelectedGroupId(null)} disabled={loading}>
-                Quitar filtro: {productGroups.find((g) => g.id === selectedGroupId)?.name ?? `#${selectedGroupId}`}
-              </Button>
-            ) : null}
-          </div>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => setScanOpen(true)}
+            title="Escanear código de barras"
+          >
+            <ScanLine className="h-4 w-4 mr-2" />
+            Escanear
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              try {
+                await productsCatalog.refresh();
+                setRefreshNonce((n) => n + 1);
+              } catch (e: any) {
+                setError(e?.message ?? "No se pudo refrescar");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            title="Refrescar"
+          >
+            Refrescar
+          </Button>
 
-          <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
-            <DialogTrigger asChild>
-              <Button>Nuevo producto</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Añadir nuevo producto</DialogTitle>
-                <DialogDescription>Completa los detalles para añadir un nuevo producto al catálogo.</DialogDescription>
-              </DialogHeader>
-              <AddProductForm setOpen={setAddModalOpen} productGroups={productGroups || []} warehouses={warehouses} taxes={taxes} />
-            </DialogContent>
-          </Dialog>
+          {selectedGroupId ? (
+            <Button variant="outline" onClick={() => setSelectedGroupId(null)} disabled={loading}>
+              Quitar filtro: {productGroups.find((g) => g.id === selectedGroupId)?.name ?? `#${selectedGroupId}`}
+            </Button>
+          ) : null}
         </div>
 
-        <div className="text-sm text-muted-foreground">
-          Productos: {filteredRows.length} {selectedGroupId ? "(filtrado por grupo)" : ""}
-        </div>
-
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : (
-          <div className="w-full min-w-0">
-            <DataTable columns={productsMasterColumns} data={filteredRows} meta={tableMeta} />
-          </div>
-        )}
+        <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+          <DialogTrigger asChild>
+            <Button>Nuevo producto</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Añadir nuevo producto</DialogTitle>
+              <DialogDescription>Completa los detalles para añadir un nuevo producto al catálogo.</DialogDescription>
+            </DialogHeader>
+              <AddProductForm
+                setOpen={setAddModalOpen}
+                productGroups={productGroups || []}
+                warehouses={warehouses}
+                taxes={taxes}
+                currentUserName={currentUserName}
+              />
+          </DialogContent>
+        </Dialog>
       </div>
+
+      <div className="text-sm text-muted-foreground text-center">
+        Productos: {filteredRows.length} {selectedGroupId ? "(filtrado por grupo)" : ""}
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
+        <div className="w-full min-w-0">
+          <DataTable columns={productsMasterColumns} data={filteredRows} meta={tableMeta} />
+        </div>
+      )}
 
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
@@ -435,7 +438,24 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, initial
           </SheetHeader>
           {detailsProductId ? (
             <div className="pt-4">
-              <ViewProductDetails productId={detailsProductId} />
+              <Tabs defaultValue="details" className="w-full">
+                <TabsList className="mb-4 grid w-full grid-cols-2">
+                  <TabsTrigger value="details">Detalles</TabsTrigger>
+                  <TabsTrigger value="edit">Editar</TabsTrigger>
+                </TabsList>
+                <TabsContent value="details">
+                  <ViewProductDetails productId={detailsProductId} />
+                </TabsContent>
+                <TabsContent value="edit">
+                  <EditProductForm
+                    productId={detailsProductId}
+                    productGroups={productGroups}
+                    taxes={taxes}
+                    currentUserName={currentUserName}
+                    onClose={() => setDetailsOpen(false)}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
             <div className="pt-4 text-sm text-muted-foreground">Selecciona un producto.</div>

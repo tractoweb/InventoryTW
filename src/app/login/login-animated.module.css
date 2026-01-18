@@ -49,6 +49,28 @@
   padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 4vw, 2.5rem);
 }
 
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(17, 24, 39, 0.78);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.root[data-exiting="true"] .center {
+  pointer-events: none;
+}
+
+.root[data-exiting="true"] .card::after {
+  animation-play-state: paused;
+  opacity: 0.6;
+}
+
 /* glassy card feel, without breaking shadcn Card */
 .cardWrap {
   width: 100%;

@@ -114,6 +114,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
 
   // Selected product details
   const [selectedProductId, setSelectedProductId] = React.useState<number | null>(null);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
   const [detailsLoading, setDetailsLoading] = React.useState(false);
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
   const [details, setDetails] = React.useState<any | null>(null);
@@ -471,13 +472,13 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 sm:pb-0">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Salidas</h1>
           <p className="text-muted-foreground">Registra salidas rápidas escaneando o buscando productos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="hidden sm:flex gap-2">
           <Button variant="outline" onClick={() => setItems([])} disabled={items.length === 0 || saving}>
             Limpiar
           </Button>
@@ -634,7 +635,127 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="w-full overflow-auto rounded-md border">
+
+            {/* Mobile list */}
+            <div className="md:hidden space-y-3">
+              {items.length === 0 ? (
+                <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                  Agrega productos con el buscador o el escáner.
+                </div>
+              ) : (
+                items.map((it, idx) => {
+                  const active = selectedProductId === it.productId;
+                  const total = (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0);
+                  return (
+                    <div
+                      key={`${it.productId}-${idx}`}
+                      className={`rounded-md border p-3 ${active ? "bg-muted/30" : "bg-card"}`}
+                      onClick={() => {
+                        setSelectedProductId(it.productId);
+                        setMobileDetailsOpen(true);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedProductId(it.productId);
+                          setMobileDetailsOpen(true);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{it.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            ID {it.productId}{it.code ? ` · ${it.code}` : ""}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(idx);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 grid gap-3">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const nextQty = Math.max(0, (Number(it.quantity) || 0) - 1);
+                              updateItem(idx, { quantity: nextQty });
+                            }}
+                          >
+                            <Minus className="mr-2 h-4 w-4" />
+                            -1
+                          </Button>
+                          <Input
+                            className="text-center"
+                            value={String(it.quantity)}
+                            onChange={(e) => updateItem(idx, { quantity: toNumberSafe(e.target.value, 0) })}
+                            inputMode="decimal"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateItem(idx, { quantity: (Number(it.quantity) || 0) + 1 });
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            +1
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground">Precio salida</div>
+                            <Input
+                              value={String(it.unitPrice ?? 0)}
+                              onChange={(e) => updateItem(idx, { unitPrice: toNumberSafe(e.target.value, 0) })}
+                              inputMode="decimal"
+                              placeholder="0"
+                              className="h-10 text-base font-semibold tabular-nums"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground">Costo</div>
+                            <Input
+                              value={String(it.unitCost ?? 0)}
+                              onChange={(e) => updateItem(idx, { unitCost: toNumberSafe(e.target.value, 0) })}
+                              inputMode="decimal"
+                              placeholder="0"
+                              className="h-10 text-base tabular-nums"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">Total</div>
+                          <div className="text-base font-semibold tabular-nums">{Number.isFinite(total) ? total : 0}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block w-full overflow-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -748,7 +869,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle>Acciones</CardTitle>
             <CardDescription>Guarda y genera Kardex/Stock.</CardDescription>
@@ -767,12 +888,59 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
         </Card>
       </div>
 
+      {/* Mobile sticky actions */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur">
+        <div className="mx-auto max-w-screen-xl px-4 py-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSaveSalida}
+              disabled={saving}
+              className="flex-1"
+            >
+              {saving ? "Guardando…" : "Guardar"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => searchRef.current?.focus()}
+              className="flex-1"
+            >
+              Buscar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setItems([])}
+              disabled={items.length === 0 || saving}
+              className="shrink-0"
+            >
+              Limpiar
+            </Button>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{totals.totalLines} líneas</span>
+            <span>{totals.totalQty} unidades</span>
+          </div>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Detalles de producto seleccionado</CardTitle>
-          <CardDescription>Historial y documentos relacionados.</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle>Detalles de producto seleccionado</CardTitle>
+            <CardDescription>Historial y documentos relacionados.</CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="md:hidden"
+            disabled={!selectedProductId}
+            onClick={() => setMobileDetailsOpen((v) => !v)}
+          >
+            {mobileDetailsOpen ? "Ocultar" : "Ver"}
+          </Button>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className={mobileDetailsOpen ? "" : "hidden md:block"}>
           {!selectedProductId ? (
             <div className="text-sm text-muted-foreground">Selecciona un producto del carrito (o agrega uno) para ver detalles.</div>
           ) : detailsLoading ? (
@@ -936,6 +1104,12 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
             </div>
           )}
         </CardContent>
+
+        {!mobileDetailsOpen ? (
+          <CardContent className="md:hidden pt-0">
+            <div className="text-sm text-muted-foreground">Toca “Ver” para abrir los detalles.</div>
+          </CardContent>
+        ) : null}
       </Card>
 
       <Dialog

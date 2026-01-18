@@ -14,13 +14,26 @@ export async function getStockData(): Promise<{ data: StockInfo[]; error?: strin
       async () => {
         // Nota: este endpoint adapta datos de Amplify al shape legacy usado por la UI.
         // Es costoso (productos + stock completos), así que lo cacheamos con TTL corto.
-        const [productsRes, stocksRes] = await Promise.all([
+        const [productsRes, stocksRes, barcodesRes] = await Promise.all([
           listAllPages<any>((a) => amplifyClient.models.Product.list(a)),
           listAllPages<any>((a) => amplifyClient.models.Stock.list(a)),
+          listAllPages<any>((a) => amplifyClient.models.Barcode.list(a)),
         ]);
 
         if ('error' in productsRes) return { data: [], error: String(productsRes.error ?? "Error cargando productos") };
         if ('error' in stocksRes) return { data: [], error: String(stocksRes.error ?? "Error cargando stock") };
+        if ('error' in barcodesRes) return { data: [], error: String(barcodesRes.error ?? "Error cargando códigos de barras") };
+
+        const barcodesByProductId = new Map<number, string[]>();
+        for (const b of barcodesRes.data ?? []) {
+          const productId = Number((b as any)?.productId);
+          const value = String((b as any)?.value ?? "").trim();
+          if (!Number.isFinite(productId) || productId <= 0) continue;
+          if (!value) continue;
+          const list = barcodesByProductId.get(productId);
+          if (list) list.push(value);
+          else barcodesByProductId.set(productId, [value]);
+        }
 
         const stockTotalByProductId = new Map<number, number>();
         for (const s of stocksRes.data ?? []) {
@@ -37,11 +50,17 @@ export async function getStockData(): Promise<{ data: StockInfo[]; error?: strin
           .map((p: any) => {
             const idProduct = Number(p?.idProduct ?? p?.productId ?? p?.id);
             const totalQty = stockTotalByProductId.get(idProduct) ?? 0;
+            const barcodes = barcodesByProductId.get(idProduct) ?? [];
+            const name = String(p?.name ?? '');
+            const code = p?.code ? String(p?.code) : undefined;
+            const searchindex = `${name} ${code ?? ""} ${barcodes.join(" ")}`.toLowerCase();
 
             return {
               id: idProduct,
-              name: String(p?.name ?? ''),
-              code: p?.code ?? undefined,
+              name,
+              code,
+              barcodes,
+              searchindex,
               measurementunit: p?.measurementUnit ?? undefined,
               quantity: totalQty,
               price: Number(p?.price ?? 0),

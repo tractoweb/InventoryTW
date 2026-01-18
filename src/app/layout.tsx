@@ -6,6 +6,7 @@ import AppShell from '@/components/layout/app-shell';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProductsCatalogProvider } from '@/components/catalog/products-catalog-provider';
 import { DocumentsCatalogProvider } from '@/components/catalog/documents-catalog-provider';
+import { RealtimeAuditToasts } from '@/components/realtime/realtime-audit-toasts';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
               <AppShell>{children}</AppShell>
             </DocumentsCatalogProvider>
           </ProductsCatalogProvider>
+          <RealtimeAuditToasts />
           <Toaster />
         </ThemeProvider>
       </body>

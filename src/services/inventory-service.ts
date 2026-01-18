@@ -694,6 +694,7 @@ export async function getLowStockAlerts(): Promise<{
   alerts?: {
     productId: string;
     productName: string;
+    productCode: string;
     currentStock: number;
     warningQuantity: number;
     warehouseName: string;
@@ -714,9 +715,13 @@ export async function getLowStockAlerts(): Promise<{
     if ('error' in productsRes) return { success: false, error: productsRes.error };
 
     const productNameById = new Map<number, string>();
+    const productCodeById = new Map<number, string>();
     for (const p of productsRes.data ?? []) {
       const id = Number((p as any)?.idProduct);
-      if (Number.isFinite(id) && id > 0) productNameById.set(id, String((p as any)?.name ?? ''));
+      if (!Number.isFinite(id) || id <= 0) continue;
+      productNameById.set(id, String((p as any)?.name ?? ''));
+      const code = String((p as any)?.code ?? (p as any)?.reference ?? (p as any)?.sku ?? id).trim() || String(id);
+      productCodeById.set(id, code);
     }
 
     const stockTotalByProductId = new Map<number, number>();
@@ -737,6 +742,7 @@ export async function getLowStockAlerts(): Promise<{
         return {
           productId: String(productIdNum),
           productName: productNameById.get(productIdNum) ?? `#${productIdNum}`,
+          productCode: productCodeById.get(productIdNum) ?? String(productIdNum),
           currentStock: Number.isFinite(currentStock) ? currentStock : 0,
           warningQuantity: Number.isFinite(warningQuantity) ? warningQuantity : 0,
           warehouseName: 'Total',

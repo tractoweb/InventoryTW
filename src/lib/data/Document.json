@@ -20758,5 +20758,29 @@
         "Total": 3788301.96,
         "UserId": 1,
         "WarehouseId": 1
+    },
+    {
+        "CustomerId": 19,
+        "Date": "2025-12-29 00:00:00",
+        "DateCreated": "2026-01-16 15:13:32.7131889",
+        "DateUpdated": "2026-01-16 15:29:57.1971111",
+        "Discount": 0,
+        "DiscountApplyRule": 0,
+        "DiscountType": 0,
+        "DocumentTypeId": 1,
+        "DueDate": "2025-12-29 00:00:00",
+        "Id": 873,
+        "InternalNote": "FLETE : $ 53.500",
+        "IsClockedOut": 0,
+        "Note": null,
+        "Number": "25-100-000441",
+        "OrderNumber": null,
+        "PaidStatus": 2,
+        "ReferenceDocumentNumber": "A54535",
+        "ServiceType": 0,
+        "StockDate": "2026-01-16 15:13:32.7131889",
+        "Total": 4633076,
+        "UserId": 1,
+        "WarehouseId": 1
     }
 ]

@@ -68117,5 +68117,39 @@
         "Quantity": 4,
         "Total": 981913.33,
         "TotalAfterDocumentDiscount": 981913.33
+    },
+    {
+        "Discount": 0,
+        "DiscountApplyRule": 0,
+        "DiscountType": 0,
+        "DocumentId": 873,
+        "ExpectedQuantity": 0,
+        "Id": 4100,
+        "Price": 4169130,
+        "PriceAfterDiscount": 4169130,
+        "PriceBeforeTax": 3503470.5882,
+        "PriceBeforeTaxAfterDiscount": 3503470.5882,
+        "ProductCost": 0,
+        "ProductId": 3031,
+        "Quantity": 1,
+        "Total": 4169130,
+        "TotalAfterDocumentDiscount": 4169130
+    },
+    {
+        "Discount": 0,
+        "DiscountApplyRule": 0,
+        "DiscountType": 0,
+        "DocumentId": 873,
+        "ExpectedQuantity": 0,
+        "Id": 4101,
+        "Price": 463946,
+        "PriceAfterDiscount": 463946,
+        "PriceBeforeTax": 389870.5882,
+        "PriceBeforeTaxAfterDiscount": 389870.5882,
+        "ProductCost": 0,
+        "ProductId": 3032,
+        "Quantity": 1,
+        "Total": 463946,
+        "TotalAfterDocumentDiscount": 463946
     }
 ]

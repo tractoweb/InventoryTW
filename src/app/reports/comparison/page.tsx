@@ -86,13 +86,13 @@ export default async function ComparisonReportPage() {
                     </div>
                     <div className="flex gap-2">
                       <Link
-                        href={`/inventory?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}
+                        href={`/inventory?q=${encodeURIComponent(String(g.items[0]?.code ?? g.items[0]?.name ?? "").trim())}`}
                         className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                       >
                         Buscar en Productos
                       </Link>
                       <Link
-                        href={`/stock?q=${encodeURIComponent(g.items[0]?.name ?? "")}`}
+                        href={`/stock?q=${encodeURIComponent(String(g.items[0]?.code ?? g.items[0]?.name ?? "").trim())}`}
                         className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                       >
                         Buscar en Stock
@@ -118,7 +118,7 @@ export default async function ComparisonReportPage() {
                             <TableCell className="hidden md:table-cell">{p.code ?? "-"}</TableCell>
                             <TableCell className="text-right">
                               <Link
-                                href={`/inventory?q=${encodeURIComponent(p.name)}`}
+                                href={`/inventory?q=${encodeURIComponent(String(p.code ?? p.name ?? "").trim())}`}
                                 className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                               >
                                 Abrir

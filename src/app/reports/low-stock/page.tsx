@@ -54,9 +54,6 @@ export default async function LowStockReportPage() {
           <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
             Volver
           </Link>
-          <Link href="/stock" className={cn(buttonVariants({}))}>
-            Ir a Stock
-          </Link>
         </div>
       </div>
 
@@ -88,7 +85,7 @@ export default async function LowStockReportPage() {
                       <TableCell className="hidden md:table-cell">{r.warehouseName}</TableCell>
                       <TableCell className="text-right">
                         <Link
-                          href={`/stock?q=${encodeURIComponent(r.productName)}`}
+                          href={`/stock?q=${encodeURIComponent(String((r as any).productCode ?? r.productName ?? "").trim())}`}
                           className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                         >
                           Ver en Stock

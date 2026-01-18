@@ -147,25 +147,37 @@ export function hashPasswordForStorage(password: string): string {
 export async function validateSession(userId: string | number, sessionToken: string) {
   try {
     const normalizedUserId = Number(userId);
-    const { data: sessions, errors } = await amplifyClient.models.SessionConfig.list({
-      filter: {
-        userId: { eq: normalizedUserId },
-        sessionToken: { eq: sessionToken },
-        isActive: { eq: true },
-      },
-    });
+    // SessionConfig is keyed by userId (single active session per user).
+    // Using list+filter can be eventually consistent and intermittently return empty,
+    // causing annoying logouts during normal navigation.
+    const getRes: any = await amplifyClient.models.SessionConfig.get({ userId: normalizedUserId } as any).catch(() => null);
+    const session = getRes?.data;
+    if (!session) return { valid: false };
 
-    if (errors || !sessions || sessions.length === 0) {
-      return { valid: false };
+    const storedToken = String((session as any)?.sessionToken ?? "");
+    const isActive = Boolean((session as any)?.isActive);
+    if (!isActive) return { valid: false };
+    if (!storedToken || storedToken !== String(sessionToken)) return { valid: false };
+
+    // Actualizar lastActivityTime (best-effort).
+    // NOTE: SessionConfig has required fields (accessLevel, loginTime). Some Amplify backends
+    // require sending them on update; missing them can throw and would incorrectly invalidate
+    // the session. Never treat update failures as invalid sessions.
+    try {
+      await amplifyClient.models.SessionConfig.update({
+        userId: Number((session as any).userId),
+        accessLevel: Number((session as any).accessLevel ?? ACCESS_LEVELS.CASHIER),
+        loginTime: String((session as any).loginTime ?? new Date().toISOString()),
+        lastActivityTime: new Date().toISOString(),
+        isActive: (session as any).isActive ?? true,
+        sessionToken: String((session as any).sessionToken ?? sessionToken),
+        firstName: (session as any).firstName ?? undefined,
+        lastName: (session as any).lastName ?? undefined,
+        email: (session as any).email ?? undefined,
+      } as any);
+    } catch {
+      // ignore
     }
-
-    const session = sessions[0];
-
-    // Actualizar lastActivityTime
-    await amplifyClient.models.SessionConfig.update({
-      userId: Number((session as any).userId),
-      lastActivityTime: new Date().toISOString(),
-    });
 
     return {
       valid: true,
@@ -182,18 +194,27 @@ export async function validateSession(userId: string | number, sessionToken: str
 export async function logoutUser(userId: string | number, sessionToken: string) {
   try {
     const normalizedUserId = Number(userId);
-    const { data: sessions } = await amplifyClient.models.SessionConfig.list({
-      filter: {
-        userId: { eq: normalizedUserId },
-        sessionToken: { eq: sessionToken },
-      },
-    });
 
-    if (sessions && sessions.length > 0) {
+    const getRes: any = await amplifyClient.models.SessionConfig.get({ userId: normalizedUserId } as any).catch(() => null);
+    const session = getRes?.data;
+    if (session) {
+      const storedToken = String((session as any)?.sessionToken ?? "");
+      if (!storedToken || storedToken !== String(sessionToken)) {
+        return { success: true };
+      }
+
+      // SessionConfig may require required fields on update.
       await amplifyClient.models.SessionConfig.update({
-        userId: Number((sessions[0] as any).userId),
+        userId: Number((session as any).userId),
+        accessLevel: Number((session as any).accessLevel ?? ACCESS_LEVELS.CASHIER),
+        loginTime: String((session as any).loginTime ?? new Date().toISOString()),
+        lastActivityTime: String((session as any).lastActivityTime ?? new Date().toISOString()),
         isActive: false,
-      });
+        sessionToken: String((session as any).sessionToken ?? sessionToken),
+        firstName: (session as any).firstName ?? undefined,
+        lastName: (session as any).lastName ?? undefined,
+        email: (session as any).email ?? undefined,
+      } as any);
     }
 
     return { success: true };

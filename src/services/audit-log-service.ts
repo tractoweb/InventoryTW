@@ -9,6 +9,7 @@ export type AuditLogAction =
   | "CREATE"
   | "UPDATE"
   | "DELETE"
+  | "HARD_DELETE"
   | "SOFT_DELETE"
   | "CLOCK_OUT";
 

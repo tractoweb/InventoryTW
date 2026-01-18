@@ -20,6 +20,9 @@ export default async function InventoryPage({
   if (Number(s.data.accessLevel) < ACCESS_LEVELS.CASHIER) {
     return <AccessDenied backHref="/" backLabel="Volver al panel" />;
   }
+
+  const currentUserName =
+    `${s.data.firstName ?? ""} ${s.data.lastName ?? ""}`.trim() || s.data.email || `Usuario #${s.data.userId}`;
   const { data: productGroups, error: groupsError } = await getProductGroups();
   const { data: warehouses, error: warehousesError } = await getWarehouses();
   const { data: taxes, error: taxesError } = await getTaxes();
@@ -42,6 +45,7 @@ export default async function InventoryPage({
         productGroups={productGroups || []}
         warehouses={warehouses || []}
         taxes={taxes || []}
+        currentUserName={currentUserName}
         initialQuery={Array.isArray(searchParams?.q) ? searchParams?.q?.[0] : (searchParams?.q as string | undefined)}
         initialGroupId={(() => {
           const raw = Array.isArray(searchParams?.groupId) ? searchParams?.groupId?.[0] : (searchParams?.groupId as string | undefined);

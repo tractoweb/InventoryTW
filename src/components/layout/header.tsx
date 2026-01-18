@@ -164,7 +164,7 @@ export function AppHeader({ session }: { session?: any }) {
                 className="w-full"
                 asChild
               >
-                <Link href="/audit">Ver auditoría</Link>
+                <Link href="/reports/audit">Ver auditoría</Link>
               </Button>
             </div>
           </PopoverContent>

@@ -5,6 +5,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
+import { writeAuditLog } from "@/services/audit-log-service";
 
 const UpdateApplicationSettingsSchema = z.object({
   companyId: z.coerce.number().int().positive(),
@@ -32,13 +33,16 @@ export async function updateApplicationSettingsAction(
   raw: UpdateApplicationSettingsInput
 ): Promise<{ success: boolean; error?: string }> {
   noStore();
-  await requireSession(ACCESS_LEVELS.ADMIN);
+  const session = await requireSession(ACCESS_LEVELS.ADMIN);
 
   const parsed = UpdateApplicationSettingsSchema.safeParse(raw);
   if (!parsed.success) return { success: false, error: "Datos inválidos" };
 
   try {
     const input = parsed.data;
+
+    const beforeRes: any = await amplifyClient.models.ApplicationSettings.get({ companyId: input.companyId });
+    const before = beforeRes?.data ? { ...beforeRes.data } : undefined;
 
     const payload: any = {
       companyId: input.companyId,
@@ -69,7 +73,17 @@ export async function updateApplicationSettingsAction(
     payload.lastModifiedDate = new Date().toISOString();
 
     const res: any = await amplifyClient.models.ApplicationSettings.update(payload);
-    if (res?.data) return { success: true };
+    if (res?.data) {
+      writeAuditLog({
+        userId: session.userId,
+        action: "UPDATE",
+        tableName: "ApplicationSettings",
+        recordId: input.companyId,
+        oldValues: before,
+        newValues: payload,
+      }).catch(() => {});
+      return { success: true };
+    }
 
     const msg = (res?.errors?.[0]?.message as string | undefined) ?? "No se pudo guardar settings";
     return { success: false, error: msg };

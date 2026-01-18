@@ -42,7 +42,10 @@ export default async function OutOfStockReportPage() {
     );
   }
 
-  const rows = (res.data ?? []).filter((p) => Number(p.quantity ?? 0) <= 0);
+  const rows = (res.data ?? []).filter((p) => {
+    const enabled = (p as any)?.isenabled !== false;
+    return enabled && Number(p.quantity ?? 0) <= 0;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,9 +57,6 @@ export default async function OutOfStockReportPage() {
         <div className="flex gap-2">
           <Link href="/reports" className={cn(buttonVariants({ variant: "outline" }))}>
             Volver
-          </Link>
-          <Link href="/stock" className={cn(buttonVariants({}))}>
-            Ir a Stock
           </Link>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default async function OutOfStockReportPage() {
                       <TableCell className="text-right">{r.quantity}</TableCell>
                       <TableCell className="text-right">
                         <Link
-                          href={`/stock?q=${encodeURIComponent(r.name)}`}
+                          href={`/stock?q=${encodeURIComponent(String(r.code ?? r.name ?? "").trim())}`}
                           className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                         >
                           Ver en Stock

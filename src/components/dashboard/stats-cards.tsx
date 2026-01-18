@@ -206,14 +206,14 @@ export function StatsCards({ data, error }: StatsCardsProps) {
             <HelpPopover
               title="IVA estimado del inventario"
               description="Estimación calculada desde impuestos configurados por producto. Sirve como referencia (depende de si el precio incluye impuestos)."
-              href="/taxes"
+              href="/settings/taxes"
               hrefLabel="Ir a Impuestos"
             />
           </CardTitle>
           <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <Link href="/taxes" className="text-2xl font-bold hover:underline">
+          <Link href="/settings/taxes" className="text-2xl font-bold hover:underline">
             {formatCurrency(inv.estimatedIvaOnSaleValue)}
           </Link>
           <p className="text-xs text-muted-foreground">Estimación según impuestos del producto</p>

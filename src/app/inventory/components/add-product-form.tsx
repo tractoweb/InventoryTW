@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -36,6 +38,34 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { checkReferenceExistence } from "@/actions/check-reference-existence";
 
 
+function parseMoneyIntOptional(input: unknown): number | undefined {
+  const raw = String(input ?? "").trim();
+  if (!raw) return undefined;
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (!digits) return undefined;
+  const n = Number.parseInt(digits, 10);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.max(0, n);
+}
+
+function formatMoneyInt(value: unknown): string {
+  const n = Math.trunc(Number(value ?? 0));
+  const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(safe);
+  } catch {
+    return String(safe).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+}
+
+function roundMoneyInt(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.round(value));
+}
+
 const formSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
@@ -44,8 +74,9 @@ const formSchema = z.object({
   description: z.string().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
-  price: z.coerce.number().min(0, "El precio no puede ser negativo."),
-  cost: z.coerce.number().min(0, "El costo no puede ser negativo.").optional(),
+  price: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El precio debe ser mayor a 0.")),
+  cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El costo debe ser mayor a 0.")),
+  markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
   isTaxInclusivePrice: z.boolean().default(true),
   taxes: z.array(z.coerce.number()).optional(),
   reorderPoint: z.coerce.number().min(0).optional(),
@@ -69,12 +100,14 @@ type AddProductFormProps = {
   productGroups: ProductGroup[];
   warehouses: Warehouse[];
   taxes: Tax[];
+  currentUserName?: string;
 };
 
-export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: AddProductFormProps) {
+export function AddProductForm({ setOpen, productGroups, warehouses, taxes, currentUserName }: AddProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingCode, setIsCheckingCode] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,8 +119,9 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       description: "",
       isEnabled: true,
       isUsingDefaultQuantity: true,
-      price: 0,
-      cost: 0,
+      price: undefined,
+      cost: undefined,
+      markup: 40,
       isTaxInclusivePrice: true,
       taxes: [],
       reorderPoint: 0,
@@ -96,6 +130,15 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
       initialQuantity: 0,
     },
   });
+
+  // Track what the user last edited to avoid cost<->price feedback loops.
+  const [lastEdited, setLastEdited] = useState<"cost" | "price">("cost");
+
+  const wCost = useWatch({ control: form.control, name: "cost" });
+  const wPrice = useWatch({ control: form.control, name: "price" });
+  const wMarkup = useWatch({ control: form.control, name: "markup" });
+  const wTaxes = useWatch({ control: form.control, name: "taxes" });
+  const wIsTaxInclusivePrice = useWatch({ control: form.control, name: "isTaxInclusivePrice" });
 
   const codeValue = form.watch("code");
   const debouncedCode = useDebounce(codeValue, 500);
@@ -126,87 +169,113 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
   }, [debouncedCode, form]);
 
 
-  const getSelectedTaxRate = useCallback(() => {
-    const selectedTaxIds = form.getValues('taxes') || [];
-    const totalRate = selectedTaxIds.reduce((acc, taxId) => {
-      const tax = taxes.find(t => t.id === taxId);
+  const selectedTaxRate = useMemo(() => {
+    const selectedTaxIds = Array.isArray(wTaxes) ? wTaxes : [];
+    return selectedTaxIds.reduce((acc, taxId) => {
+      const tax = taxes.find((t) => t.id === taxId);
       return acc + (tax ? tax.rate / 100 : 0);
     }, 0);
-    return totalRate;
-  }, [form, taxes]);
+  }, [wTaxes, taxes]);
   
-  const MARKUP_RATE = 0.4;
-
   // Pricing rule (Nuevo producto / Precio e Impuestos):
   // - Base = costo
-  // - Precio de venta = base + 40%
+  // - Precio de venta = base + markup% (default 40%)
   // - Si el precio es "con impuesto", se aplica el/los impuestos encima.
-  const calculatePrice = useCallback((cost: number, taxRate: number, isTaxInclusive: boolean) => {
+  const calculatePrice = useCallback((cost: number, markupRate: number, taxRate: number, isTaxInclusive: boolean) => {
     if (cost <= 0) return 0;
-    const basePlusMarkup = cost * (1 + MARKUP_RATE);
+    const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
+    const basePlusMarkup = cost * (1 + safeMarkupRate);
     const newPrice = isTaxInclusive ? basePlusMarkup * (1 + taxRate) : basePlusMarkup;
-    return parseFloat(newPrice.toFixed(2));
+    return roundMoneyInt(newPrice);
   }, []);
 
-  const calculateCost = useCallback((price: number, taxRate: number, isTaxInclusive: boolean) => {
+  const calculateCost = useCallback((price: number, markupRate: number, taxRate: number, isTaxInclusive: boolean) => {
     if (price <= 0) return 0;
     const basePlusMarkup = isTaxInclusive ? price / (1 + taxRate) : price;
-    const newCost = basePlusMarkup / (1 + MARKUP_RATE);
-    return parseFloat(newCost.toFixed(2));
+    const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
+    const newCost = basePlusMarkup / (1 + safeMarkupRate);
+    return roundMoneyInt(newCost);
   }, []);
 
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      const taxRate = getSelectedTaxRate();
-      const isTaxInclusive = form.getValues('isTaxInclusivePrice');
+    const markupPercent = Number(wMarkup ?? 0);
+    const markupRate = (Number.isFinite(markupPercent) ? Math.max(0, markupPercent) : 0) / 100;
+    const includeTax = Boolean(wIsTaxInclusivePrice);
 
-      if (name === 'cost' || name?.startsWith('taxes')) {
-        const cost = Number(form.getValues('cost')) || 0;
-        const newPrice = calculatePrice(cost, taxRate, isTaxInclusive);
-        const currentPrice = Number(form.getValues('price')) || 0;
+    const currentCost = wCost === null || wCost === undefined ? null : Number(wCost);
+    const currentPrice = wPrice === null || wPrice === undefined ? null : Number(wPrice);
 
-        if (newPrice.toFixed(2) !== currentPrice.toFixed(2)) {
-          form.setValue('price', newPrice, { shouldValidate: true });
-        }
+    const nextValue = (v: number | null) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.5;
+
+    if (lastEdited === "price") {
+      if (currentPrice === null || !Number.isFinite(currentPrice) || currentPrice <= 0) {
+        if (wCost !== undefined) form.setValue("cost", undefined as any, { shouldValidate: true, shouldDirty: false });
+        return;
       }
-
-      if (name === 'price' || name === 'isTaxInclusivePrice') {
-        const price = Number(form.getValues('price')) || 0;
-        const newCost = calculateCost(price, taxRate, isTaxInclusive);
-        const currentCost = Number(form.getValues('cost')) || 0;
-        
-        if (newCost.toFixed(2) !== currentCost.toFixed(2)) {
-          form.setValue('cost', newCost, { shouldValidate: true });
-        }
+      const newCost = calculateCost(nextValue(currentPrice), markupRate, selectedTaxRate, includeTax);
+      if (!nearlyEqual(newCost, currentCost)) {
+        form.setValue("cost", newCost as any, { shouldValidate: true, shouldDirty: false });
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, getSelectedTaxRate, calculatePrice, calculateCost]);
+    } else {
+      if (currentCost === null || !Number.isFinite(currentCost) || currentCost <= 0) {
+        if (wPrice !== undefined) form.setValue("price", undefined as any, { shouldValidate: true, shouldDirty: false });
+        return;
+      }
+      const newPrice = calculatePrice(nextValue(currentCost), markupRate, selectedTaxRate, includeTax);
+      if (!nearlyEqual(newPrice, currentPrice)) {
+        form.setValue("price", newPrice as any, { shouldValidate: true, shouldDirty: false });
+      }
+    }
+  }, [wCost, wPrice, wMarkup, wIsTaxInclusivePrice, selectedTaxRate, lastEdited, calculatePrice, calculateCost, form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    setSubmitStatus(null);
     const result = await addProduct(values);
     setIsSubmitting(false);
 
     if (result.success) {
+      const when = new Date().toLocaleString("es-CO", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const who = (currentUserName ?? "").trim() || "Usuario";
+      const whatName = String(values.name ?? "").trim() || "(sin nombre)";
+      const whatRef = String(values.code ?? "").trim() || "(sin referencia)";
       toast({
         title: "Producto Creado",
-        description: result.message || "El producto ha sido añadido al inventario.",
+        description: `${who} · ${when} · ${whatName} (${whatRef})`,
       });
-      setOpen(false);
+      setSubmitStatus({ type: "success", message: result.message || "Producto creado correctamente." });
+      // Give the user a moment to see the confirmation inside the dialog.
+      setTimeout(() => setOpen(false), 600);
     } else {
       toast({
         variant: "destructive",
         title: "Error al crear el producto",
         description: result.error || "No se pudo añadir el producto.",
       });
+      setSubmitStatus({ type: "error", message: result.error || "No se pudo añadir el producto." });
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {submitStatus ? (
+          <Alert variant={submitStatus.type === "error" ? "destructive" : "default"}>
+            <AlertTitle>
+              {submitStatus.type === "success" ? "Guardado exitoso" : "No se pudo guardar"}
+            </AlertTitle>
+            <AlertDescription>{submitStatus.message}</AlertDescription>
+          </Alert>
+        ) : null}
+
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Detalles</TabsTrigger>
@@ -325,6 +394,23 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
           </TabsContent>
 
           <TabsContent value="price" className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="markup"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Margen / Markup (%)</FormLabel>
+                  <FormControl>
+                    <Input type="number" inputMode="decimal" min={0} step={0.1} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Por defecto es 40%. Cambiarlo recalcula costo/precio automáticamente.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
               <div className="grid grid-cols-2 gap-4">
                  <FormField
                     control={form.control}
@@ -333,43 +419,42 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes }: Ad
                         <FormItem>
                         <FormLabel>Precio de Venta</FormLabel>
                         <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                              onChange={(e) => {
+                                setLastEdited("price");
+                                field.onChange(parseMoneyIntOptional(e.target.value));
+                              }}
+                            />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
-                 <FormField
+                <FormField
                     control={form.control}
                     name="cost"
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Costo</FormLabel>
                         <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                    <Input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                      onChange={(e) => {
+                        setLastEdited("cost");
+                        field.onChange(parseMoneyIntOptional(e.target.value));
+                      }}
+                    />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
               </div>
-               <FormField
-                    control={form.control}
-                    name="isTaxInclusivePrice"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                            <FormLabel>El precio de venta incluye los impuestos</FormLabel>
-                            <FormDescription>
-                                Si se marca, el costo se calculará restando los impuestos al precio.
-                            </FormDescription>
-                        </div>
-                        </FormItem>
-                    )}
-                />
               <div>
                 <FormLabel>Impuestos Aplicables</FormLabel>
                 <FormField

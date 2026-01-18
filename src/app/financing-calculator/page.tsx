@@ -505,7 +505,14 @@ export default function InvoiceCalculator() {
 
     // Clean up the iframe after a delay
     setTimeout(() => {
-      document.body.removeChild(iframe);
+      try {
+        const body = document.body;
+        if (!body) return;
+        if (iframe.parentNode !== body) return;
+        body.removeChild(iframe);
+      } catch {
+        // ignore
+      }
     }, 1000);
   }
 
