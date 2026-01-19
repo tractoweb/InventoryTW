@@ -150,7 +150,11 @@ export async function validateSession(userId: string | number, sessionToken: str
     // SessionConfig is keyed by userId (single active session per user).
     // Using list+filter can be eventually consistent and intermittently return empty,
     // causing annoying logouts during normal navigation.
-    const getRes: any = await amplifyClient.models.SessionConfig.get({ userId: normalizedUserId } as any).catch(() => null);
+    const timeoutMs = 6000;
+    const getRes: any = await Promise.race([
+      amplifyClient.models.SessionConfig.get({ userId: normalizedUserId } as any).catch(() => null),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("validate_session_timeout")), timeoutMs)),
+    ]).catch(() => null);
     const session = getRes?.data;
     if (!session) return { valid: false };
 

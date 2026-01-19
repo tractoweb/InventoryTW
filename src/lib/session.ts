@@ -25,7 +25,11 @@ export async function getCurrentSession(): Promise<{ data?: CurrentSession; erro
   if (!parsed) return { error: "No autenticado" };
 
   try {
-    const res = await validateSession(parsed.userId, parsed.sessionToken);
+    const timeoutMs = 6000;
+    const res = (await Promise.race([
+      validateSession(parsed.userId, parsed.sessionToken),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("validate_session_timeout")), timeoutMs)),
+    ])) as Awaited<ReturnType<typeof validateSession>>;
     if (!res?.valid || !res?.session) {
       // Cookie is stale/invalid; clear it so we don't keep retrying on every request.
       clearSessionCookie();
@@ -43,7 +47,12 @@ export async function getCurrentSession(): Promise<{ data?: CurrentSession; erro
         sessionToken: String(s?.sessionToken ?? parsed.sessionToken),
       },
     };
-  } catch (e) {
+  } catch (e: any) {
+    // If session validation times out or backend is unreachable, don't hang SSR.
+    // Don't clear the cookie in this scenario (could be a transient outage).
+    if (String(e?.message || "") === "validate_session_timeout") {
+      return { error: "No se pudo validar la sesión (timeout)" };
+    }
     return { error: formatAmplifyError(e) };
   }
 }

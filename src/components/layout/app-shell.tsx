@@ -24,7 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathnameRef = React.useRef<string>(pathname ?? "/");
   pathnameRef.current = pathname ?? "/";
 
-  const isLogin = pathname === "/login";
+  const isLogin = Boolean(pathname && (pathname === "/login" || pathname.startsWith("/login/")));
   const isDocumentPrintRoute = Boolean(
     pathname && /^\/documents\/[^/]+\/print(\/preview)?\/?$/.test(pathname)
   );
@@ -80,7 +80,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         setSessionChecked(true);
         const next = encodeURIComponent(pathnameRef.current || "/");
         router.replace(`/login?next=${next}`);
-        router.refresh();
         return;
       }
       if (cancelled) return;
@@ -91,7 +90,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         setSessionChecked(true);
         const next = encodeURIComponent(pathnameRef.current || "/");
         router.replace(`/login?next=${next}`);
-        router.refresh();
         return;
       }
 
@@ -105,7 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLogin, router, sessionChecked, sessionOk, sessionVersion]);
+  }, [isLogin, router, sessionVersion]);
 
   if (isLogin) {
     return <>{children}</>;
