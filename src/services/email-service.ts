@@ -28,16 +28,28 @@ export type EmailConfigStatus = {
   secure: boolean | null;
 };
 
+function readEnv(name: string): string | null {
+  const direct = process.env[name];
+  const directStr = direct ? String(direct).trim() : "";
+  if (directStr) return directStr;
+
+  // AWS Amplify Hosting may expose runtime secrets via `process.env.secrets` (SSM).
+  const secrets = (process.env as any)?.secrets as Record<string, unknown> | undefined;
+  const secretVal = secrets?.[name];
+  const secretStr = secretVal ? String(secretVal).trim() : "";
+  if (secretStr) return secretStr;
+
+  return null;
+}
+
 function requiredEnv(name: string): string {
-  const v = process.env[name];
-  if (!v || !String(v).trim()) throw new Error(`Falta configurar ${name} en el servidor`);
-  return String(v).trim();
+  const v = readEnv(name);
+  if (!v) throw new Error(`Falta configurar ${name} en el servidor`);
+  return v;
 }
 
 function optionalEnv(name: string): string | null {
-  const v = process.env[name];
-  const s = v ? String(v).trim() : "";
-  return s ? s : null;
+  return readEnv(name);
 }
 
 export function isEmailConfigured(): boolean {
