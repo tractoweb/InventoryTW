@@ -10,12 +10,14 @@ const KardexTypeSchema = z.enum(['ENTRADA', 'SALIDA', 'AJUSTE']);
 const GetProductDocumentHistorySchema = z.object({
   productId: z.coerce.number().int().positive(),
   warehouseId: z.coerce.number().int().positive().optional(),
+  type: KardexTypeSchema.optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 
 export type ProductDocumentHistoryRow = {
   date: string;
   documentId: number;
+  documentItemId: number | null;
   documentNumber: string | null;
   unitPrice: number | null;
   type: z.infer<typeof KardexTypeSchema>;
@@ -30,12 +32,12 @@ export async function getProductDocumentHistoryAction(
   const parsed = GetProductDocumentHistorySchema.safeParse(raw ?? {});
   if (!parsed.success) return { data: [], error: 'Filtros inválidos' };
 
-  const { productId, warehouseId, limit } = parsed.data;
+  const { productId, warehouseId, type, limit } = parsed.data;
 
   try {
     const filterClauses: any[] = [];
-    // Only show documents where the product ENTERED (for "precio con el que entró").
-    filterClauses.push({ type: { eq: 'ENTRADA' } });
+    // Default to ENTRADA for backwards compatibility.
+    filterClauses.push({ type: { eq: type ?? 'ENTRADA' } });
     if (warehouseId) filterClauses.push({ warehouseId: { eq: Number(warehouseId) } });
 
     const filter =
@@ -44,14 +46,12 @@ export async function getProductDocumentHistoryAction(
     const qListByProductId = /* GraphQL */ `
       query ListKardexByProductId(
         $productId: Int!
-        $sortDirection: ModelSortDirection
         $filter: ModelKardexFilterInput
         $limit: Int
         $nextToken: String
       ) {
         listKardexByProductId(
           productId: $productId
-          sortDirection: $sortDirection
           filter: $filter
           limit: $limit
           nextToken: $nextToken
@@ -62,6 +62,7 @@ export async function getProductDocumentHistoryAction(
             type
             warehouseId
             documentId
+            documentItemId
             documentNumber
             unitPrice
           }
@@ -83,7 +84,6 @@ export async function getProductDocumentHistoryAction(
         query: qListByProductId,
         variables: {
           productId: Number(productId),
-          sortDirection: 'DESC',
           filter,
           limit: pageLimit,
           nextToken,
@@ -102,12 +102,14 @@ export async function getProductDocumentHistoryAction(
         const normalizedDocId = Number(docId);
         if (!Number.isFinite(normalizedDocId) || normalizedDocId <= 0) continue;
 
-        if (byDocumentId.has(normalizedDocId)) continue;
-
         const date = String(k?.date ?? '');
-        byDocumentId.set(normalizedDocId, {
+        const row: ProductDocumentHistoryRow = {
           date,
           documentId: normalizedDocId,
+          documentItemId:
+            k?.documentItemId !== undefined && k?.documentItemId !== null && Number.isFinite(Number(k.documentItemId))
+              ? Number(k.documentItemId)
+              : null,
           documentNumber: k?.documentNumber ? String(k.documentNumber) : null,
           unitPrice:
             k?.unitPrice !== undefined && k?.unitPrice !== null && Number.isFinite(Number(k.unitPrice))
@@ -118,12 +120,21 @@ export async function getProductDocumentHistoryAction(
             k?.warehouseId !== undefined && k?.warehouseId !== null && Number.isFinite(Number(k.warehouseId))
               ? Number(k.warehouseId)
               : null,
-        });
+        };
 
-        if (byDocumentId.size >= limit) break;
+        // Keep the most recent row per documentId (since server ordering isn't guaranteed).
+        const prev = byDocumentId.get(normalizedDocId);
+        if (!prev) {
+          byDocumentId.set(normalizedDocId, row);
+        } else {
+          const prevMs = new Date(prev.date).getTime();
+          const rowMs = new Date(row.date).getTime();
+          if ((Number.isFinite(rowMs) ? rowMs : 0) > (Number.isFinite(prevMs) ? prevMs : 0)) {
+            byDocumentId.set(normalizedDocId, row);
+          }
+        }
       }
 
-      if (byDocumentId.size >= limit) break;
       if (!nextToken) break;
     }
 

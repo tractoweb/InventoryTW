@@ -152,7 +152,7 @@ export function NewDocumentForm() {
   const [note, setNote] = React.useState('');
 
   // Payment status (0=pending/unpaid, 2=paid)
-  const [paidStatus, setPaidStatus] = React.useState<0 | 2>(0);
+  const [paidStatus, setPaidStatus] = React.useState<0 | 2>(2);
 
   const [items, setItems] = React.useState<DraftItem[]>([]);
 

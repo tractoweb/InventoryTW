@@ -158,6 +158,26 @@ export async function createDocument(
 
     const stockDirection = (docType.data as any)?.stockDirection ?? DOCUMENT_STOCK_DIRECTION.NONE;
 
+    // In this app, POS sales show prices with IVA included. Purchase creation UI can optionally include IVA
+    // (liquidation config). Default to IVA-included to keep totals aligned with what the user sees.
+    const pricesIncludeTax = (() => {
+      if (stockDirection === DOCUMENT_STOCK_DIRECTION.OUT) return true;
+      if (stockDirection === DOCUMENT_STOCK_DIRECTION.IN) {
+        const raw = input.internalNote;
+        if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(raw);
+            const v = parsed?.liquidation?.config?.ivaIncludedInCost;
+            if (typeof v === 'boolean') return v;
+          } catch {
+            // ignore
+          }
+        }
+        return true;
+      }
+      return true;
+    })();
+
     // Calcular total del documento
     let total = 0;
     for (const item of input.items) {
@@ -250,14 +270,61 @@ export async function createDocument(
 
       const itemPrice = item.price;
       const itemTotal = item.quantity * itemPrice;
-      let priceAfterDiscount = itemTotal;
+      let lineAmountAfterDiscount = itemTotal;
 
       if (item.discount && item.discount > 0) {
-        priceAfterDiscount =
+        lineAmountAfterDiscount =
           item.discountType === 0
             ? itemTotal - item.discount
             : itemTotal * (1 - item.discount / 100);
       }
+
+      // Resolve applicable taxes.
+      let taxIds: number[] = Array.isArray(item.taxIds) ? item.taxIds.map((t) => Number(t)) : [];
+      taxIds = taxIds.filter((t) => Number.isFinite(t) && t > 0);
+
+      if (taxIds.length === 0) {
+        try {
+          const { data } = (await amplifyClient.models.ProductTax.list({
+            filter: { productId: { eq: Number(item.productId) } },
+            limit: 50,
+          } as any)) as any;
+          taxIds = Array.from(
+            new Set(
+              (Array.isArray(data) ? data : [])
+                .map((pt: any) => Number(pt?.taxId))
+                .filter((id: any) => Number.isFinite(id) && id > 0)
+            )
+          );
+        } catch {
+          taxIds = [];
+        }
+      }
+
+      const taxRows: Array<{ taxId: number; rate: number; isFixed: boolean }> = [];
+      for (const taxId of taxIds) {
+        try {
+          const tax = await amplifyClient.models.Tax.get({ idTax: Number(taxId) } as any);
+          const taxData = (tax as any)?.data as any;
+          if (!taxData) continue;
+          if (taxData?.isEnabled === false) continue;
+          const rate = Number(taxData?.rate ?? 0) || 0;
+          const isFixed = Boolean(taxData?.isFixed);
+          if (!Number.isFinite(rate) || rate <= 0) continue;
+          taxRows.push({ taxId: Number(taxId), rate, isFixed });
+        } catch {
+          // ignore tax resolution errors
+        }
+      }
+
+      const percentTaxes = taxRows.filter((t) => !t.isFixed && t.rate > 0);
+      const rateSum = percentTaxes.reduce((acc, t) => acc + t.rate, 0);
+      const divisor = 1 + rateSum / 100;
+
+      const grossAfterDiscount = lineAmountAfterDiscount;
+      const netAfterDiscount = pricesIncludeTax && divisor > 0 ? grossAfterDiscount / divisor : grossAfterDiscount;
+
+      const unitNet = pricesIncludeTax && divisor > 0 ? itemPrice / divisor : itemPrice;
 
       const itemPayload: any = {
         documentItemId: item.documentItemId,
@@ -270,14 +337,14 @@ export async function createDocument(
         quantity: item.quantity,
         expectedQuantity: item.quantity,
         price: itemPrice,
-        priceBeforeTax: itemPrice,
+        priceBeforeTax: unitNet,
         discount: item.discount || 0,
         discountType: item.discountType || 0,
         productCost: Number.isFinite(Number(item.productCost)) ? Number(item.productCost) : productData?.cost || 0,
-        priceBeforeTaxAfterDiscount: priceAfterDiscount,
-        priceAfterDiscount: priceAfterDiscount,
+        priceBeforeTaxAfterDiscount: netAfterDiscount,
+        priceAfterDiscount: grossAfterDiscount,
         total: itemTotal,
-        totalAfterDocumentDiscount: priceAfterDiscount,
+        totalAfterDocumentDiscount: grossAfterDiscount,
         discountApplyRule: 0,
       };
 
@@ -305,19 +372,24 @@ export async function createDocument(
 
       itemIndex++;
 
-      // Crear registros de impuestos si existen
-      if (item.taxIds && item.taxIds.length > 0) {
-        for (const taxId of item.taxIds) {
-          const tax = await amplifyClient.models.Tax.get({
-            idTax: Number(taxId)
-          });
+      // Crear registros de impuestos (IVA) para trazabilidad y reportes.
+      // If prices include tax, compute the tax portion from gross; otherwise, compute from net.
+      if (percentTaxes.length && rateSum > 0) {
+        const gross = grossAfterDiscount;
+        const net = pricesIncludeTax && divisor > 0 ? gross / divisor : gross;
+        const totalTax = pricesIncludeTax ? gross - net : (net * rateSum) / 100;
 
-          const taxAmount = (priceAfterDiscount * ((tax.data as any)?.rate || 0)) / 100;
+        for (const t of percentTaxes) {
+          const amount = pricesIncludeTax
+            ? (totalTax * t.rate) / rateSum
+            : (net * t.rate) / 100;
+
+          if (!amount) continue;
 
           await amplifyClient.models.DocumentItemTax.create({
             documentItemId: (itemResult.data as any)?.documentItemId || '',
-            taxId: Number(taxId),
-            amount: taxAmount,
+            taxId: Number(t.taxId),
+            amount,
           });
         }
       }
@@ -343,7 +415,11 @@ export async function createDocument(
  */
 export async function finalizeDocument(
   documentId: number,
-  userId: string
+  userId: string,
+  options?: {
+    clampNegativeStockToZero?: boolean;
+    forceAllowNegativeStock?: boolean;
+  }
 ): Promise<{
   success: boolean;
   error?: string;
@@ -422,6 +498,10 @@ export async function finalizeDocument(
       }
     } catch {
       // ignore
+    }
+
+    if (options?.forceAllowNegativeStock) {
+      allowNegativeStock = true;
     }
 
     // Load product flags once (we skip inventory posting for service products)
@@ -505,23 +585,23 @@ export async function finalizeDocument(
         quantity: Number(it?.quantity ?? 0) || 0,
       }));
 
-    if (!allowNegativeStock && isStockDirectionOut(stockDirection)) {
+    const clampNegativeStockToZero = Boolean(options?.clampNegativeStockToZero);
+
+    if (!allowNegativeStock && isStockDirectionOut(stockDirection) && !clampNegativeStockToZero) {
       const productIdsToCheck = Array.from(new Set(inventoryItems.map((i) => i.productId)));
-      const stocksRes: any = await amplifyClient.models.Stock.list({
-        filter: {
-          and: [
-            { warehouseId: { eq: Number(docData.warehouseId) } },
-            { or: productIdsToCheck.map((pid) => ({ productId: { eq: pid } })) },
-          ],
-        },
-        limit: 500,
-      } as any);
+      const warehouseId = Number(docData.warehouseId);
+
+      // IMPORTANT: Use Stock.get for composite-key reads.
+      // We have seen Stock.list(filters) return empty/incorrect results intermittently.
+      const stockGets = await Promise.all(
+        productIdsToCheck.map((pid) => amplifyClient.models.Stock.get({ productId: pid, warehouseId } as any).catch(() => null))
+      );
 
       const currentByProduct = new Map<number, number>();
-      for (const s of (stocksRes?.data ?? []) as any[]) {
-        const pid = Number((s as any)?.productId);
-        if (!Number.isFinite(pid) || pid <= 0) continue;
-        currentByProduct.set(pid, Number((s as any)?.quantity ?? 0) || 0);
+      for (let i = 0; i < productIdsToCheck.length; i++) {
+        const row: any = (stockGets[i] as any)?.data;
+        const qty = row?.quantity !== undefined && row?.quantity !== null ? Number(row.quantity) : 0;
+        currentByProduct.set(productIdsToCheck[i], Number.isFinite(qty) ? qty : 0);
       }
 
       const deltaByProduct = new Map<number, number>();
@@ -554,18 +634,26 @@ export async function finalizeDocument(
       }
 
       // Obtener stock actual
-      const { data: stocks } = await amplifyClient.models.Stock.list({
-        filter: {
-          productId: { eq: item.productId },
-          warehouseId: { eq: docData.warehouseId },
-        },
-      });
-
-      const stock = (stocks as any[])?.[0];
+      const { data: stock } = await amplifyClient.models.Stock.get({
+        productId: Number(item.productId),
+        warehouseId: Number(docData.warehouseId),
+      } as any);
       const currentQuantity = stock?.quantity || 0;
 
+      const requestedQuantity = Number(item?.quantity ?? 0) || 0;
+
+      // When clamping is enabled (used by void flow in test data), avoid negative stock.
+      // We post at most the available stock for SALIDA.
+      const postedQuantity = isStockDirectionOut(stockDirection) && clampNegativeStockToZero
+        ? Math.max(0, Math.min(requestedQuantity, Number(currentQuantity) || 0))
+        : requestedQuantity;
+
+      if (!(postedQuantity > 0)) {
+        continue;
+      }
+
       // Calcular nueva cantidad
-      const quantityChange = isStockDirectionIn(stockDirection) ? item.quantity : -item.quantity;
+      const quantityChange = isStockDirectionIn(stockDirection) ? postedQuantity : -postedQuantity;
       const newQuantity = currentQuantity + quantityChange;
 
       // Determine effective cost to record ("último costo")
@@ -629,14 +717,14 @@ export async function finalizeDocument(
         documentNumber: docData.number,
         warehouseId: Number(docData.warehouseId),
         type: isStockDirectionIn(stockDirection) ? 'ENTRADA' : 'SALIDA',
-        quantity: item.quantity,
+        quantity: postedQuantity,
         balance: newQuantity,
         previousBalance: currentQuantity,
         unitCost: effectiveUnitCost,
-        totalCost: (effectiveUnitCost || 0) * item.quantity,
+        totalCost: (effectiveUnitCost || 0) * postedQuantity,
         unitPrice: item.price,
-        totalPrice: item.total,
-        totalPriceAfterDiscount: item.priceAfterDiscount,
+        totalPrice: (Number(item.total ?? 0) || 0) * (requestedQuantity > 0 ? postedQuantity / requestedQuantity : 0),
+        totalPriceAfterDiscount: (Number(item.priceAfterDiscount ?? 0) || 0) * (requestedQuantity > 0 ? postedQuantity / requestedQuantity : 0),
         userId: Number(userId),
         note: `From document ${docData.number}`,
       });

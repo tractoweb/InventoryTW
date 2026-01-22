@@ -98,7 +98,17 @@ export function KardexEntryDetailsSheet(props: {
     if (!entry) return;
     if (!Number.isFinite(Number(entry.productId)) || Number(entry.productId) <= 0) return;
 
+    // "Creado / Ajuste" doesn't have a meaningful document history context.
+    if (entry.type === "AJUSTE") {
+      setHistoryLoading(false);
+      setHistoryError(null);
+      setHistoryRows([]);
+      return;
+    }
+
     const productId = Number(entry.productId);
+    const entryWarehouseId = entry.warehouseId !== null && entry.warehouseId !== undefined ? Number(entry.warehouseId) : undefined;
+    const historyType = entry.type;
 
     let cancelled = false;
     async function loadHistory() {
@@ -107,6 +117,8 @@ export function KardexEntryDetailsSheet(props: {
       try {
         const res = await getProductDocumentHistoryAction({
           productId,
+          warehouseId: Number.isFinite(entryWarehouseId) && (entryWarehouseId ?? 0) > 0 ? entryWarehouseId : undefined,
+          type: historyType,
           limit: 50,
         });
         if (cancelled) return;
@@ -129,7 +141,7 @@ export function KardexEntryDetailsSheet(props: {
     return () => {
       cancelled = true;
     };
-  }, [open, entry?.productId]);
+  }, [open, entry?.productId, entry?.warehouseId, entry?.type]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -406,11 +418,18 @@ export function KardexEntryDetailsSheet(props: {
                   <div>
                     <div className="text-sm text-muted-foreground">Historial de documentos (producto)</div>
                     <div className="text-xs text-muted-foreground">
-                      Entradas (documentos donde el producto ingresó).
+                      {entry?.type === "ENTRADA"
+                        ? "Entradas anteriores (más reciente primero)."
+                        : entry?.type === "SALIDA"
+                          ? "Salidas anteriores (más reciente primero)."
+                          : "No aplica."}
+                      {Number.isFinite(Number(entry?.warehouseId)) && Number(entry?.warehouseId) > 0 ? " · Misma bodega" : ""}
                     </div>
                   </div>
 
-                  {historyLoading ? (
+                  {entry?.type === "AJUSTE" ? (
+                    <div className="text-sm text-muted-foreground">El historial no aplica para movimientos tipo ajuste/creado.</div>
+                  ) : historyLoading ? (
                     <div className="space-y-2">
                       <Skeleton className="h-6 w-2/3" />
                       <Skeleton className="h-6 w-full" />
@@ -433,14 +452,24 @@ export function KardexEntryDetailsSheet(props: {
                         <TableBody>
                           {historyRows.map((r) => {
                             const label = r.documentNumber ?? `#${r.documentId}`;
+                            const isEntrada = r.type === "ENTRADA";
+                            const toneRow = isEntrada ? "bg-emerald-50/60" : "bg-red-50/60";
+                            const toneText = isEntrada ? "text-emerald-800" : "text-red-800";
                             return (
-                              <TableRow key={r.documentId}>
+                              <TableRow key={r.documentId} className={toneRow}>
                                 <TableCell className="text-sm">
                                   {r.date ? formatDateTimeInBogota(r.date) : ""}
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <div className="text-sm font-medium">{label}</div>
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className={`text-sm font-medium break-words ${toneText}`}>{label}</div>
+                                      <div className={`text-xs ${toneText} opacity-80`}>
+                                        {`ID ${r.documentId}`}
+                                        {r.documentItemId ? ` · Item ${r.documentItemId}` : ""}
+                                      </div>
+                                    </div>
+
                                     <Button
                                       type="button"
                                       size="sm"

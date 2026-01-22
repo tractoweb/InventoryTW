@@ -42,6 +42,7 @@ export function AppHeader({ session }: { session?: any }) {
 
   const userId = Number(session?.userId ?? 0) || 0;
   const displayName = [session?.firstName, session?.lastName].filter(Boolean).join(" ").trim();
+  const email = String(session?.email ?? "").trim();
   const avatarFallback = (displayName || String(session?.email ?? "") || String(userId || "U"))
     .split(" ")
     .filter(Boolean)
@@ -49,6 +50,8 @@ export function AppHeader({ session }: { session?: any }) {
     .map((n: string) => n[0])
     .join("")
     .toUpperCase();
+
+  const userLabel = displayName || email || (userId ? `Usuario #${userId}` : "Usuario");
 
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -178,7 +181,7 @@ export function AppHeader({ session }: { session?: any }) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={""} alt={displayName || "Usuario"} data-ai-hint="person face" />
+                <AvatarImage src={""} alt={userLabel} data-ai-hint="person face" />
                 <AvatarFallback>
                   {avatarFallback || "U"}
                 </AvatarFallback>
@@ -186,7 +189,12 @@ export function AppHeader({ session }: { session?: any }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+            <DropdownMenuLabel className="space-y-0.5">
+              <div className="text-sm font-medium leading-none">{userLabel}</div>
+              {email && email !== userLabel ? (
+                <div className="text-xs text-muted-foreground">{email}</div>
+              ) : null}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile">

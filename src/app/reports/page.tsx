@@ -82,6 +82,19 @@ export default async function ReportsPage() {
 
 				<Card>
 					<CardHeader>
+						<CardTitle>IVA neto</CardTitle>
+						<CardDescription>Ventas − Compras (30 días) con trazabilidad.</CardDescription>
+					</CardHeader>
+					<CardContent className="flex items-center justify-between gap-3">
+						<div className="text-sm text-muted-foreground">IVA Ventas / IVA Compras</div>
+						<Link href="/reports/iva-neto" className={cn(buttonVariants({ variant: "outline" }))}>
+							Abrir
+						</Link>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
 						<CardTitle>Stock</CardTitle>
 						<CardDescription>Gestión por almacén.</CardDescription>
 					</CardHeader>

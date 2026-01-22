@@ -54,6 +54,8 @@ import { getDocumentDetails, type DocumentDetails } from "@/actions/get-document
 import { getProductDetails } from "@/actions/get-product-details";
 import { deleteDocumentAction } from "@/actions/delete-document";
 import { updateDocumentMetadataAction } from "@/actions/update-document-metadata";
+import { updateDocumentItemsAction } from "@/actions/update-document-items";
+import { searchProductsAction, type ProductSearchResult } from "@/actions/search-products";
 import { voidDocumentAction } from "@/actions/void-document";
 import { updateDocumentPaidStatusAction } from "@/actions/update-document-paid-status";
 import { getCustomers, type CustomerListItem } from "@/actions/get-customers";
@@ -211,11 +213,45 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
   const [editError, setEditError] = useState<string | null>(null);
   const [editThirdPartyName, setEditThirdPartyName] = useState<string>("");
   const [editNote, setEditNote] = useState<string>("");
+  const [editItems, setEditItems] = useState<
+    Array<{
+      key: string;
+      documentItemId?: number;
+      productId?: number;
+      productName: string;
+      productCode: string | null;
+      quantity: number;
+      price: number;
+      remove: boolean;
+    }>
+  >([]);
+
+  const [editAddProductOpen, setEditAddProductOpen] = useState(false);
+  const [editAddProductQuery, setEditAddProductQuery] = useState("");
+  const debouncedEditAddProductQuery = useDebounce(editAddProductQuery, 250);
+  const [editAddProductResults, setEditAddProductResults] = useState<ProductSearchResult[]>([]);
+  const [editAddProductSearching, setEditAddProductSearching] = useState(false);
+
+  useEffect(() => {
+    const handle = setTimeout(async () => {
+      if (!editAddProductOpen) return;
+      setEditAddProductSearching(true);
+      const res = await searchProductsAction(String(debouncedEditAddProductQuery ?? ''), 30);
+      setEditAddProductResults(res.data ?? []);
+      setEditAddProductSearching(false);
+    }, 50);
+
+    return () => clearTimeout(handle);
+  }, [debouncedEditAddProductQuery, editAddProductOpen]);
 
   const [voidOpen, setVoidOpen] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState<string>("");
+  const [voidConfirmMessage, setVoidConfirmMessage] = useState<string | null>(null);
+  const [voidConfirmProducts, setVoidConfirmProducts] = useState<
+    Array<{ productId: number; name?: string; code?: string; stock: number; required: number }> | null
+  >(null);
 
   const selectedDocRow = useMemo(() => {
     if (!selectedDocumentId) return null;
@@ -289,6 +325,20 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
     setEditError(null);
     setEditThirdPartyName(String(details.customername ?? ""));
     setEditNote(String(details.note ?? ""));
+    setEditItems(
+      Array.isArray((details as any)?.items)
+        ? ((details as any).items as any[]).map((it: any) => ({
+            key: `existing-${String(it?.id)}`,
+            documentItemId: Number(it?.id),
+            productName: String(it?.productname ?? `#${String(it?.productid ?? '')}`),
+            productCode: it?.productcode !== undefined && it?.productcode !== null ? String(it.productcode) : null,
+            productId: Number(it?.productid ?? 0) || undefined,
+            quantity: Number(it?.quantity ?? 0) || 0,
+            price: Number(it?.price ?? 0) || 0,
+            remove: false,
+          }))
+        : []
+    );
     setEditOpen(true);
   }
 
@@ -307,6 +357,26 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
 
       const res: any = await updateDocumentMetadataAction(payload);
       if (!res?.success) throw new Error(String(res?.error ?? "No se pudo modificar"));
+
+      // Update items (quantities/prices + removals)
+      const itemsPayload = editItems
+        .map((it) => ({
+          documentItemId:
+            it.documentItemId !== undefined && Number.isFinite(Number(it.documentItemId)) && Number(it.documentItemId) > 0
+              ? Number(it.documentItemId)
+              : undefined,
+          productId:
+            it.documentItemId === undefined && it.productId !== undefined && Number.isFinite(Number(it.productId)) && Number(it.productId) > 0
+              ? Number(it.productId)
+              : undefined,
+          quantity: Math.max(0, Number(it.quantity) || 0),
+          price: Math.max(0, Number(it.price) || 0),
+          remove: Boolean(it.remove),
+        }))
+        .filter((p) => Boolean(p.documentItemId) || Boolean(p.productId));
+
+      const itemsRes: any = await updateDocumentItemsAction({ documentId: selectedDocumentId, items: itemsPayload });
+      if (!itemsRes?.success) throw new Error(String(itemsRes?.error ?? 'No se pudieron actualizar los productos'));
 
       setEditOpen(false);
 
@@ -328,12 +398,51 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
     if (!selectedDocumentId) return;
     setVoiding(true);
     setVoidError(null);
+    setVoidConfirmMessage(null);
+    setVoidConfirmProducts(null);
     try {
       const res: any = await voidDocumentAction({ documentId: selectedDocumentId, reason: voidReason });
+
+      if (!res?.success && res?.needsConfirmation) {
+        setVoidConfirmMessage(String(res?.message ?? 'El stock de uno o más productos está en 0 (o insuficiente).'));
+        setVoidConfirmProducts(Array.isArray(res?.affectedProducts) ? res.affectedProducts : null);
+        return;
+      }
+
       if (!res?.success) throw new Error(String(res?.error ?? 'No se pudo anular'));
 
       setVoidOpen(false);
       setVoidReason('');
+
+      await refreshDocs();
+
+      const rid = Number(res?.reversalDocumentId ?? 0);
+      if (Number.isFinite(rid) && rid > 0) {
+        router.push(`/documents/${rid}/pdf`);
+      }
+    } catch (e: any) {
+      setVoidError(e?.message ?? 'No se pudo anular');
+    } finally {
+      setVoiding(false);
+    }
+  }
+
+  async function handleVoidSelectedConfirmProceed() {
+    if (!selectedDocumentId) return;
+    setVoiding(true);
+    setVoidError(null);
+    try {
+      const res: any = await voidDocumentAction({
+        documentId: selectedDocumentId,
+        reason: voidReason,
+        confirmProceedWithZeroStock: true,
+      });
+      if (!res?.success) throw new Error(String(res?.error ?? 'No se pudo anular'));
+
+      setVoidOpen(false);
+      setVoidReason('');
+      setVoidConfirmMessage(null);
+      setVoidConfirmProducts(null);
 
       await refreshDocs();
 
@@ -922,6 +1031,8 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                       onClick={() => {
                         setVoidError(null);
                         setVoidReason('');
+                        setVoidConfirmMessage(null);
+                        setVoidConfirmProducts(null);
                         setVoidOpen(true);
                       }}
                       disabled={!selectedDocumentId || !selectedIsFinalized || voidLinkMeta.isVoidDocument || Boolean(voidLinkMeta.reversalDocumentId)}
@@ -946,6 +1057,29 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                           />
                         </div>
 
+                        {voidConfirmMessage ? (
+                          <Alert>
+                            <AlertTitle>Stock insuficiente (modo prueba)</AlertTitle>
+                            <AlertDescription>
+                              <div className="whitespace-pre-wrap text-sm">{voidConfirmMessage}</div>
+                              {Array.isArray(voidConfirmProducts) && voidConfirmProducts.length ? (
+                                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                  {voidConfirmProducts.slice(0, 10).map((p) => (
+                                    <div key={String(p.productId)}>
+                                      {p.name ?? `Producto ${p.productId}`}
+                                      {p.code ? ` (${p.code})` : ''}
+                                      {` · Stock: ${p.stock} · Requerido: ${p.required}`}
+                                    </div>
+                                  ))}
+                                  {voidConfirmProducts.length > 10 ? (
+                                    <div>…y {voidConfirmProducts.length - 10} más</div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
+
                         {voidError ? (
                           <Alert variant="destructive">
                             <Terminal className="h-4 w-4" />
@@ -958,9 +1092,15 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                           <Button type="button" variant="outline" onClick={() => setVoidOpen(false)} disabled={voiding}>
                             Cancelar
                           </Button>
-                          <Button type="button" onClick={handleVoidSelected} disabled={voiding}>
-                            {voiding ? 'Anulando…' : 'Anular'}
-                          </Button>
+                          {voidConfirmMessage ? (
+                            <Button type="button" onClick={handleVoidSelectedConfirmProceed} disabled={voiding}>
+                              {voiding ? 'Procesando…' : 'Continuar (dejar stock en 0)'}
+                            </Button>
+                          ) : (
+                            <Button type="button" onClick={handleVoidSelected} disabled={voiding}>
+                              {voiding ? 'Anulando…' : 'Anular'}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </DialogContent>
@@ -1016,6 +1156,169 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                         onChange={(e) => setEditNote(e.target.value)}
                         placeholder="Motivo / observaciones"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium">Productos</div>
+
+                        <Dialog open={editAddProductOpen} onOpenChange={setEditAddProductOpen}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={editSaving}
+                            onClick={() => {
+                              setEditAddProductQuery('');
+                              setEditAddProductResults([]);
+                              setEditAddProductOpen(true);
+                            }}
+                          >
+                            Agregar producto
+                          </Button>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Agregar producto</DialogTitle>
+                              <DialogDescription>Busca un producto y agrégalo al documento.</DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label>Buscar</Label>
+                                <Input
+                                  value={editAddProductQuery}
+                                  onChange={(e) => setEditAddProductQuery(e.target.value)}
+                                  placeholder="Nombre, código..."
+                                />
+                                {editAddProductSearching ? (
+                                  <div className="text-xs text-muted-foreground">Buscando…</div>
+                                ) : null}
+                              </div>
+
+                              <div className="max-h-[340px] overflow-auto rounded-md border">
+                                {editAddProductResults.length ? (
+                                  <div className="divide-y">
+                                    {editAddProductResults.map((p) => {
+                                      const label = p.code ? `${p.name} (${p.code})` : p.name;
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={String(p.idProduct)}
+                                          className="w-full text-left px-3 py-2 hover:bg-muted"
+                                          onClick={() => {
+                                            const key = `new-${Date.now()}-${p.idProduct}`;
+                                            setEditItems((prev) => [
+                                              ...prev,
+                                              {
+                                                key,
+                                                productId: Number(p.idProduct),
+                                                productName: String(p.name),
+                                                productCode: p.code !== undefined && p.code !== null ? String(p.code) : null,
+                                                quantity: 1,
+                                                price: Number(p.price ?? 0) || 0,
+                                                remove: false,
+                                              },
+                                            ]);
+                                            setEditAddProductOpen(false);
+                                          }}
+                                        >
+                                          <div className="text-sm font-medium">{label}</div>
+                                          <div className="text-xs text-muted-foreground">
+                                            Precio sugerido: {formatMoney(Number(p.price ?? 0) || 0)}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-3 text-sm text-muted-foreground">Sin resultados.</div>
+                                )}
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      {editItems.length ? (
+                        <div className="space-y-2">
+                          {editItems.map((it) => {
+                            const lineTotal = Math.max(0, Number(it.quantity) || 0) * Math.max(0, Number(it.price) || 0);
+                            return (
+                              <div
+                                key={it.key}
+                                className={
+                                  "flex flex-col gap-2 rounded-md border p-2 md:flex-row md:items-center md:justify-between " +
+                                  (it.remove ? "opacity-60" : "")
+                                }
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium truncate">
+                                    {it.productName}{it.productCode ? ` (${it.productCode})` : ''}
+                                  </div>
+                                  {it.remove ? <div className="text-xs text-muted-foreground">Se quitará del documento</div> : null}
+                                </div>
+
+                                <div className="flex flex-wrap items-end gap-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Cantidad</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={String(it.quantity)}
+                                      disabled={editSaving || it.remove}
+                                      onChange={(e) => {
+                                        const next = Number(e.target.value);
+                                        setEditItems((prev) =>
+                                          prev.map((p) => (p.key === it.key ? { ...p, quantity: Number.isFinite(next) ? next : 0 } : p))
+                                        );
+                                      }}
+                                      className="w-28"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Precio</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={String(it.price)}
+                                      disabled={editSaving || it.remove}
+                                      onChange={(e) => {
+                                        const next = Number(e.target.value);
+                                        setEditItems((prev) =>
+                                          prev.map((p) => (p.key === it.key ? { ...p, price: Number.isFinite(next) ? next : 0 } : p))
+                                        );
+                                      }}
+                                      className="w-28"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Total</Label>
+                                    <div className="h-10 rounded-md border px-3 flex items-center text-sm">
+                                      {formatMoney(lineTotal)}
+                                    </div>
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant={it.remove ? "outline" : "destructive"}
+                                    disabled={editSaving}
+                                    onClick={() => {
+                                      setEditItems((prev) =>
+                                        prev.map((p) => (p.key === it.key ? { ...p, remove: !p.remove } : p))
+                                      );
+                                    }}
+                                  >
+                                    {it.remove ? "Deshacer" : "Quitar"}
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">Este documento no tiene productos.</div>
+                      )}
                     </div>
 
                     {editError ? (

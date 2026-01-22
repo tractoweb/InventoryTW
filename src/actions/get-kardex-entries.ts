@@ -103,14 +103,12 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
     const qListByProductId = /* GraphQL */ `
       query ListKardexByProductId(
         $productId: Int!
-        $sortDirection: ModelSortDirection
         $filter: ModelKardexFilterInput
         $limit: Int
         $nextToken: String
       ) {
         listKardexByProductId(
           productId: $productId
-          sortDirection: $sortDirection
           filter: $filter
           limit: $limit
           nextToken: $nextToken
@@ -142,14 +140,12 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
     const qListByWarehouseId = /* GraphQL */ `
       query ListKardexByWarehouseId(
         $warehouseId: Int!
-        $sortDirection: ModelSortDirection
         $filter: ModelKardexFilterInput
         $limit: Int
         $nextToken: String
       ) {
         listKardexByWarehouseId(
           warehouseId: $warehouseId
-          sortDirection: $sortDirection
           filter: $filter
           limit: $limit
           nextToken: $nextToken
@@ -183,9 +179,8 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
         $filter: ModelKardexFilterInput
         $limit: Int
         $nextToken: String
-        $sortDirection: ModelSortDirection
       ) {
-        listKardexes(filter: $filter, limit: $limit, nextToken: $nextToken, sortDirection: $sortDirection) {
+        listKardexes(filter: $filter, limit: $limit, nextToken: $nextToken) {
           items {
             kardexId
             date
@@ -211,7 +206,6 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
     `;
 
     const commonVars = {
-      sortDirection: 'DESC',
       filter,
       limit: Math.min(limit, 1000),
       nextToken,

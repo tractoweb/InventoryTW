@@ -16,6 +16,7 @@ import { BOGOTA_TIME_ZONE } from '@/lib/datetime';
 const InputSchema = z.object({
   documentId: z.coerce.number().min(1),
   reason: z.string().optional(),
+  confirmProceedWithZeroStock: z.coerce.boolean().optional(),
 });
 
 function safeJsonParse(value: unknown): any | null {
@@ -65,7 +66,23 @@ function bogotaYmd(now: Date = new Date()): string {
 
 export async function voidDocumentAction(
   raw: z.input<typeof InputSchema>
-): Promise<{ success: boolean; reversalDocumentId?: number; reversalDocumentNumber?: string; error?: string }> {
+): Promise<
+  | { success: true; reversalDocumentId?: number; reversalDocumentNumber?: string }
+  | {
+      success: false;
+      error?: string;
+      needsConfirmation?: boolean;
+      confirmCode?: 'ZERO_STOCK_CLAMP';
+      affectedProducts?: Array<{
+        productId: number;
+        name?: string;
+        code?: string;
+        stock: number;
+        required: number;
+      }>;
+      message?: string;
+    }
+> {
   noStore();
 
   const session = await requireSession(ACCESS_LEVELS.ADMIN);
@@ -76,6 +93,7 @@ export async function voidDocumentAction(
   try {
     const documentId = Number(parsed.data.documentId);
     const reason = String(parsed.data.reason ?? '').trim();
+    const confirmProceedWithZeroStock = Boolean(parsed.data.confirmProceedWithZeroStock);
 
     const docRes: any = await amplifyClient.models.Document.get({ documentId } as any);
     const doc = docRes?.data as any;
@@ -138,6 +156,90 @@ export async function voidDocumentAction(
       return { success: false, error: 'El documento no tiene ítems válidos para reversar.' };
     }
 
+    // If original is ENTRADA, reversal is SALIDA and may reduce stock.
+    // In test stages, we want to avoid going negative and instead allow clamping to 0 with user confirmation.
+    const willReverseAsOut = stockDirection === DOCUMENT_STOCK_DIRECTION.IN;
+    let clampMeta:
+      | {
+          mode: 'CLAMP_TO_ZERO';
+          warehouseId: number;
+          products: Array<{ productId: number; stock: number; required: number }>;
+        }
+      | null = null;
+
+    if (willReverseAsOut) {
+      const productIdsToCheck = Array.from(new Set(safeItems.map((i) => Number(i.productId)).filter((id) => Number.isFinite(id) && id > 0)));
+
+      const stocksRes: any = await amplifyClient.models.Stock.list({
+        filter: {
+          and: [
+            { warehouseId: { eq: Number(doc.warehouseId) } },
+            { or: productIdsToCheck.map((pid) => ({ productId: { eq: pid } })) },
+          ],
+        },
+        limit: 500,
+      } as any);
+
+      const currentByProduct = new Map<number, number>();
+      for (const s of (stocksRes?.data ?? []) as any[]) {
+        const pid = Number((s as any)?.productId);
+        if (!Number.isFinite(pid) || pid <= 0) continue;
+        currentByProduct.set(pid, Number((s as any)?.quantity ?? 0) || 0);
+      }
+
+      const requiredByProduct = new Map<number, number>();
+      for (const it of safeItems) {
+        const pid = Number(it.productId);
+        const q = Math.abs(Number(it.quantity) || 0);
+        if (!Number.isFinite(pid) || pid <= 0 || !(q > 0)) continue;
+        requiredByProduct.set(pid, (requiredByProduct.get(pid) ?? 0) + q);
+      }
+
+      const affected: Array<{ productId: number; stock: number; required: number }> = [];
+      for (const pid of productIdsToCheck) {
+        const current = currentByProduct.get(pid) ?? 0;
+        const required = requiredByProduct.get(pid) ?? 0;
+        const next = current - required;
+        // Warn when reversal would make stock negative (test data / manual review).
+        if (next < 0) {
+          affected.push({ productId: pid, stock: current, required });
+        }
+      }
+
+      if (affected.length && !confirmProceedWithZeroStock) {
+        const productGets = await Promise.all(
+          affected.map((a) => amplifyClient.models.Product.get({ idProduct: Number(a.productId) } as any))
+        );
+        const enriched = affected.map((a, idx) => {
+          const p = (productGets[idx] as any)?.data as any;
+          return {
+            productId: a.productId,
+            name: p?.name ? String(p.name) : undefined,
+            code: p?.code ? String(p.code) : undefined,
+            stock: a.stock,
+            required: a.required,
+          };
+        });
+
+        return {
+          success: false,
+          needsConfirmation: true,
+          confirmCode: 'ZERO_STOCK_CLAMP',
+          affectedProducts: enriched,
+          message:
+            'Al anular este documento, algunos productos tienen stock insuficiente y el reverso intentaría dejarlos en negativo (incluye casos con stock en 0).\n\nRevisa el stock manualmente. Si continúas (modo prueba), la anulación seguirá, pero el sistema NO dejará el stock en negativo: se ajustará a 0.',
+        };
+      }
+
+      if (affected.length && confirmProceedWithZeroStock) {
+        clampMeta = {
+          mode: 'CLAMP_TO_ZERO',
+          warehouseId: Number(doc.warehouseId),
+          products: affected,
+        };
+      }
+    }
+
     // Ensure reversal doc type (same category/warehouse, opposite stockDirection)
     const ensureRes: any = await ensureReversalDocumentTypeAction({ documentTypeId: Number(doc.documentTypeId) });
     if (!ensureRes?.success || !ensureRes?.documentTypeId) {
@@ -163,6 +265,7 @@ export async function voidDocumentAction(
       version: 1,
       createdAt: new Date().toISOString(),
       reason: reason || undefined,
+      ...(clampMeta ? { clamp: clampMeta } : {}),
       original: {
         documentId: Number(doc.documentId ?? documentId),
         number: String(doc.number ?? ''),
@@ -194,7 +297,9 @@ export async function voidDocumentAction(
     const reversalDocumentId = Number(createRes.documentId);
     const reversalDocumentNumber = String(createRes.documentNumber ?? reversalDocumentId);
 
-    const fin = await finalizeDocument(reversalDocumentId, String(session.userId));
+    const fin = await finalizeDocument(reversalDocumentId, String(session.userId), {
+      clampNegativeStockToZero: stockDirection === DOCUMENT_STOCK_DIRECTION.IN && confirmProceedWithZeroStock,
+    });
     if (!fin?.success) {
       return { success: false, error: String(fin?.error ?? 'Documento de anulación creado pero no finalizado') };
     }

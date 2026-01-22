@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Camera, Minus, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Minus, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -207,6 +207,14 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+
+  const [successOpen, setSuccessOpen] = React.useState(false);
+  const [successDoc, setSuccessDoc] = React.useState<{ documentId: number; documentNumber?: string } | null>(null);
+
+  const [negativeStockOpen, setNegativeStockOpen] = React.useState(false);
+  const [negativeStockDoc, setNegativeStockDoc] = React.useState<{ documentId: number; documentNumber?: string } | null>(null);
+  const [negativeStockMessage, setNegativeStockMessage] = React.useState<string>("");
+  const [finishingNegative, setFinishingNegative] = React.useState(false);
 
   const [warehouses, setWarehouses] = React.useState<SelectOption[]>([]);
 
@@ -731,12 +739,20 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
         return;
       }
 
-      const fin: any = await finalizeDocumentAction({ documentId, userId });
+      const fin: any = await finalizeDocumentAction({ documentId } as any);
       if (!fin?.success) {
-        throw new Error(String(fin?.error ?? "Documento creado pero no finalizado"));
+        const msg = String(fin?.error ?? "Documento creado pero no finalizado");
+        if (msg.toLowerCase().includes("stock insuficiente")) {
+          setNegativeStockDoc({ documentId, documentNumber: String(res?.documentNumber ?? "") || undefined });
+          setNegativeStockMessage(msg);
+          setNegativeStockOpen(true);
+          return;
+        }
+        throw new Error(msg);
       }
 
-      toast({ title: "Venta registrada", description: `Documento ${res?.documentNumber ?? documentId} finalizado.` });
+      setSuccessDoc({ documentId, documentNumber: String(res?.documentNumber ?? "") || undefined });
+      setSuccessOpen(true);
 
       setItems([]);
       setNote("");
@@ -744,14 +760,41 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
       setSelectedCustomer(null);
       setCustomerQuery("");
       setTimeout(() => searchRef.current?.focus(), 0);
-
-      // Update history and take user to PDF view quickly
-      router.push(`/documents/${documentId}/pdf`);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo guardar la salida" });
     } finally {
       setSaving(false);
       saveInFlightRef.current = false;
+    }
+  }
+
+  async function confirmNegativeStockFinalize() {
+    if (!negativeStockDoc?.documentId || finishingNegative) return;
+    setFinishingNegative(true);
+    try {
+      const fin: any = await finalizeDocumentAction({
+        documentId: Number(negativeStockDoc.documentId),
+        forceAllowNegativeStock: true,
+      } as any);
+
+      if (!fin?.success) {
+        throw new Error(String(fin?.error ?? "No se pudo finalizar (stock negativo)"));
+      }
+
+      setNegativeStockOpen(false);
+      setSuccessDoc({ documentId: Number(negativeStockDoc.documentId), documentNumber: negativeStockDoc.documentNumber });
+      setSuccessOpen(true);
+
+      setItems([]);
+      setNote("");
+      setSaleDate(todayYmd());
+      setSelectedCustomer(null);
+      setCustomerQuery("");
+      setTimeout(() => searchRef.current?.focus(), 0);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo finalizar" });
+    } finally {
+      setFinishingNegative(false);
     }
   }
 
@@ -1113,6 +1156,95 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={negativeStockOpen}
+        onOpenChange={(open) => {
+          if (finishingNegative) return;
+          setNegativeStockOpen(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Stock insuficiente
+            </DialogTitle>
+            <DialogDescription>
+              Esta venta puede dejar inventario en negativo. Revisa antes de continuar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+              <div className="font-medium">Detalle</div>
+              <div className="mt-1 text-muted-foreground">{negativeStockMessage}</div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setNegativeStockOpen(false);
+                  const docId = Number(negativeStockDoc?.documentId ?? 0);
+                  if (docId > 0) router.push(`/documents/${docId}`);
+                }}
+                disabled={finishingNegative}
+              >
+                No continuar
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmNegativeStockFinalize}
+                disabled={finishingNegative}
+              >
+                {finishingNegative ? "Finalizando…" : "Continuar y dejar stock negativo"}
+              </Button>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              Nota: para continuar con stock negativo se requiere permiso (Manager).
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 text-primary" />
+              Venta registrada
+            </DialogTitle>
+            <DialogDescription>
+              {successDoc?.documentNumber
+                ? `Documento ${successDoc.documentNumber} finalizado correctamente.`
+                : successDoc?.documentId
+                  ? `Documento #${successDoc.documentId} finalizado correctamente.`
+                  : "Documento finalizado correctamente."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setSuccessOpen(false)}>
+              Cerrar
+            </Button>
+            {successDoc?.documentId ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setSuccessOpen(false);
+                  router.push(`/documents/${successDoc.documentId}/pdf`);
+                }}
+              >
+                Ver PDF
+              </Button>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={createCustomerOpen} onOpenChange={setCreateCustomerOpen}>
         <DialogContent>
