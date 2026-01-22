@@ -52,6 +52,8 @@ export function PaymentReminderDialog(props: {
 
   const canSend = Boolean(draft?.configured) && Boolean(props.input?.to?.trim()) && subject.trim().length > 0 && text.trim().length > 0;
 
+  const isDraftLoading = props.open && Boolean(props.input) && !draft && !draftError;
+
   React.useEffect(() => {
     if (!props.open) return;
     if (!props.input) return;
@@ -150,11 +152,25 @@ export function PaymentReminderDialog(props: {
           </Alert>
         ) : null}
 
-        {!draft?.configured ? (
+        {isDraftLoading ? (
+          <Alert>
+            <AlertTitle>Preparando email…</AlertTitle>
+            <AlertDescription>Construyendo borrador y verificando configuración SMTP.</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {draft && !draft.configured ? (
           <Alert variant="destructive">
             <AlertTitle>Email no configurado</AlertTitle>
             <AlertDescription>
-              Falta configurar SMTP en el servidor (por lo menos `SMTP_HOST` y `SMTP_FROM`).
+              Falta configurar SMTP en el servidor.
+              {Array.isArray(draft.missing) && draft.missing.length > 0 ? (
+                <>
+                  {" "}Faltan: <span className="font-mono">{draft.missing.join(", ")}</span>.
+                </>
+              ) : (
+                <> (por lo menos `SMTP_HOST` y `SMTP_FROM`).</>
+              )}
             </AlertDescription>
           </Alert>
         ) : null}

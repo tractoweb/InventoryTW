@@ -7,7 +7,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
-import { isEmailConfigured } from "@/services/email-service";
+import { getEmailConfigStatus } from "@/services/email-service";
 
 const DocSchema = z.object({
   documentId: z.coerce.number().int().min(1),
@@ -28,6 +28,7 @@ export type BuildPaymentReminderDraftInput = z.input<typeof InputSchema>;
 
 export type PaymentReminderDraft = {
   configured: boolean;
+  missing?: string[];
   from: string | null;
   defaultCc: string | null;
   subject: string;
@@ -56,7 +57,7 @@ export async function buildPaymentReminderDraftAction(
   try {
     await requireSession(ACCESS_LEVELS.CASHIER);
 
-    const configured = isEmailConfigured();
+    const emailStatus = getEmailConfigStatus();
 
     const from = process.env.SMTP_FROM ? String(process.env.SMTP_FROM).trim() : null;
     const defaultCc = process.env.SMTP_DEFAULT_CC ? String(process.env.SMTP_DEFAULT_CC).trim() : null;
@@ -123,7 +124,8 @@ export async function buildPaymentReminderDraftAction(
     return {
       success: true,
       data: {
-        configured,
+        configured: emailStatus.configured,
+        missing: emailStatus.missing,
         from,
         defaultCc,
         subject,

@@ -1,3 +1,7 @@
+"use server";
+
+import "server-only";
+
 import nodemailer from "nodemailer";
 
 export type EmailAttachment = {
@@ -15,6 +19,15 @@ export type SendEmailInput = {
   attachments?: EmailAttachment[];
 };
 
+export type EmailConfigStatus = {
+  configured: boolean;
+  missing: string[];
+  from: string | null;
+  host: string | null;
+  port: number | null;
+  secure: boolean | null;
+};
+
 function requiredEnv(name: string): string {
   const v = process.env[name];
   if (!v || !String(v).trim()) throw new Error(`Falta configurar ${name} en el servidor`);
@@ -29,6 +42,31 @@ function optionalEnv(name: string): string | null {
 
 export function isEmailConfigured(): boolean {
   return Boolean(optionalEnv("SMTP_HOST") && optionalEnv("SMTP_FROM"));
+}
+
+export function getEmailConfigStatus(): EmailConfigStatus {
+  const host = optionalEnv("SMTP_HOST");
+  const from = optionalEnv("SMTP_FROM");
+
+  const missing: string[] = [];
+  if (!host) missing.push("SMTP_HOST");
+  if (!from) missing.push("SMTP_FROM");
+
+  const portRaw = optionalEnv("SMTP_PORT");
+  const portNum = portRaw !== null ? Number(portRaw) : null;
+  const port = portNum !== null && Number.isFinite(portNum) ? portNum : (portRaw !== null ? null : 587);
+
+  const secureRaw = optionalEnv("SMTP_SECURE");
+  const secure = secureRaw !== null ? String(secureRaw).toLowerCase() === "true" : null;
+
+  return {
+    configured: missing.length === 0,
+    missing,
+    from,
+    host,
+    port,
+    secure,
+  };
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
