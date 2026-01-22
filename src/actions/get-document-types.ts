@@ -9,6 +9,7 @@ export type DocumentTypeListItem = {
   documentTypeId: number;
   name: string;
   code?: string | null;
+  documentCategoryId?: number | null;
   warehouseId?: number | null;
   stockDirection?: number | null;
   printTemplate?: string | null;
@@ -36,6 +37,7 @@ export async function getDocumentTypes() {
           languageKey: d?.languageKey ?? null,
         }),
         code: d?.code ?? null,
+        documentCategoryId: d?.documentCategoryId ?? null,
         warehouseId: d?.warehouseId ?? null,
         stockDirection: d?.stockDirection ?? null,
         printTemplate: d?.printTemplate ?? null,

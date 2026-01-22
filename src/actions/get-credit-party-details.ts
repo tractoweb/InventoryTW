@@ -14,6 +14,7 @@ export type CreditDocRow = {
   pendingApprox: number;
   daysOverdue: number;
   href: string;
+  isFinalized: boolean;
 };
 
 export type CreditPartyDetails = {
@@ -115,10 +116,15 @@ export async function getCreditPartyDetailsAction(input: {
     if ("error" in paymentsRes) return { error: paymentsRes.error };
 
     const stockDirectionByDocTypeId = new Map<number, number>();
+    const categoryByDocTypeId = new Map<number, number>();
     for (const dt of docTypesRes.data ?? []) {
       const id = Number((dt as any)?.documentTypeId);
       const sd = normalizeStockDirection((dt as any)?.stockDirection);
-      if (Number.isFinite(id) && id > 0) stockDirectionByDocTypeId.set(id, sd);
+      const categoryId = Number((dt as any)?.documentCategoryId ?? 0) || 0;
+      if (Number.isFinite(id) && id > 0) {
+        stockDirectionByDocTypeId.set(id, sd);
+        categoryByDocTypeId.set(id, categoryId);
+      }
     }
 
     const clientById = new Map<number, { name: string; email?: string | null }>();
@@ -190,10 +196,22 @@ export async function getCreditPartyDetailsAction(input: {
 
       const dtId = Number(d?.documentTypeId);
       const sd = stockDirectionByDocTypeId.get(dtId) ?? DOCUMENT_STOCK_DIRECTION.NONE;
-      if (kind === "client" && sd !== DOCUMENT_STOCK_DIRECTION.OUT) continue;
-      if (kind === "supplier" && sd !== DOCUMENT_STOCK_DIRECTION.IN) continue;
+      const categoryId = categoryByDocTypeId.get(dtId) ?? 0;
 
-      if (!Boolean(d?.isClockedOut)) continue;
+      // Client receivables: keep strict (sales-like)
+      if (kind === "client" && sd !== DOCUMENT_STOCK_DIRECTION.OUT && categoryId !== 2) continue;
+
+      // Supplier payables: include supplier-linked purchase docs even if stockDirection/category is inconsistent
+      if (kind === "supplier") {
+        const dSupplierId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
+        if (!dSupplierId || !Number.isFinite(dSupplierId) || dSupplierId !== supplierId) continue;
+      }
+
+      const isFinalized = Boolean(d?.isClockedOut);
+
+      // For clients: count only finalized documents.
+      // For suppliers: allow both finalized and non-finalized, to avoid missing payables.
+      if (kind === "client" && !isFinalized) continue;
       if (isVoidedOrVoidDoc(d)) continue;
 
       const total = safeNumber(d?.total, 0);
@@ -218,11 +236,6 @@ export async function getCreditPartyDetailsAction(input: {
           const reminderEmail = typeof parsed?.payment?.reminderEmail === "string" ? String(parsed.payment.reminderEmail).trim() : "";
           if (reminderEmail) email = reminderEmail;
         }
-      }
-
-      if (kind === "supplier") {
-        const dSupplierId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
-        if (!dSupplierId || !Number.isFinite(dSupplierId) || dSupplierId !== supplierId) continue;
       }
 
       const paidApprox = safeNumber(paymentSumsByDocId.get(documentId) ?? 0, 0);
@@ -251,6 +264,7 @@ export async function getCreditPartyDetailsAction(input: {
         pendingApprox,
         daysOverdue,
         href: `/documents/${documentId}/pdf`,
+        isFinalized,
       });
     }
 

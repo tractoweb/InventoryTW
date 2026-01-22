@@ -14,6 +14,7 @@ export type CreditDocRow = {
   pendingApprox: number;
   daysOverdue: number;
   href: string;
+  isFinalized: boolean;
 };
 
 export type CreditPartyRow = {
@@ -118,10 +119,15 @@ export async function getCreditSummaryAction(daysWindow = 365): Promise<{ data?:
     if ("error" in paymentsRes) return { error: paymentsRes.error };
 
     const stockDirectionByDocTypeId = new Map<number, number>();
+    const categoryByDocTypeId = new Map<number, number>();
     for (const dt of docTypesRes.data ?? []) {
       const id = Number((dt as any)?.documentTypeId);
       const sd = normalizeStockDirection((dt as any)?.stockDirection);
-      if (Number.isFinite(id) && id > 0) stockDirectionByDocTypeId.set(id, sd);
+      const categoryId = Number((dt as any)?.documentCategoryId ?? 0) || 0;
+      if (Number.isFinite(id) && id > 0) {
+        stockDirectionByDocTypeId.set(id, sd);
+        categoryByDocTypeId.set(id, categoryId);
+      }
     }
 
     const clientById = new Map<number, { name: string; email?: string | null }>();
@@ -166,9 +172,25 @@ export async function getCreditSummaryAction(daysWindow = 365): Promise<{ data?:
 
       const dtId = Number(d?.documentTypeId);
       const sd = stockDirectionByDocTypeId.get(dtId) ?? DOCUMENT_STOCK_DIRECTION.NONE;
-      if (sd !== DOCUMENT_STOCK_DIRECTION.OUT && sd !== DOCUMENT_STOCK_DIRECTION.IN) continue;
 
-      if (!Boolean(d?.isClockedOut)) continue;
+      const categoryId = categoryByDocTypeId.get(dtId) ?? 0;
+
+      const clientId = d?.clientId !== undefined && d?.clientId !== null ? Number(d.clientId) : null;
+      const supplierId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
+
+      // Supplier payables should include supplier-linked documents even if stockDirection is misconfigured.
+      const isSupplierDoc =
+        Boolean(supplierId && Number.isFinite(supplierId) && supplierId > 0) &&
+        (categoryId === 1 || sd === DOCUMENT_STOCK_DIRECTION.IN || sd === DOCUMENT_STOCK_DIRECTION.OUT || sd === DOCUMENT_STOCK_DIRECTION.NONE);
+
+      // Client receivables remain direction/category driven, and avoid mixing with supplier docs.
+      const isClientDoc = (sd === DOCUMENT_STOCK_DIRECTION.OUT || categoryId === 2) && !isSupplierDoc;
+
+      const isFinalized = Boolean(d?.isClockedOut);
+
+      // For suppliers: include non-finalized docs as well (they may still represent a payable).
+      // For clients: keep only finalized documents to avoid counting drafts/proformas.
+      if (isClientDoc && !isFinalized) continue;
       if (isVoidedOrVoidDoc(d)) continue;
 
       const total = safeNumber(d?.total, 0);
@@ -192,8 +214,7 @@ export async function getCreditSummaryAction(daysWindow = 365): Promise<{ data?:
       const number = String(d?.number ?? "").trim() || String(documentId);
       const date = String(d?.date ?? "").trim();
 
-      if (sd === DOCUMENT_STOCK_DIRECTION.OUT) {
-        const clientId = d?.clientId !== undefined && d?.clientId !== null ? Number(d.clientId) : null;
+      if (isClientDoc) {
         const parsed = safeJsonParse(d?.internalNote);
         const derivedNameRaw =
           (typeof d?.clientNameSnapshot === "string" ? String(d.clientNameSnapshot).trim() : "") ||
@@ -240,11 +261,11 @@ export async function getCreditSummaryAction(daysWindow = 365): Promise<{ data?:
           pendingApprox,
           daysOverdue,
           href: `/documents/${documentId}/pdf`,
+          isFinalized,
         });
       }
 
-      if (sd === DOCUMENT_STOCK_DIRECTION.IN) {
-        const supplierId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
+      if (isSupplierDoc) {
         if (!supplierId || !Number.isFinite(supplierId) || supplierId <= 0) continue;
 
         const supplier = supplierById.get(supplierId);
@@ -273,6 +294,7 @@ export async function getCreditSummaryAction(daysWindow = 365): Promise<{ data?:
           pendingApprox,
           daysOverdue,
           href: `/documents/${documentId}/pdf`,
+          isFinalized,
         });
       }
     }

@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -94,6 +95,7 @@ export default function SuppliersManagePage() {
   const [payablesLoading, setPayablesLoading] = React.useState(false);
   const [payablesError, setPayablesError] = React.useState<string | null>(null);
   const [payablesRows, setPayablesRows] = React.useState<CreditPartyRow[]>([]);
+  const [payablesDaysWindow, setPayablesDaysWindow] = React.useState<number>(365);
 
   const [payablesDetailsOpen, setPayablesDetailsOpen] = React.useState(false);
   const [payablesDetailsLoading, setPayablesDetailsLoading] = React.useState(false);
@@ -154,11 +156,11 @@ export default function SuppliersManagePage() {
       .catch(() => {});
   }, []);
 
-  async function refreshPayables() {
+  async function refreshPayables(daysWindow = payablesDaysWindow) {
     setPayablesLoading(true);
     setPayablesError(null);
     try {
-      const res = await getCreditSummaryAction(365);
+      const res = await getCreditSummaryAction(daysWindow);
       if (res?.error) throw new Error(res.error);
       setPayablesRows(res?.data?.suppliers ?? []);
     } catch (e: any) {
@@ -195,7 +197,7 @@ export default function SuppliersManagePage() {
     setPayablesDetailsError(null);
     setPayablesDetails(null);
     try {
-      const res = await getCreditPartyDetailsAction({ kind: "supplier", partyKey, daysWindow: 365 });
+      const res = await getCreditPartyDetailsAction({ kind: "supplier", partyKey, daysWindow: payablesDaysWindow });
       if (res?.error) throw new Error(res.error);
       if (!res?.data) throw new Error("No se pudo cargar documentos");
       setPayablesDetails(res.data);
@@ -211,7 +213,7 @@ export default function SuppliersManagePage() {
     setPayablesDetailsLoading(true);
     setPayablesDetailsError(null);
     try {
-      const res = await getCreditPartyDetailsAction({ kind: "supplier", partyKey: payablesDetails.partyKey, daysWindow: 365 });
+      const res = await getCreditPartyDetailsAction({ kind: "supplier", partyKey: payablesDetails.partyKey, daysWindow: payablesDaysWindow });
       if (res?.error) throw new Error(res.error);
       if (!res?.data) throw new Error("No se pudo cargar documentos");
       setPayablesDetails(res.data);
@@ -230,7 +232,7 @@ export default function SuppliersManagePage() {
       const res = await updateDocumentPaidStatusAction({ documentId: Number(documentId), paidStatus: 2 });
       if (!res?.success) throw new Error(res?.error ?? "No se pudo marcar como pagada");
       toast({ title: "Pagada", description: `Documento ${documentId} marcado como pagado.` });
-      await refreshPayables();
+      await refreshPayables(payablesDaysWindow);
       await refreshPayablesDetails();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo marcar como pagada" });
@@ -376,10 +378,33 @@ export default function SuppliersManagePage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>Por pagar</CardTitle>
-          <Button variant="outline" onClick={refreshPayables} disabled={payablesLoading}>
-            {payablesLoading ? "Actualizando…" : "Actualizar"}
-          </Button>
+          <div className="space-y-1">
+            <CardTitle>Por pagar</CardTitle>
+            <div className="text-xs text-muted-foreground">
+              Ventana: últimos {payablesDaysWindow} días. Si falta un documento antiguo, aumenta la ventana.
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={String(payablesDaysWindow)}
+              onChange={(e) => {
+                const next = Number(e.target.value) || 365;
+                setPayablesDaysWindow(next);
+                refreshPayables(next);
+                if (payablesDetailsOpen) refreshPayablesDetails();
+              }}
+              disabled={payablesLoading}
+            >
+              <option value="90">90 días</option>
+              <option value="365">365 días</option>
+              <option value="730">2 años</option>
+              <option value="3650">10 años</option>
+            </select>
+            <Button variant="outline" onClick={() => refreshPayables(payablesDaysWindow)} disabled={payablesLoading}>
+              {payablesLoading ? "Actualizando…" : "Actualizar"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {payablesError ? (
@@ -410,7 +435,18 @@ export default function SuppliersManagePage() {
                 ) : payablesFiltered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5}>
-                      <div className="text-sm text-muted-foreground">Sin saldos pendientes en la ventana.</div>
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">Sin saldos pendientes en la ventana.</div>
+                        <div className="text-xs text-muted-foreground">
+                          Si esperabas ver documentos: revisa que el documento tenga proveedor asignado, total &gt; 0 y estado de pago ≠ Pagado.
+                          También puedes aumentar la ventana (arriba) o abrir Documentos.
+                        </div>
+                        <div>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href="/documents">Abrir Documentos</Link>
+                          </Button>
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -529,7 +565,12 @@ export default function SuppliersManagePage() {
                     ) : (
                       (payablesDetails.docs ?? []).map((d) => (
                         <TableRow key={String(d.documentId)}>
-                          <TableCell className="font-medium">{d.number}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <span>{d.number}</span>
+                              {d.isFinalized ? null : <Badge variant="secondary">Borrador</Badge>}
+                            </div>
+                          </TableCell>
                           <TableCell>{d.date || "—"}</TableCell>
                           <TableCell>{d.dueDate || "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{d.daysOverdue > 0 ? d.daysOverdue : 0}</TableCell>

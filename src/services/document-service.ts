@@ -4,7 +4,14 @@
  * Automáticamente genera números y actualiza Ksdsdsssardex
  */
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError, isStockDirectionIn, isStockDirectionOut } from '@/lib/amplify-config';
+import {
+  amplifyClient,
+  DOCUMENT_STOCK_DIRECTION,
+  formatAmplifyError,
+  isStockDirectionIn,
+  isStockDirectionOut,
+  normalizeStockDirection,
+} from '@/lib/amplify-config';
 import { getBogotaYearMonth } from '@/lib/datetime';
 import { createKardexEntry } from './kardex-service';
 
@@ -462,7 +469,22 @@ export async function finalizeDocument(
       documentTypeId: docData.documentTypeId
     });
 
-    const stockDirection = (docType.data as any)?.stockDirection || DOCUMENT_STOCK_DIRECTION.NONE;
+    let stockDirection = normalizeStockDirection((docType.data as any)?.stockDirection);
+
+    // Safety net: some datasets have misconfigured stockDirection on DocumentType.
+    // Infer direction from the document payload: purchases use customerId (supplier), sales use clientId.
+    // This prevents a Purchase from behaving like a Sale and failing with "stock insuficiente".
+    const hasCustomer = Number(docData?.customerId ?? 0) > 0;
+    const hasClient = Number(docData?.clientId ?? 0) > 0;
+    const inferredDirection = hasCustomer && !hasClient
+      ? DOCUMENT_STOCK_DIRECTION.IN
+      : hasClient && !hasCustomer
+        ? DOCUMENT_STOCK_DIRECTION.OUT
+        : null;
+
+    if (inferredDirection !== null && inferredDirection !== stockDirection) {
+      stockDirection = inferredDirection;
+    }
 
     if (!isStockDirectionIn(stockDirection) && !isStockDirectionOut(stockDirection)) {
       // No afecta stock, but still finalize the document.

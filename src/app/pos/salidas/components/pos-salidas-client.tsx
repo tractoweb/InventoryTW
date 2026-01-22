@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Camera, CheckCircle2, Minus, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Eye, EyeOff, Minus, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -203,10 +203,14 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
   const router = useRouter();
   const { toast } = useToast();
 
+  const COST_VIS_KEY = "pos.salidas.showCost";
+
   const saveInFlightRef = React.useRef(false);
 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+
+  const [showCost, setShowCost] = React.useState(false);
 
   const [successOpen, setSuccessOpen] = React.useState(false);
   const [successDoc, setSuccessDoc] = React.useState<{ documentId: number; documentNumber?: string } | null>(null);
@@ -278,6 +282,25 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const rafRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(COST_VIS_KEY);
+      if (stored === null) return;
+      setShowCost(stored === "1" || stored === "true");
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(COST_VIS_KEY, showCost ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [showCost]);
 
   React.useEffect(() => {
     async function boot() {
@@ -1336,6 +1359,19 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
               <CardTitle>Carrito</CardTitle>
               <CardDescription>Selecciona una línea para ver detalles del producto.</CardDescription>
             </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowCost((v) => !v)}>
+              {showCost ? (
+                <>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Ocultar costo
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Mostrar costo
+                </>
+              )}
+            </Button>
           </CardHeader>
           <CardContent>
 
@@ -1421,7 +1457,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                           </Button>
                         </div>
 
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div className={showCost ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
                           <div className="space-y-1">
                             <div className="text-xs text-muted-foreground">Precio salida</div>
                             <Input
@@ -1433,17 +1469,19 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">Costo</div>
-                            <Input
-                              value={String(it.unitCost ?? 0)}
-                              onChange={(e) => updateItem(idx, { unitCost: toNumberSafe(e.target.value, 0) })}
-                              inputMode="decimal"
-                              placeholder="0"
-                              className="h-10 text-base tabular-nums"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
+                          {showCost ? (
+                            <div className="space-y-1">
+                              <div className="text-xs text-muted-foreground">Costo</div>
+                              <Input
+                                value={String(it.unitCost ?? 0)}
+                                onChange={(e) => updateItem(idx, { unitCost: toNumberSafe(e.target.value, 0) })}
+                                inputMode="decimal"
+                                placeholder="0"
+                                className="h-10 text-base tabular-nums"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="flex items-center justify-between">
@@ -1465,7 +1503,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                     <TableHead className="min-w-[260px]">Producto</TableHead>
                     <TableHead className="w-[160px] text-center">Cantidad</TableHead>
                     <TableHead className="w-[220px]">Precio salida</TableHead>
-                    <TableHead className="w-[200px]">Costo</TableHead>
+                    {showCost ? <TableHead className="w-[200px]">Costo</TableHead> : null}
                     <TableHead className="w-[140px] text-right">Total</TableHead>
                     <TableHead className="w-[70px]"></TableHead>
                   </TableRow>
@@ -1473,7 +1511,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                 <TableBody>
                   {items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-muted-foreground">
+                      <TableCell colSpan={showCost ? 6 : 5} className="text-muted-foreground">
                         Agrega productos con el buscador o el escáner.
                       </TableCell>
                     </TableRow>
@@ -1535,16 +1573,18 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </TableCell>
-                          <TableCell>
-                            <Input
-                              value={String(it.unitCost ?? 0)}
-                              onChange={(e) => updateItem(idx, { unitCost: toNumberSafe(e.target.value, 0) })}
-                              inputMode="decimal"
-                              placeholder="0"
-                              className="h-10 tabular-nums"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </TableCell>
+                          {showCost ? (
+                            <TableCell>
+                              <Input
+                                value={String(it.unitCost ?? 0)}
+                                onChange={(e) => updateItem(idx, { unitCost: toNumberSafe(e.target.value, 0) })}
+                                inputMode="decimal"
+                                placeholder="0"
+                                className="h-10 tabular-nums"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </TableCell>
+                          ) : null}
                           <TableCell className="text-right">
                             <div className="text-xs text-muted-foreground">Total</div>
                             <div className="text-base font-semibold tabular-nums">{Number.isFinite(total) ? total : 0}</div>
@@ -1661,10 +1701,12 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                     {details?.product?.code ?? details?.code ? `Código: ${String(details?.product?.code ?? details?.code)}` : ""}
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div className="text-muted-foreground">Costo</div>
-                      <div className="font-medium">{Number(details?.product?.cost ?? details?.cost ?? 0) || 0}</div>
-                    </div>
+                    {showCost ? (
+                      <div>
+                        <div className="text-muted-foreground">Costo</div>
+                        <div className="font-medium">{Number(details?.product?.cost ?? details?.cost ?? 0) || 0}</div>
+                      </div>
+                    ) : null}
                     <div>
                       <div className="text-muted-foreground">Precio</div>
                       <div className="font-medium">{Number(details?.product?.price ?? details?.price ?? 0) || 0}</div>
@@ -1765,7 +1807,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                               <TableHead>Ref. electrónica</TableHead>
                               <TableHead>Fecha</TableHead>
                               <TableHead className="text-right">Cant.</TableHead>
-                              <TableHead className="text-right">Costo</TableHead>
+                              {showCost ? <TableHead className="text-right">Costo</TableHead> : null}
                               <TableHead className="text-right">Precio</TableHead>
                               <TableHead className="text-right">Total</TableHead>
                               <TableHead className="w-[120px]"></TableHead>
@@ -1782,7 +1824,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">{String(ri?.date ?? ri?.createdAt ?? "").slice(0, 10)}</TableCell>
                                 <TableCell className="text-right">{Number(ri?.quantity ?? 0) || 0}</TableCell>
-                                <TableCell className="text-right">{Number(ri?.productCost ?? 0) || 0}</TableCell>
+                                {showCost ? <TableCell className="text-right">{Number(ri?.productCost ?? 0) || 0}</TableCell> : null}
                                 <TableCell className="text-right">{Number(ri?.price ?? 0) || 0}</TableCell>
                                 <TableCell className="text-right">{Number(ri?.total ?? ((Number(ri?.quantity ?? 0) || 0) * (Number(ri?.price ?? 0) || 0))) || 0}</TableCell>
                                 <TableCell>

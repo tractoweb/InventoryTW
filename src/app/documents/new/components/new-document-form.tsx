@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,6 +120,14 @@ export function NewDocumentForm() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [finalizing, setFinalizing] = React.useState(false);
+
+  const [resultOpen, setResultOpen] = React.useState(false);
+  const [resultKind, setResultKind] = React.useState<'draft' | 'finalized' | 'created_not_finalized'>('draft');
+  const [resultTitle, setResultTitle] = React.useState<string>('');
+  const [resultDescription, setResultDescription] = React.useState<string>('');
+  const [resultDocumentId, setResultDocumentId] = React.useState<number | null>(null);
+  const [resultDocumentNumber, setResultDocumentNumber] = React.useState<string | null>(null);
+  const [retryingFinalize, setRetryingFinalize] = React.useState(false);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmFinalize, setConfirmFinalize] = React.useState(false);
@@ -252,9 +261,17 @@ export function NewDocumentForm() {
           (wh.data ?? []).map((w: any) => ({ value: Number(w.idWarehouse), label: String(w.name) }))
         );
 
-        setDocumentTypesState(
-          (dt.data ?? []).map((d: any) => ({ value: Number(d.documentTypeId), label: String(d.name) }))
-        );
+        // This screen is the purchase liquidation flow; only show Purchase document types.
+        // (Avoid confusion when multiple "Compra"-like types exist or misconfigured directions.)
+        const purchaseTypes = (dt.data ?? []).filter((d: any) => Number(d?.documentCategoryId ?? 0) === 1);
+        const options = (purchaseTypes.length ? purchaseTypes : (dt.data ?? []))
+          .filter((d: any) => d?.isEnabled !== false)
+          .map((d: any) => ({ value: Number(d.documentTypeId), label: String(d.name) }));
+
+        setDocumentTypesState(options);
+        if (documentTypeId === '' && options.length === 1) {
+          setDocumentTypeId(options[0].value);
+        }
       } catch (e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo cargar data' });
       } finally {
@@ -263,7 +280,25 @@ export function NewDocumentForm() {
     }
 
     boot();
-  }, [toast]);
+  }, [toast, documentTypeId]);
+
+  async function retryFinalizeExisting(): Promise<void> {
+    const documentId = resultDocumentId;
+    if (!documentId) return;
+    setRetryingFinalize(true);
+    try {
+      const fin = await finalizeDocumentAction({ documentId });
+      if (!fin?.success) throw new Error(fin?.error || 'No se pudo finalizar el documento');
+
+      setResultKind('finalized');
+      setResultTitle('Documento finalizado');
+      setResultDescription('Stock y Kardex fueron actualizados correctamente.');
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo finalizar' });
+    } finally {
+      setRetryingFinalize(false);
+    }
+  }
 
   React.useEffect(() => {
     const handle = setTimeout(async () => {
@@ -461,6 +496,9 @@ export function NewDocumentForm() {
       description: 'Preparando datos…',
     });
 
+    let createdDocumentId: number | null = null;
+    let createdDocumentNumber: string | null = null;
+
     try {
       if (!warehouseId || !documentTypeId) {
         throw new Error('Selecciona Almacén y Tipo de documento.');
@@ -619,6 +657,9 @@ export function NewDocumentForm() {
         throw new Error(created.error || 'No se pudo crear el documento');
       }
 
+      createdDocumentId = Number(created.documentId);
+      createdDocumentNumber = created.documentNumber ? String(created.documentNumber) : null;
+
       (progress as any).update({
         title: 'Documento creado',
         description: created.documentNumber ? `Número: ${created.documentNumber}` : 'Documento creado. Continuando…',
@@ -629,18 +670,37 @@ export function NewDocumentForm() {
           title: 'Finalizando…',
           description: 'Impactando Stock y generando Kardex…',
         });
-        const fin = await finalizeDocumentAction({ documentId: created.documentId, userId: 1 });
-        if (!fin.success) {
-          throw new Error(fin.error || 'No se pudo finalizar el documento');
+        const fin = await finalizeDocumentAction({ documentId: createdDocumentId });
+        if (!fin?.success) {
+          // IMPORTANT: the document was created, but inventory posting failed.
+          // Show a POS-like feedback dialog with an actionable link.
+          (progress as any).dismiss?.();
+          setResultKind('created_not_finalized');
+          setResultDocumentId(createdDocumentId);
+          setResultDocumentNumber(createdDocumentNumber);
+          setResultTitle('Documento creado, pero NO finalizado');
+          setResultDescription(
+            `${fin?.error || 'No se pudo finalizar el documento'}\n\nEl documento quedó creado como borrador y aparece en Documentos.`
+          );
+          setResultOpen(true);
+          return;
         }
       }
 
-      (progress as any).update({
-        title: finalize ? 'Documento finalizado' : 'Documento guardado',
-        description: created.documentNumber ? `Número: ${created.documentNumber}` : 'OK',
-      });
+      (progress as any).dismiss?.();
 
-      window.location.href = '/documents';
+      setResultKind(finalize ? 'finalized' : 'draft');
+      setResultDocumentId(createdDocumentId);
+      setResultDocumentNumber(createdDocumentNumber);
+      setResultTitle(finalize ? 'Documento finalizado' : 'Documento guardado');
+      setResultDescription(
+        createdDocumentNumber
+          ? `Número: ${createdDocumentNumber}`
+          : finalize
+            ? 'Stock y Kardex fueron actualizados correctamente.'
+            : 'Se guardó como borrador (no afecta Stock ni Kardex).'
+      );
+      setResultOpen(true);
     } catch (e: any) {
       (progress as any).dismiss?.();
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'Error inesperado' });
@@ -664,6 +724,54 @@ export function NewDocumentForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Dialog open={resultOpen} onOpenChange={setResultOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {resultKind === 'created_not_finalized' ? (
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              )}
+              {resultTitle}
+            </DialogTitle>
+            <DialogDescription className="whitespace-pre-line">{resultDescription}</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-muted-foreground">Documento</div>
+              <div className="font-medium">{resultDocumentNumber ?? (resultDocumentId ? `#${resultDocumentId}` : '—')}</div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setResultOpen(false)}>
+              Cerrar
+            </Button>
+            {resultDocumentId ? (
+              <Button variant="outline" asChild>
+                <Link href={`/documents?documentId=${encodeURIComponent(String(resultDocumentId))}`}>Abrir documento</Link>
+              </Button>
+            ) : null}
+            {resultKind === 'finalized' && resultDocumentId ? (
+              <Button asChild>
+                <Link href={`/documents/${encodeURIComponent(String(resultDocumentId))}/pdf`}>Ver PDF</Link>
+              </Button>
+            ) : null}
+            {resultKind === 'created_not_finalized' ? (
+              <Button onClick={retryFinalizeExisting} disabled={retryingFinalize || !resultDocumentId}>
+                {retryingFinalize ? 'Reintentando…' : 'Reintentar finalizar'}
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href="/documents">Ir a Documentos</Link>
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nuevo documento</h1>
