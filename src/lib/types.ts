@@ -130,6 +130,10 @@ export type DocumentItem = {
   id?: string;
   documentId: string;
   productId: string;
+  productNameSnapshot?: string;
+  productCodeSnapshot?: string;
+  measurementUnitSnapshot?: string;
+  barcodeSnapshot?: string;
   quantity: number;
   price: number;
   total: number;

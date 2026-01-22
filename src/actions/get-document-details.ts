@@ -18,11 +18,13 @@ type DocumentHeader = {
   documenttypename: string;
   documenttypecode?: string | null;
   documenttypeprinttemplate?: string | null;
+  documenttypecategoryid?: number | null;
   customername: string | null;
   customertaxnumber: string | null;
   customercountryname: string | null;
   username: string | null;
   internalnote: string | null;
+  note?: string | null;
 };
 
 type DocumentItem = {
@@ -30,6 +32,8 @@ type DocumentItem = {
   productid: number;
   productname: string;
   productcode: string | null;
+  productbarcode?: string | null;
+  measurementunit?: string | null;
   quantity: number;
   price: number;
   unitcost: number;
@@ -47,6 +51,12 @@ type DocumentPayment = {
 export type DocumentDetails = DocumentHeader & {
   items: DocumentItem[];
   payments: DocumentPayment[];
+  posSaleTotals?: {
+    ivaPercentage: number;
+    grossTotal: number;
+    netTotal: number;
+    ivaTotal: number;
+  };
   liquidation?: {
     config: LiquidationConfig;
     result: LiquidationResult;
@@ -60,6 +70,23 @@ function safeJsonParse(value: unknown): any | null {
   } catch {
     return null;
   }
+}
+
+function asPosSaleTotals(value: any): DocumentDetails['posSaleTotals'] | undefined {
+  const v = value ?? {};
+  const ivaPercentage = Number(v.ivaPercentage ?? v.ivaPct ?? 0);
+  const grossTotal = Number(v.grossTotal ?? v.gross ?? 0);
+  const netTotal = Number(v.netTotal ?? v.net ?? 0);
+  const ivaTotal = Number(v.ivaTotal ?? v.iva ?? 0);
+
+  if (![ivaPercentage, grossTotal, netTotal, ivaTotal].every((n) => Number.isFinite(n))) return undefined;
+
+  return {
+    ivaPercentage: Math.max(0, ivaPercentage),
+    grossTotal: Math.max(0, grossTotal),
+    netTotal: Math.max(0, netTotal),
+    ivaTotal: Math.max(0, ivaTotal),
+  };
 }
 
 function asLiquidationConfig(value: any): LiquidationConfig {
@@ -120,9 +147,12 @@ export async function getDocumentDetails(documentId: number) {
     const doc = docResult.data as any;
     if (!doc) return { error: "Document not found." };
 
-    const [customerResult, userResult, warehouseResult, documentTypeResult] = await Promise.all([
+    const [customerResult, clientResult, userResult, warehouseResult, documentTypeResult] = await Promise.all([
       doc.customerId
         ? amplifyClient.models.Customer.get({ idCustomer: Number(doc.customerId) })
+        : Promise.resolve({ data: null } as any),
+      doc.clientId
+        ? amplifyClient.models.Client.get({ idClient: Number(doc.clientId) } as any)
         : Promise.resolve({ data: null } as any),
       amplifyClient.models.User.get({ userId: Number(doc.userId) }),
       amplifyClient.models.Warehouse.get({ idWarehouse: Number(doc.warehouseId) }),
@@ -130,9 +160,17 @@ export async function getDocumentDetails(documentId: number) {
     ]);
 
     const customer = customerResult?.data as any;
+    const client = clientResult?.data as any;
     const user = userResult?.data as any;
     const warehouse = warehouseResult?.data as any;
     const documentType = documentTypeResult?.data as any;
+
+    const templateKey = String(documentType?.printTemplate ?? '').trim();
+
+    const documentCategoryId =
+      documentType?.documentCategoryId !== undefined && documentType?.documentCategoryId !== null
+        ? Number(documentType.documentCategoryId)
+        : null;
 
     const countryResult = customer?.countryId
       ? await amplifyClient.models.Country.get({ idCountry: Number(customer.countryId) } as any)
@@ -146,9 +184,18 @@ export async function getDocumentDetails(documentId: number) {
 
     const items = itemsResult.data ?? [];
 
-    // Fetch only needed products (faster than listing all products)
+    // Fetch only needed products (fallback for older documents without snapshots)
     const productIds = Array.from(
-      new Set(items.map((i: any) => Number(i.productId)).filter((id: any) => Number.isFinite(id)))
+      new Set(
+        items
+          .filter((i: any) => {
+            const hasName = typeof i?.productNameSnapshot === 'string' && i.productNameSnapshot.trim().length > 0;
+            const hasCode = typeof i?.productCodeSnapshot === 'string' && i.productCodeSnapshot.trim().length > 0;
+            return !(hasName && hasCode);
+          })
+          .map((i: any) => Number(i.productId))
+          .filter((id: any) => Number.isFinite(id))
+      )
     ) as number[];
 
     const productGets = await Promise.all(
@@ -161,17 +208,33 @@ export async function getDocumentDetails(documentId: number) {
     }
 
     // Sum taxes by documentItemId (best-effort)
+    // IMPORTANT: Avoid full-table scans for the common Sale/POS path.
     const taxesByDocumentItemId = new Map<number, number>();
-    const allItemTaxesResult = await listAllPages<any>((args) => amplifyClient.models.DocumentItemTax.list(args));
-    if (!("error" in allItemTaxesResult)) {
-      for (const t of allItemTaxesResult.data ?? []) {
-        const documentItemId = Number((t as any).documentItemId);
-        const amount = Number((t as any).amount ?? 0);
-        if (!Number.isFinite(documentItemId)) continue;
-        taxesByDocumentItemId.set(
-          documentItemId,
-          (taxesByDocumentItemId.get(documentItemId) ?? 0) + (Number.isFinite(amount) ? amount : 0)
-        );
+    if (templateKey !== 'Sale') {
+      const itemIds = (items ?? [])
+        .map((i: any) => Number(i?.documentItemId))
+        .filter((id: any) => Number.isFinite(id) && id > 0) as number[];
+
+      // For large documents, skip tax aggregation to protect performance.
+      // (Taxes are still available on the document liquidation snapshot for Purchase docs.)
+      if (itemIds.length > 0 && itemIds.length <= 50) {
+        const chunkSize = 20;
+        for (let i = 0; i < itemIds.length; i += chunkSize) {
+          const chunk = itemIds.slice(i, i + chunkSize);
+          const res = await listAllPages<any>((args) => amplifyClient.models.DocumentItemTax.list(args), {
+            filter: { or: chunk.map((id) => ({ documentItemId: { eq: Number(id) } })) },
+          } as any);
+          if ('error' in res) continue;
+          for (const t of res.data ?? []) {
+            const documentItemId = Number((t as any).documentItemId);
+            const amount = Number((t as any).amount ?? 0);
+            if (!Number.isFinite(documentItemId)) continue;
+            taxesByDocumentItemId.set(
+              documentItemId,
+              (taxesByDocumentItemId.get(documentItemId) ?? 0) + (Number.isFinite(amount) ? amount : 0)
+            );
+          }
+        }
       }
     }
 
@@ -180,14 +243,20 @@ export async function getDocumentDetails(documentId: number) {
         const documentItemId = Number(i.documentItemId);
         const productId = Number(i.productId);
         const prod = productById.get(productId);
+        const snapName = typeof i?.productNameSnapshot === 'string' && i.productNameSnapshot.trim().length > 0 ? String(i.productNameSnapshot) : null;
+        const snapCode = typeof i?.productCodeSnapshot === 'string' && i.productCodeSnapshot.trim().length > 0 ? String(i.productCodeSnapshot) : null;
+        const snapBarcode = typeof i?.barcodeSnapshot === 'string' && i.barcodeSnapshot.trim().length > 0 ? String(i.barcodeSnapshot) : null;
+        const snapUnit = typeof i?.measurementUnitSnapshot === 'string' && i.measurementUnitSnapshot.trim().length > 0 ? String(i.measurementUnitSnapshot) : null;
         const quantity = Number(i.quantity ?? 0);
         const unitCost = Number(i.productCost ?? i.price ?? 0);
         const total = Number(i.total ?? quantity * Number(i.price ?? 0));
         return {
           id: documentItemId,
           productid: productId,
-          productname: String(prod?.name ?? `#${productId}`),
-          productcode: prod?.code ? String(prod.code) : null,
+          productname: snapName ?? String(prod?.name ?? `#${productId}`),
+          productcode: snapCode ?? (prod?.code ? String(prod.code) : null),
+          productbarcode: snapBarcode,
+          measurementunit: snapUnit,
           quantity,
           price: Number(i.price ?? 0),
           unitcost: Number.isFinite(unitCost) ? unitCost : 0,
@@ -199,6 +268,43 @@ export async function getDocumentDetails(documentId: number) {
 
     // Liquidation snapshot parsing (optional)
     const parsedNote = safeJsonParse(doc.internalNote);
+    const posSaleTotals =
+      parsedNote?.source === 'POS' &&
+      parsedNote?.kind === 'Sale' &&
+      parsedNote?.saleTotals
+        ? asPosSaleTotals(parsedNote.saleTotals)
+        : undefined;
+
+    const isSale = documentCategoryId === 2;
+    const isPurchase = documentCategoryId === 1;
+
+    const posCustomerName =
+      typeof parsedNote?.customer?.name === 'string' && parsedNote.customer.name.trim().length > 0
+        ? String(parsedNote.customer.name).trim()
+        : null;
+    const posCustomerTaxNumber =
+      typeof parsedNote?.customer?.taxNumber === 'string' && parsedNote.customer.taxNumber.trim().length > 0
+        ? String(parsedNote.customer.taxNumber).trim()
+        : null;
+
+    const clientNameSnapshot =
+      typeof doc.clientNameSnapshot === 'string' && String(doc.clientNameSnapshot).trim().length > 0
+        ? String(doc.clientNameSnapshot).trim()
+        : null;
+    const clientNameFromTable =
+      typeof client?.name === 'string' && String(client.name).trim().length > 0 ? String(client.name).trim() : null;
+    const computedSaleClientName =
+      clientNameSnapshot ?? clientNameFromTable ?? posCustomerName ?? (parsedNote?.source === 'POS' && parsedNote?.kind === 'Sale' ? 'Anónimo' : null);
+
+    const thirdPartyName = isSale ? computedSaleClientName : isPurchase ? (customer ? String(customer.name ?? '') : null) : (customer ? String(customer.name ?? '') : null);
+    const thirdPartyTaxNumber = isSale
+      ? (typeof client?.taxNumber === 'string' && String(client.taxNumber).trim().length > 0
+          ? String(client.taxNumber).trim()
+          : posCustomerTaxNumber)
+      : customer
+        ? String(customer.taxNumber ?? '')
+        : null;
+    const thirdPartyCountryName = isPurchase ? (country ? String(country.name ?? '') : null) : null;
     const snapshot = parsedNote?.liquidation ?? null;
     const config = asLiquidationConfig(snapshot?.config ?? snapshot);
 
@@ -225,11 +331,23 @@ export async function getDocumentDetails(documentId: number) {
     });
     if ("error" in paymentsResult) return { error: paymentsResult.error };
 
-    const paymentTypesResult = await listAllPages<any>((args) => amplifyClient.models.PaymentType.list(args));
-    const paymentTypes = "error" in paymentTypesResult ? [] : paymentTypesResult.data ?? [];
-    const paymentTypeById = new Map<number, string>(
-      paymentTypes.map((pt: any) => [Number(pt.paymentTypeId), String(pt.name ?? "")])
+    // Payment types: fetch only the ones referenced by this document.
+    const paymentTypeIds = Array.from(
+      new Set(
+        (paymentsResult.data ?? [])
+          .map((p: any) => Number(p?.paymentTypeId))
+          .filter((id: any) => Number.isFinite(id) && id > 0)
+      )
+    ) as number[];
+
+    const paymentTypeGets = await Promise.all(
+      paymentTypeIds.map((id) => amplifyClient.models.PaymentType.get({ paymentTypeId: Number(id) } as any))
     );
+    const paymentTypeById = new Map<number, string>();
+    for (let i = 0; i < paymentTypeIds.length; i++) {
+      const pt = (paymentTypeGets[i] as any)?.data;
+      if (pt) paymentTypeById.set(paymentTypeIds[i], String((pt as any)?.name ?? ''));
+    }
 
     const mappedPayments: DocumentPayment[] = (paymentsResult.data ?? [])
       .map((p: any) => {
@@ -260,13 +378,16 @@ export async function getDocumentDetails(documentId: number) {
       }),
       documenttypecode: documentType?.code ?? null,
       documenttypeprinttemplate: documentType?.printTemplate ?? null,
-      customername: customer ? String(customer.name ?? "") : null,
-      customertaxnumber: customer ? String(customer.taxNumber ?? "") : null,
-      customercountryname: country ? String(country.name ?? '') : null,
+      documenttypecategoryid: documentCategoryId,
+      customername: thirdPartyName,
+      customertaxnumber: thirdPartyTaxNumber,
+      customercountryname: thirdPartyCountryName,
       username: user ? String(user.username ?? "") : null,
       internalnote: doc.internalNote ? String(doc.internalNote) : null,
+      note: doc.note ? String(doc.note) : null,
       items: mappedItems,
       payments: mappedPayments,
+      posSaleTotals,
       liquidation: {
         config,
         result: liquidationResult,

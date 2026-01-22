@@ -99,6 +99,24 @@ export const DOCUMENT_STOCK_DIRECTION = {
   OUT: -1,    // Salida (venta)
 } as const;
 
+// Some legacy datasets store OUT as `2` (instead of -1). Keep the code tolerant.
+export function normalizeStockDirection(value: unknown): (typeof DOCUMENT_STOCK_DIRECTION)[keyof typeof DOCUMENT_STOCK_DIRECTION] {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n) || n === 0) return DOCUMENT_STOCK_DIRECTION.NONE;
+  if (n === DOCUMENT_STOCK_DIRECTION.IN) return DOCUMENT_STOCK_DIRECTION.IN;
+  if (n === DOCUMENT_STOCK_DIRECTION.OUT) return DOCUMENT_STOCK_DIRECTION.OUT;
+  if (n === 2) return DOCUMENT_STOCK_DIRECTION.OUT;
+  return DOCUMENT_STOCK_DIRECTION.NONE;
+}
+
+export function isStockDirectionIn(value: unknown): boolean {
+  return normalizeStockDirection(value) === DOCUMENT_STOCK_DIRECTION.IN;
+}
+
+export function isStockDirectionOut(value: unknown): boolean {
+  return normalizeStockDirection(value) === DOCUMENT_STOCK_DIRECTION.OUT;
+}
+
 export const KARDEX_TYPES = {
   ENTRADA: 'ENTRADA',
   SALIDA: 'SALIDA',

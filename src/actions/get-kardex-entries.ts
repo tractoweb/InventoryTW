@@ -26,6 +26,7 @@ export type KardexEntryRow = {
   productCode: string | null;
   warehouseId: number | null;
   warehouseName: string | null;
+  currentStock: number | null;
   userId: number | null;
   userName: string | null;
   quantity: number;
@@ -259,6 +260,7 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
         type: String(k?.type ?? '') as any,
         productId: Number(k?.productId ?? 0),
         warehouseId: k?.warehouseId !== undefined && k?.warehouseId !== null ? Number(k.warehouseId) : null,
+        currentStock: null as number | null,
         userId: k?.userId !== undefined && k?.userId !== null ? Number(k.userId) : null,
         quantity: Number(k?.quantity ?? 0) || 0,
         balance: Number(k?.balance ?? 0) || 0,
@@ -281,7 +283,7 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
       }))
       .filter((k) => Number.isFinite(k.kardexId) && k.kardexId > 0 && Number.isFinite(k.productId) && k.productId > 0)
       // NOTE: list() order is not guaranteed; we sort client-side for usability.
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()) || (b.kardexId - a.kardexId));
 
     const productIds = Array.from(new Set(entries.map((e) => e.productId)));
     const warehouseIds = Array.from(
@@ -292,10 +294,29 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
       new Set(entries.map((e) => e.userId).filter((id): id is number => typeof id === 'number' && Number.isFinite(id)))
     );
 
-    const [productGets, warehouseGets, userGets] = await Promise.all([
+    const stockKeys = Array.from(
+      new Set(
+        entries
+          .map((e) => {
+            if (!e.warehouseId) return null;
+            return `${e.productId}:${e.warehouseId}`;
+          })
+          .filter((k): k is string => Boolean(k))
+      )
+    );
+
+    const [productGets, warehouseGets, userGets, stockGets] = await Promise.all([
       Promise.all(productIds.map((idProduct) => amplifyClient.models.Product.get({ idProduct } as any))),
       Promise.all(warehouseIds.map((idWarehouse) => amplifyClient.models.Warehouse.get({ idWarehouse } as any))),
       Promise.all(userIds.map((userId) => amplifyClient.models.User.get({ userId } as any))),
+      Promise.all(
+        stockKeys.map((key) => {
+          const [p, w] = key.split(':');
+          const productId = Number(p);
+          const warehouseId = Number(w);
+          return amplifyClient.models.Stock.get({ productId, warehouseId } as any);
+        })
+      ),
     ]);
 
     const productById = new Map<number, { name: string; code: string | null }>();
@@ -316,16 +337,27 @@ export async function getKardexEntriesAction(raw: z.input<typeof GetKardexEntrie
       if (u) userById.set(userIds[i], String(u?.username ?? String(userIds[i])));
     }
 
+    const stockByKey = new Map<string, number>();
+    for (let i = 0; i < stockKeys.length; i++) {
+      const s: any = (stockGets[i] as any)?.data;
+      if (!s) continue;
+      const qty = Number(s?.quantity);
+      if (!Number.isFinite(qty)) continue;
+      stockByKey.set(stockKeys[i], qty);
+    }
+
     const data: KardexEntryRow[] = entries.map((e) => {
       const p = productById.get(e.productId);
       const w = e.warehouseId ? warehouseById.get(e.warehouseId) : null;
       const u = e.userId ? userById.get(e.userId) : null;
+      const currentStock = e.warehouseId ? stockByKey.get(`${e.productId}:${e.warehouseId}`) ?? null : null;
       return {
         ...e,
         productName: p?.name ?? null,
         productCode: p?.code ?? null,
         warehouseName: w ?? null,
         userName: u ?? null,
+        currentStock,
       };
     });
 

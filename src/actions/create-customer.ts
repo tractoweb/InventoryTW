@@ -113,13 +113,13 @@ export async function createCustomerAction(raw: CreateCustomerInput): Promise<{ 
         return { success: true, idCustomer };
       }
 
-      const errMsg = (createRes?.errors?.[0]?.message as string | undefined) ?? 'No se pudo crear el proveedor';
+      const errMsg = (createRes?.errors?.[0]?.message as string | undefined) ?? 'No se pudo crear el cliente/proveedor';
       // If creation failed due to an ID collision/race, try again; otherwise fail fast.
       if (/exist|already|duplicate|conflict/i.test(errMsg)) continue;
       return { success: false, error: errMsg };
     }
 
-    return { success: false, error: 'No se pudo asignar un ID libre para el proveedor' };
+    return { success: false, error: 'No se pudo asignar un ID libre para el cliente/proveedor' };
   } catch (e) {
     return { success: false, error: formatAmplifyError(e) };
   }

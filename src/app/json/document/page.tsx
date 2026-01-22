@@ -125,6 +125,15 @@ export default function UploadDocument() {
 				}
 
 				const customerId = toInt(row.customerId ?? row.CustomerId);
+				const clientId = toInt(row.clientId ?? row.ClientId ?? row.idClient ?? row.IdClient);
+				const clientNameSnapshot =
+					typeof (row.clientNameSnapshot ?? row.ClientNameSnapshot ?? row.clientName ?? row.ClientName) === "string"
+						? String(row.clientNameSnapshot ?? row.ClientNameSnapshot ?? row.clientName ?? row.ClientName).trim()
+						: undefined;
+				const idempotencyKey =
+					typeof (row.idempotencyKey ?? row.IdempotencyKey) === "string"
+						? String(row.idempotencyKey ?? row.IdempotencyKey).trim()
+						: undefined;
 				const dueDate = toDateOnly(row.dueDate ?? row.DueDate);
 
 				try {
@@ -133,6 +142,8 @@ export default function UploadDocument() {
 						number,
 						userId,
 						customerId: customerId ?? undefined,
+						clientId: clientId ?? undefined,
+						clientNameSnapshot: clientNameSnapshot || undefined,
 						orderNumber: row.orderNumber ?? row.OrderNumber ?? undefined,
 						date,
 						stockDate,
@@ -140,6 +151,7 @@ export default function UploadDocument() {
 						isClockedOut: toBool(row.isClockedOut ?? row.IsClockedOut),
 						documentTypeId,
 						warehouseId,
+						idempotencyKey: idempotencyKey || undefined,
 						referenceDocumentNumber:
 							row.referenceDocumentNumber ?? row.ReferenceDocumentNumber ?? undefined,
 						internalNote: row.internalNote ?? row.InternalNote ?? undefined,

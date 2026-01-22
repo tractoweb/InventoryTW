@@ -107,7 +107,26 @@ NEXT_PUBLIC_AMPLIFY_API_KEY=your_api_key
 # JWT (después de implementar)
 JWT_SECRET=your_secret_key_very_long
 JWT_EXPIRATION=8h
+
+# Email (opcional) - Recordatorios de pago (Clientes/Proveedores)
+# NOTA: Nunca subas credenciales al repositorio. Usa .env.local en local.
+SMTP_HOST=smtp.tu-proveedor.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario@tu-dominio.com
+SMTP_PASS=app_password_o_clave
+SMTP_FROM="InventoryTAW <no-reply@tu-dominio.com>"
+SMTP_DEFAULT_CC=
+SMTP_TLS_REJECT_UNAUTHORIZED=true
 ```
+
+### Configurar variables en Amplify (deploy)
+
+Las variables SMTP deben configurarse en el entorno de hosting (AWS Amplify Console) para que funcionen en producción.
+
+1. Amplify Console → tu App → **App settings** → **Environment variables**
+2. Agrega `SMTP_HOST`, `SMTP_FROM` (mínimo) y el resto si aplica (`SMTP_USER`, `SMTP_PASS`, etc.)
+3. Guarda y vuelve a desplegar. En cada push, Amplify reutiliza estas variables.
 
 ---
 

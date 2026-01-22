@@ -207,7 +207,9 @@ export async function listProductsForMaster(args?: {
           updatedAt: p?.updatedAt ? String(p.updatedAt) : null,
         };
       })
-      .filter((r: any) => Number.isFinite(r.id) && r.id > 0 && r.name.length > 0);
+      .filter((r: any) => Number.isFinite(r.id) && r.id > 0 && r.name.length > 0)
+      // Default behavior: exclude soft-deleted products
+      .filter((r) => r.isEnabled);
 
         return { data: rows, nextToken };
       } catch (error) {

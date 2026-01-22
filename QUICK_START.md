@@ -30,6 +30,16 @@ npx ampx sandbox
 # 4. En la primera terminal, crear .env.local
 echo "JWT_SECRET=tu_clave_secreta_muy_larga_aqui" >> .env.local
 
+# (Opcional) Recordatorios automáticos por email (SMTP)
+# Requiere credenciales SMTP en .env.local:
+# SMTP_HOST=smtp.tu-proveedor.com
+# SMTP_PORT=587
+# SMTP_SECURE=false
+# SMTP_USER=usuario
+# SMTP_PASS=clave
+# SMTP_FROM="Tracto Agrícola <no-reply@tu-dominio.com>"
+# SMTP_TLS_REJECT_UNAUTHORIZED=true
+
 # 5. Iniciar desarrollo
 pnpm run dev
 

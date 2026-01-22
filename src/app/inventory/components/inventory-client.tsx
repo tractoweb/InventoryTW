@@ -15,6 +15,8 @@ import { AddProductForm } from "./add-product-form";
 import { AdjustStockForm } from "./adjust-stock-form";
 import { useToast } from "@/hooks/use-toast";
 import { deleteProduct } from "@/actions/delete-product";
+import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
+import { ScanLine } from "lucide-react";
 
 
 type InventoryClientProps = {
@@ -30,6 +32,7 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState(String(initialSearch ?? ""));
   const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,6 +108,16 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
             className="max-w-sm"
           />
 
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setScanOpen(true)}
+            title="Escanear código de barras"
+          >
+            <ScanLine className="h-4 w-4 mr-2" />
+            Escanear
+          </Button>
+
           {!isStockPage ? (
             <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
               <DialogTrigger asChild>
@@ -129,6 +142,21 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
         </div>
         <DataTable columns={columns} data={filteredItems} meta={tableMeta} />
       </div>
+
+      <CameraScannerDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onDetected={(value) => {
+          const raw = String(value ?? "").trim();
+          if (!raw) return;
+          setScanOpen(false);
+          setSearch(raw);
+          toast({
+            title: "Código detectado",
+            description: raw,
+          });
+        }}
+      />
     </>
   );
 }

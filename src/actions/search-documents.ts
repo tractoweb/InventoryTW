@@ -11,6 +11,15 @@ export type DocumentSearchResult = {
     customername: string | null;
 };
 
+function safeJsonParse(value: unknown): any | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 export async function searchDocuments(searchTerm: string) {
   // Search should always be live
   noStore();
@@ -53,10 +62,19 @@ export async function searchDocuments(searchTerm: string) {
 
     const data: DocumentSearchResult[] = docs.map((d: any) => {
       const customerId = d?.customerId !== undefined && d?.customerId !== null ? Number(d.customerId) : null;
+
+      const clientNameSnapshot = d?.clientNameSnapshot !== undefined && d?.clientNameSnapshot !== null ? String(d.clientNameSnapshot).trim() : '';
+      let clientName: string | null = clientNameSnapshot.length > 0 ? clientNameSnapshot : null;
+      if (!clientName) {
+        const parsed = safeJsonParse(d?.internalNote);
+        const name = parsed?.customer?.name;
+        if (typeof name === 'string' && name.trim().length > 0) clientName = name.trim();
+      }
+
       return {
         id: Number(d.documentId),
         number: String(d.number ?? ""),
-        customername: customerId ? customerById.get(customerId) ?? null : null,
+        customername: clientName ?? (customerId ? customerById.get(customerId) ?? null : null),
       };
     });
 

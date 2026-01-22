@@ -2222,6 +2222,144 @@
             "sortKeyFieldNames": []
           }
         },
+        "Client": {
+          "name": "Client",
+          "fields": {
+            "idClient": {
+              "name": "idClient",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "taxNumber": {
+              "name": "taxNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "phoneNumber": {
+              "name": "phoneNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "address": {
+              "name": "address",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "city": {
+              "name": "city",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "isEnabled": {
+              "name": "isEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notes": {
+              "name": "notes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "documents": {
+              "name": "documents",
+              "isArray": true,
+              "type": {
+                "model": "Document"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "clientId"
+                ]
+              }
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Clients",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "idClient"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "idClient",
+            "sortKeyFieldNames": []
+          }
+        },
         "CustomerDiscount": {
           "name": "CustomerDiscount",
           "fields": {
@@ -2721,6 +2859,20 @@
               "isRequired": false,
               "attributes": []
             },
+            "clientId": {
+              "name": "clientId",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "clientNameSnapshot": {
+              "name": "clientNameSnapshot",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "orderNumber": {
               "name": "orderNumber",
               "isArray": false,
@@ -2768,6 +2920,13 @@
               "isArray": false,
               "type": "Int",
               "isRequired": true,
+              "attributes": []
+            },
+            "idempotencyKey": {
+              "name": "idempotencyKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "referenceDocumentNumber": {
@@ -2860,6 +3019,21 @@
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
                   "customerId"
+                ]
+              }
+            },
+            "client": {
+              "name": "client",
+              "isArray": false,
+              "type": {
+                "model": "Client"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "clientId"
                 ]
               }
             },
@@ -2990,6 +3164,16 @@
               }
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "byIdempotencyKey",
+                "queryField": "listDocumentByIdempotencyKey",
+                "fields": [
+                  "idempotencyKey"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -3028,6 +3212,34 @@
               "isArray": false,
               "type": "Int",
               "isRequired": true,
+              "attributes": []
+            },
+            "productNameSnapshot": {
+              "name": "productNameSnapshot",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "productCodeSnapshot": {
+              "name": "productCodeSnapshot",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "measurementUnitSnapshot": {
+              "name": "measurementUnitSnapshot",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "barcodeSnapshot": {
+              "name": "barcodeSnapshot",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "quantity": {

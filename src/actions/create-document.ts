@@ -71,9 +71,13 @@ const DocumentItemInputSchema = z.object({
 const CreateDocumentInputSchema = z.object({
   userId: z.coerce.number().min(1).default(1),
   customerId: z.coerce.number().optional(),
+  clientId: z.coerce.number().optional(),
+  clientName: z.string().optional(),
   warehouseId: z.coerce.number().min(1),
   documentTypeId: z.coerce.number().min(1),
   date: z.string().min(1), // YYYY-MM-DD
+  paidStatus: z.coerce.number().int().min(0).max(2).optional(),
+  idempotencyKey: z.string().optional(),
   referenceDocumentNumber: z.string().optional(),
   note: z.string().optional(),
   internalNote: z.string().optional(),
@@ -95,6 +99,48 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
     }
 
     const input = parsed.data;
+
+    // Resolve category: use supplier for purchases, client for sales.
+    let categoryId = 0;
+    try {
+      const dtRes: any = await amplifyClient.models.DocumentType.get({ documentTypeId: Number(input.documentTypeId) } as any);
+      const dt = dtRes?.data as any;
+      categoryId = Number(dt?.documentCategoryId ?? 0) || 0;
+    } catch {
+      categoryId = 0;
+    }
+
+    const clientNameTrimmed = input.clientName !== undefined ? String(input.clientName).trim() : '';
+
+    const supplierId = categoryId === 2 ? undefined : input.customerId;
+    const clientId = input.clientId !== undefined ? Number(input.clientId) : undefined;
+    const clientNameSnapshot =
+      categoryId === 2
+        ? (clientNameTrimmed.length > 0 ? clientNameTrimmed : 'Anónimo')
+        : clientNameTrimmed.length > 0
+          ? clientNameTrimmed
+          : undefined;
+
+    const idempotencyKey = input.idempotencyKey ? String(input.idempotencyKey).trim() : '';
+    if (idempotencyKey) {
+      try {
+        const existing: any = await amplifyClient.models.Document.list({
+          filter: { idempotencyKey: { eq: idempotencyKey } },
+          limit: 1,
+        } as any);
+        const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+        if (found) {
+          return {
+            success: true,
+            documentId: Number(found.documentId),
+            documentNumber: String(found.number ?? ''),
+          };
+        }
+      } catch {
+        // Backwards compatibility: older backend schemas may not yet expose `idempotencyKey`.
+        // In that case, proceed without the idempotency pre-check.
+      }
+    }
 
     const referenceDocumentNumber = input.referenceDocumentNumber ? String(input.referenceDocumentNumber).trim() : '';
     if (referenceDocumentNumber) {
@@ -120,11 +166,15 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
     const result = await createDocument({
       documentId,
       userId: session.userId,
-      customerId: input.customerId,
+      customerId: supplierId,
+      clientId,
+      clientNameSnapshot,
       orderNumber: input.orderNumber,
       documentTypeId: input.documentTypeId,
       warehouseId: input.warehouseId,
       date,
+      paidStatus: input.paidStatus,
+      idempotencyKey: idempotencyKey || undefined,
       referenceDocumentNumber: referenceDocumentNumber || undefined,
       note: input.note,
       internalNote: input.internalNote,
@@ -150,10 +200,13 @@ export async function createDocumentAction(raw: CreateDocumentInput): Promise<{ 
       newValues: {
         documentId,
         documentNumber: result.documentNumber,
-        customerId: input.customerId ?? null,
+        supplierId: supplierId ?? null,
+        clientId: clientId ?? null,
+        clientNameSnapshot: clientNameSnapshot ?? null,
         warehouseId: input.warehouseId,
         documentTypeId: input.documentTypeId,
         date: input.date,
+        paidStatus: input.paidStatus ?? 0,
         itemsCount: input.items.length,
       },
     }).catch(() => {});

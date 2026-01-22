@@ -8,6 +8,7 @@ export type DocumentTypeLike = {
 const byPrintTemplate: Record<string, string> = {
   Proforma: "Proforma",
   InventoryCount: "Conteo de inventario",
+  Sale: "Venta",
   Invoice: "Factura",
   Refund: "Devolución",
   LossAndDamage: "Merma / Daño",

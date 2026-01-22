@@ -13,9 +13,13 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'InventoryTAW',
   description: 'Sistema de gestión de inventario',
+  manifest: '/manifest.webmanifest',
   icons: {
-    icon: ['/favicon.svg', '/icon.svg'],
-    apple: ['/icon.svg'],
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', type: 'image/png' }],
   },
 };
 

@@ -6,7 +6,36 @@ function toDate(input: DateInput): Date {
   return input instanceof Date ? input : new Date(input);
 }
 
+function isDateOnlyString(input: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(input.trim());
+}
+
+function looksLikeDateOnlyBogotaMidnightMarker(input: string): boolean {
+  const s = input.trim();
+  // Common patterns produced when storing a date-only value as an ISO instant:
+  // - UTC midnight (00:00Z)
+  // - Bogotá midnight represented in UTC (05:00Z)
+  return /T00:00:00(?:\.000)?Z$/i.test(s) || /T05:00:00(?:\.000)?Z$/i.test(s);
+}
+
+function stripTimeOptions(
+  options?: Intl.DateTimeFormatOptions
+): Intl.DateTimeFormatOptions | undefined {
+  if (!options) return options;
+  const { hour, minute, second, hour12, ...rest } = options;
+  return rest;
+}
+
 export function formatDateTimeInBogota(input: DateInput, options?: Intl.DateTimeFormatOptions): string {
+  // If the source is date-only (YYYY-MM-DD) or a synthesized midnight marker,
+  // showing 00:00:00 is misleading. In those cases, render date-only.
+  if (typeof input === 'string') {
+    const raw = input;
+    if (isDateOnlyString(raw) || looksLikeDateOnlyBogotaMidnightMarker(raw)) {
+      return formatDateInBogota(raw, stripTimeOptions(options));
+    }
+  }
+
   const date = toDate(input);
   if (Number.isNaN(date.getTime())) return '';
 

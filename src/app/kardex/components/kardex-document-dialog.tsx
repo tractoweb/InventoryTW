@@ -7,22 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type { KardexEntryRow } from "@/actions/get-kardex-entries";
-
 export function KardexDocumentDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entry: KardexEntryRow | null;
+  documentId: number | null;
+  documentNumber?: string | null;
   view: "pdf" | "print";
   onViewChange: (view: "pdf" | "print") => void;
   title?: string;
 }) {
-  const { open, onOpenChange, entry, view, onViewChange, title } = props;
+  const { open, onOpenChange, documentId, documentNumber, view, onViewChange, title } = props;
 
   const frameRef = React.useRef<HTMLIFrameElement | null>(null);
   const [loading, setLoading] = React.useState(true);
 
-  const docId = entry?.documentId ?? null;
+  const docId = documentId ?? null;
 
   React.useEffect(() => {
     if (!open) setLoading(true);
@@ -39,7 +38,7 @@ export function KardexDocumentDialog(props: {
       ? `/documents/${docId}/pdf/file`
       : `/documents/${docId}/print/preview`;
 
-  const headerTitle = title ?? (docId ? `Documento ${entry?.documentNumber ?? docId}` : "Documento");
+  const headerTitle = title ?? (docId ? `Documento ${documentNumber ?? docId}` : "Documento");
 
   function doPrint() {
     // Always print from HTML print preview for consistent output.

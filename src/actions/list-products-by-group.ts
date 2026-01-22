@@ -34,8 +34,10 @@ export async function listProductsByGroup(args: {
         idProduct: Number(p?.idProduct ?? 0),
         name: String(p?.name ?? ""),
         code: p?.code ? String(p.code) : null,
+        isEnabled: p?.isEnabled !== false,
       }))
-      .filter((p: any) => Number.isFinite(p.idProduct) && p.idProduct > 0 && p.name.length > 0);
+      .filter((p: any) => Number.isFinite(p.idProduct) && p.idProduct > 0 && p.name.length > 0)
+      .filter((p: any) => p.isEnabled);
 
     const filtered = q
       ? rows.filter((p: any) => p.name.toLowerCase().includes(q) || String(p.idProduct).includes(q) || String(p.code ?? "").toLowerCase().includes(q))

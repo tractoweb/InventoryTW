@@ -4,19 +4,36 @@
  * Automáticamente genera números y actualiza Ksdsdsssardex
  */
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError, isStockDirectionIn, isStockDirectionOut } from '@/lib/amplify-config';
 import { getBogotaYearMonth } from '@/lib/datetime';
 import { createKardexEntry } from './kardex-service';
+
+function looksLikeUnknownInputFieldError(message: string | undefined): boolean {
+  const msg = String(message ?? '').toLowerCase();
+  return (
+    msg.includes('not defined for input object type') ||
+    msg.includes('unknown field') ||
+    msg.includes('field') && msg.includes('not defined')
+  );
+}
 
 export interface DocumentCreateRequest {
   documentId: number;
   userId: number;
+  /** Supplier ID (legacy Customer model). Used mainly for purchase documents. */
   customerId?: number;
+  /** Sales client ID (new Client model). Optional. */
+  clientId?: number;
+  /** Free-text client name snapshot for traceability (e.g. POS). */
+  clientNameSnapshot?: string;
   orderNumber?: string;
   documentTypeId: number;
   warehouseId: number;
   date: Date;
   dueDate?: Date;
+  /** 0=pending/unpaid, 1=partial, 2=paid */
+  paidStatus?: number;
+  idempotencyKey?: string;
   referenceDocumentNumber?: string;
   note?: string;
   internalNote?: string;
@@ -139,7 +156,7 @@ export async function createDocument(
       documentTypeId: Number(input.documentTypeId)
     });
 
-    const stockDirection = (docType.data as any)?.stockDirection || DOCUMENT_STOCK_DIRECTION.NONE;
+    const stockDirection = (docType.data as any)?.stockDirection ?? DOCUMENT_STOCK_DIRECTION.NONE;
 
     // Calcular total del documento
     let total = 0;
@@ -157,18 +174,23 @@ export async function createDocument(
     if (typeof input.documentId !== 'number' || isNaN(input.documentId)) {
       return { success: false, error: 'documentId es obligatorio y debe ser un número único.' };
     }
-    const docResult = await amplifyClient.models.Document.create({
+    const docPayload: any = {
       documentId: input.documentId,
       number: number,
       userId: Number(input.userId),
       customerId: input.customerId !== undefined ? Number(input.customerId) : undefined,
+      clientId: input.clientId !== undefined ? Number(input.clientId) : undefined,
+      clientNameSnapshot: input.clientNameSnapshot !== undefined ? String(input.clientNameSnapshot) : undefined,
       orderNumber: input.orderNumber,
       date: input.date.toISOString().split('T')[0], // Solo fecha
-      stockDate: input.date.toISOString(),
+      // `stockDate` should represent when inventory was posted (finalized), not the selected document date.
+      // It will be overwritten on finalize; keep a sensible default for drafts.
+      stockDate: new Date().toISOString(),
       documentTypeId: Number(input.documentTypeId),
       warehouseId: Number(input.warehouseId),
       total: total,
       dueDate: input.dueDate?.toISOString().split('T')[0],
+      idempotencyKey: input.idempotencyKey,
       referenceDocumentNumber: input.referenceDocumentNumber,
       note: input.note,
       internalNote: input.internalNote,
@@ -177,8 +199,23 @@ export async function createDocument(
       discountApplyRule: input.discountApplyRule || 0,
       serviceType: input.serviceType || 0,
       isClockedOut: false,
-      paidStatus: 0,
-    });
+      paidStatus: Number.isFinite(Number(input.paidStatus)) ? Number(input.paidStatus) : 0,
+    };
+
+    let docResult: any = await amplifyClient.models.Document.create(docPayload);
+
+    if (!(docResult as any).data) {
+      const msg = ((docResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document';
+
+      // Backwards compatibility: older backend schemas may not yet expose newer optional fields.
+      if (looksLikeUnknownInputFieldError(msg)) {
+        const fallback = { ...docPayload } as any;
+        delete fallback.idempotencyKey;
+        delete fallback.clientId;
+        delete fallback.clientNameSnapshot;
+        docResult = await amplifyClient.models.Document.create(fallback as any);
+      }
+    }
 
     if (!(docResult as any).data) {
       const msg = ((docResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document';
@@ -193,6 +230,24 @@ export async function createDocument(
         idProduct: Number(item.productId)
       });
 
+      const productData = (product as any)?.data as any;
+      const productNameSnapshot = typeof productData?.name === 'string' ? productData.name : undefined;
+      const productCodeSnapshot = typeof productData?.code === 'string' ? productData.code : undefined;
+      const measurementUnitSnapshot = typeof productData?.measurementUnit === 'string' ? productData.measurementUnit : undefined;
+
+      // Best-effort barcode snapshot (optional)
+      let barcodeSnapshot: string | undefined;
+      try {
+        const { data } = (await amplifyClient.models.Barcode.list({
+          filter: { productId: { eq: Number(item.productId) } },
+          limit: 1,
+        } as any)) as any;
+        const first = Array.isArray(data) ? data[0] : null;
+        if (first?.value) barcodeSnapshot = String(first.value);
+      } catch {
+        // ignore
+      }
+
       const itemPrice = item.price;
       const itemTotal = item.quantity * itemPrice;
       let priceAfterDiscount = itemTotal;
@@ -204,23 +259,44 @@ export async function createDocument(
             : itemTotal * (1 - item.discount / 100);
       }
 
-      const itemResult = await amplifyClient.models.DocumentItem.create({
+      const itemPayload: any = {
         documentItemId: item.documentItemId,
         documentId: (docResult.data as any).documentId,
         productId: Number(item.productId),
+        productNameSnapshot,
+        productCodeSnapshot,
+        measurementUnitSnapshot,
+        barcodeSnapshot,
         quantity: item.quantity,
         expectedQuantity: item.quantity,
         price: itemPrice,
         priceBeforeTax: itemPrice,
         discount: item.discount || 0,
         discountType: item.discountType || 0,
-        productCost: Number.isFinite(Number(item.productCost)) ? Number(item.productCost) : (product.data as any)?.cost || 0,
+        productCost: Number.isFinite(Number(item.productCost)) ? Number(item.productCost) : productData?.cost || 0,
         priceBeforeTaxAfterDiscount: priceAfterDiscount,
         priceAfterDiscount: priceAfterDiscount,
         total: itemTotal,
         totalAfterDocumentDiscount: priceAfterDiscount,
         discountApplyRule: 0,
-      });
+      };
+
+      let itemResult: any = await amplifyClient.models.DocumentItem.create(itemPayload);
+
+      if (!(itemResult as any)?.data) {
+        const msg = ((itemResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document item';
+        // Backwards compatibility: older backend schemas may not include snapshot fields yet.
+        if (looksLikeUnknownInputFieldError(msg)) {
+          const {
+            productNameSnapshot,
+            productCodeSnapshot,
+            measurementUnitSnapshot,
+            barcodeSnapshot,
+            ...fallback
+          } = itemPayload;
+          itemResult = await amplifyClient.models.DocumentItem.create(fallback as any);
+        }
+      }
 
       if (!(itemResult as any)?.data) {
         const msg = ((itemResult as any)?.errors?.[0]?.message as string | undefined) ?? 'Failed to create document item';
@@ -284,9 +360,25 @@ export async function finalizeDocument(
 
     const docData = doc.data as any;
 
+    // Ensure stockDate reflects the actual posting moment.
+    // This prevents ambiguous ordering (many docs at 00:00) and makes Kardex/Stock timelines consistent.
+    const postingDateIso = new Date().toISOString();
+
     // Idempotency: avoid double-posting stock/kardex.
     if (docData?.isClockedOut === true) {
       return { success: true };
+    }
+
+    // Best-effort: persist posting time on the document before posting movements.
+    try {
+      await amplifyClient.models.Document.update({
+        documentId: Number(documentId),
+        stockDate: postingDateIso,
+      } as any);
+      docData.stockDate = postingDateIso;
+    } catch {
+      // ignore
+      docData.stockDate = postingDateIso;
     }
 
     // Obtener tipo de documento
@@ -296,7 +388,7 @@ export async function finalizeDocument(
 
     const stockDirection = (docType.data as any)?.stockDirection || DOCUMENT_STOCK_DIRECTION.NONE;
 
-    if (stockDirection === DOCUMENT_STOCK_DIRECTION.NONE) {
+    if (!isStockDirectionIn(stockDirection) && !isStockDirectionOut(stockDirection)) {
       // No afecta stock, but still finalize the document.
       await amplifyClient.models.Document.update({
         documentId: Number(documentId),
@@ -413,7 +505,7 @@ export async function finalizeDocument(
         quantity: Number(it?.quantity ?? 0) || 0,
       }));
 
-    if (!allowNegativeStock && stockDirection === DOCUMENT_STOCK_DIRECTION.OUT) {
+    if (!allowNegativeStock && isStockDirectionOut(stockDirection)) {
       const productIdsToCheck = Array.from(new Set(inventoryItems.map((i) => i.productId)));
       const stocksRes: any = await amplifyClient.models.Stock.list({
         filter: {
@@ -473,9 +565,7 @@ export async function finalizeDocument(
       const currentQuantity = stock?.quantity || 0;
 
       // Calcular nueva cantidad
-      const quantityChange = stockDirection === DOCUMENT_STOCK_DIRECTION.IN 
-        ? item.quantity 
-        : -item.quantity;
+      const quantityChange = isStockDirectionIn(stockDirection) ? item.quantity : -item.quantity;
       const newQuantity = currentQuantity + quantityChange;
 
       // Determine effective cost to record ("último costo")
@@ -488,7 +578,7 @@ export async function finalizeDocument(
           : (rawItemCost > 0 ? rawItemCost : (productLastPurchase > 0 ? productLastPurchase : productCost));
 
       // Fallback: if SALIDA has no cost info, try last Kardex ENTRADA cost (per product + warehouse)
-      if (stockDirection === DOCUMENT_STOCK_DIRECTION.OUT && (!(effectiveUnitCost > 0) || !Number.isFinite(effectiveUnitCost))) {
+      if (isStockDirectionOut(stockDirection) && (!(effectiveUnitCost > 0) || !Number.isFinite(effectiveUnitCost))) {
         const fallback = await getLastEntradaUnitCostFromKardex({
           productId: Number(item.productId),
           warehouseId: Number(docData.warehouseId),
@@ -522,7 +612,7 @@ export async function finalizeDocument(
       }
 
       // If it's an ENTRADA, update lastPurchasePrice/cost on Product (best-effort)
-      if (stockDirection === DOCUMENT_STOCK_DIRECTION.IN && effectiveUnitCost > 0) {
+      if (isStockDirectionIn(stockDirection) && effectiveUnitCost > 0) {
         await amplifyClient.models.Product.update({
           idProduct: Number(item.productId),
           lastPurchasePrice: effectiveUnitCost,
@@ -533,12 +623,12 @@ export async function finalizeDocument(
       // Crear entrada en Kardex
       await createKardexEntry({
         productId: item.productId,
-        date: new Date(docData.stockDate || new Date()),
+        date: new Date(String(docData.stockDate ?? postingDateIso)),
         documentId: Number(documentId),
         documentItemId: Number(item?.documentItemId),
         documentNumber: docData.number,
         warehouseId: Number(docData.warehouseId),
-        type: stockDirection === DOCUMENT_STOCK_DIRECTION.IN ? 'ENTRADA' : 'SALIDA',
+        type: isStockDirectionIn(stockDirection) ? 'ENTRADA' : 'SALIDA',
         quantity: item.quantity,
         balance: newQuantity,
         previousBalance: currentQuantity,

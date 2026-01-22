@@ -31,6 +31,10 @@ function computeDetailsEtag(details: any) {
       ? details.items.map((it: any) => ({
           id: it?.id,
           productid: it?.productid,
+          productname: it?.productname,
+          productcode: it?.productcode,
+          productbarcode: it?.productbarcode,
+          measurementunit: it?.measurementunit,
           quantity: it?.quantity,
           price: it?.price,
           unitcost: it?.unitcost,

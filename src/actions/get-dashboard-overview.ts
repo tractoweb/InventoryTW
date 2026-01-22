@@ -1,6 +1,7 @@
 "use server";
 
 import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from "@/lib/amplify-config";
+import { normalizeStockDirection } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
 import { ymdToBogotaMidnightUtc } from "@/lib/datetime";
 import { cached } from "@/lib/server-cache";
@@ -405,8 +406,8 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     if (!("error" in docTypesResult)) {
       for (const dt of docTypesResult.data ?? []) {
         const id = Number((dt as any)?.documentTypeId);
-        const sd = Number((dt as any)?.stockDirection ?? DOCUMENT_STOCK_DIRECTION.NONE);
-        if (Number.isFinite(id) && id > 0 && Number.isFinite(sd)) stockDirectionByDocTypeId.set(id, sd);
+        const sd = normalizeStockDirection((dt as any)?.stockDirection);
+        if (Number.isFinite(id) && id > 0) stockDirectionByDocTypeId.set(id, sd);
       }
     }
 

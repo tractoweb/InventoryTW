@@ -46,6 +46,7 @@ export default async function InventoryPage({
         warehouses={warehouses || []}
         taxes={taxes || []}
         currentUserName={currentUserName}
+        accessLevel={Number(s.data.accessLevel ?? 0)}
         initialQuery={Array.isArray(searchParams?.q) ? searchParams?.q?.[0] : (searchParams?.q as string | undefined)}
         initialGroupId={(() => {
           const raw = Array.isArray(searchParams?.groupId) ? searchParams?.groupId?.[0] : (searchParams?.groupId as string | undefined);

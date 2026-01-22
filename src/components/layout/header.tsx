@@ -37,7 +37,7 @@ const pageTitles: { [key: string]: string } = {
 
 export function AppHeader({ session }: { session?: any }) {
   const pathname = usePathname() ?? "/";
-  if (pathname === "/login") return null;
+  const isLogin = pathname === "/login";
   const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const userId = Number(session?.userId ?? 0) || 0;
@@ -94,13 +94,15 @@ export function AppHeader({ session }: { session?: any }) {
     window.localStorage.setItem(lastSeenKey, new Date().toISOString());
   }, [notifOpen, lastSeenKey]);
 
+  if (isLogin) return null;
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="md:hidden" />
 
-      <Link href="/" className="flex items-center gap-2 md:hidden">
-        <AppLogo className="h-6 w-6 text-primary" />
-        <span className="text-base font-semibold">InventoryTAW</span>
+      <Link href="/" className="flex min-w-0 items-center gap-2 md:hidden">
+        <AppLogo className="h-6 w-6 shrink-0 text-primary" />
+        <span className="min-w-0 max-w-[48vw] truncate text-base font-semibold leading-none">InventoryTAW</span>
       </Link>
 
       <h1 className="hidden text-lg font-semibold capitalize md:block">

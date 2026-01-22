@@ -69,7 +69,8 @@ const menuGroups: MenuGroup[] = [
     items: [
       { href: "/documents", label: "Documentos", icon: Receipt },
       { href: "/pos/salidas", label: "POS · Salidas", icon: ArrowUpRight },
-      { href: "/partners", label: "Clientes & Proveedores", icon: Users },
+      { href: "/clients", label: "Clientes", icon: Users },
+      { href: "/suppliers", label: "Proveedores", icon: Users },
     ],
   },
   {
@@ -203,11 +204,11 @@ export function AppSidebar({ accessLevel = 0 }: { accessLevel?: number }) {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div ref={brandLogoRef} className="ui-show-glow">
             <AppLogo className="h-8 w-8 text-primary" />
           </div>
-          <span ref={brandTextRef} className="ui-show-glow text-xl font-semibold">
+          <span ref={brandTextRef} className="ui-show-glow min-w-0 truncate text-xl font-semibold">
             InventoryTAW
           </span>
         </div>

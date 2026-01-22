@@ -48,13 +48,13 @@ function fmtMoney(value: number | null | undefined) {
 }
 
 function TypeBadge({ type }: { type: KardexEntryRow['type'] }) {
-  const label = type === 'ENTRADA' ? 'Entrada' : type === 'SALIDA' ? 'Salida' : 'Ajuste';
+  const label = type === 'ENTRADA' ? 'Entrada' : type === 'SALIDA' ? 'Salida' : 'Creado';
   const cls =
     type === 'ENTRADA'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
       : type === 'SALIDA'
         ? 'border-red-200 bg-red-50 text-red-800'
-        : 'border-amber-200 bg-amber-50 text-amber-900';
+        : 'border-blue-200 bg-blue-50 text-blue-800';
   return (
     <Badge variant="outline" className={cls}>
       {label}
@@ -108,7 +108,8 @@ export default function KardexPage() {
   const [detailsTab, setDetailsTab] = React.useState<"movement" | "document">("movement");
 
   const [docDialogOpen, setDocDialogOpen] = React.useState(false);
-  const [docDialogEntry, setDocDialogEntry] = React.useState<KardexEntryRow | null>(null);
+  const [docDialogDocumentId, setDocDialogDocumentId] = React.useState<number | null>(null);
+  const [docDialogDocumentNumber, setDocDialogDocumentNumber] = React.useState<string | null>(null);
   const [docDialogView, setDocDialogView] = React.useState<"pdf" | "print">("pdf");
 
   React.useEffect(() => {
@@ -616,7 +617,7 @@ export default function KardexPage() {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="ENTRADA">Entrada</SelectItem>
                 <SelectItem value="SALIDA">Salida</SelectItem>
-                <SelectItem value="AJUSTE">Ajuste</SelectItem>
+                <SelectItem value="AJUSTE">Creado</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -666,6 +667,8 @@ export default function KardexPage() {
                     <TableHead>Producto</TableHead>
                     <TableHead className="w-[170px] bg-background">Bodega</TableHead>
                     <TableHead className="w-[90px] text-right bg-background">Δ</TableHead>
+                    <TableHead className="w-[110px] text-right bg-background">Precio</TableHead>
+                    <TableHead className="w-[110px] text-right bg-background">Stock actual</TableHead>
                     <TableHead className="w-[90px] text-right bg-background">Antes</TableHead>
                     <TableHead className="w-[90px] text-right bg-background">Saldo</TableHead>
                     <TableHead className="bg-background">Documento</TableHead>
@@ -693,7 +696,7 @@ export default function KardexPage() {
                     });
                   })().length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
                         No hay movimientos con estos filtros.
                       </TableCell>
                     </TableRow>
@@ -723,7 +726,7 @@ export default function KardexPage() {
                       const docLabel = e.documentNumber ?? (e.documentId ? `Doc #${e.documentId}` : '—');
 
                       const qty = Number(e.quantity ?? 0) || 0;
-                      const signedQty = e.type === 'SALIDA' ? -Math.abs(qty) : Math.abs(qty);
+                      const signedQty = e.type === 'SALIDA' ? -Math.abs(qty) : e.type === 'ENTRADA' ? Math.abs(qty) : qty;
                       const before = (Number(e.balance ?? 0) || 0) - signedQty;
                       const deltaText = `${signedQty > 0 ? '+' : ''}${fmtMoney(signedQty)}`;
                       const deltaClass = signedQty > 0 ? 'text-emerald-700' : signedQty < 0 ? 'text-red-700' : '';
@@ -737,6 +740,8 @@ export default function KardexPage() {
                           </TableCell>
                           <TableCell>{e.warehouseName ?? (e.warehouseId ? `#${e.warehouseId}` : '—')}</TableCell>
                           <TableCell className={`text-right ${deltaClass}`}>{deltaText}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(e.unitPrice) || '—'}</TableCell>
+                          <TableCell className="text-right">{e.currentStock === null || e.currentStock === undefined ? '—' : fmtMoney(e.currentStock)}</TableCell>
                           <TableCell className="text-right">{fmtMoney(before)}</TableCell>
                           <TableCell className="text-right">{fmtMoney(e.balance)}</TableCell>
                           <TableCell>
@@ -750,7 +755,8 @@ export default function KardexPage() {
                                     size="sm"
                                     onClick={() => {
                                       // Open the large document dialog directly (no Sheet).
-                                      setDocDialogEntry(e);
+                                      setDocDialogDocumentId(Number(e.documentId));
+                                      setDocDialogDocumentNumber(e.documentNumber ?? null);
                                       setDocDialogView("pdf");
                                       setDocDialogOpen(true);
                                     }}
@@ -827,8 +833,9 @@ export default function KardexPage() {
         }}
         entry={detailsEntry}
         defaultTab={detailsTab}
-        onOpenDocument={({ entry, view }: { entry: KardexEntryRow; view: "pdf" | "print" }) => {
-          setDocDialogEntry(entry);
+        onOpenDocument={({ documentId, documentNumber, view }: { documentId: number; documentNumber?: string | null; view: "pdf" | "print" }) => {
+          setDocDialogDocumentId(Number(documentId));
+          setDocDialogDocumentNumber(documentNumber ?? null);
           setDocDialogView(view);
           setDocDialogOpen(true);
         }}
@@ -839,11 +846,13 @@ export default function KardexPage() {
         onOpenChange={(open) => {
           setDocDialogOpen(open);
           if (!open) {
-            setDocDialogEntry(null);
+            setDocDialogDocumentId(null);
+            setDocDialogDocumentNumber(null);
             setDocDialogView("pdf");
           }
         }}
-        entry={docDialogEntry}
+        documentId={docDialogDocumentId}
+        documentNumber={docDialogDocumentNumber}
         view={docDialogView}
         onViewChange={setDocDialogView}
       />

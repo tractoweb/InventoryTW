@@ -186,7 +186,8 @@ const schema = a.schema({
     product: a.belongsTo('Product', 'productId'),
   }).identifier(['kardexHistoryId']).authorization((allow) => [allow.publicApiKey()]),
 
-  // 6. CLIENTES
+  // 6. PROVEEDORES (modelo legado: Customer)
+  // NOTE: En InventoryTW, este modelo se usa exclusivamente para proveedores.
   Customer: a.model({
     idCustomer: a.integer().required(),
     code: a.string(),
@@ -207,6 +208,20 @@ const schema = a.schema({
     discounts: a.hasMany('CustomerDiscount', 'customerId'),
     loyaltyCards: a.hasMany('LoyaltyCard', 'customerId'),
   }).identifier(['idCustomer']).authorization((allow) => [allow.publicApiKey()]),
+
+  // 6b. CLIENTES (ventas)
+  Client: a.model({
+    idClient: a.integer().required(),
+    name: a.string().required(),
+    taxNumber: a.string(),
+    email: a.string(),
+    phoneNumber: a.string(),
+    address: a.string(),
+    city: a.string(),
+    isEnabled: a.boolean().default(true),
+    notes: a.string(),
+    documents: a.hasMany('Document', 'clientId'),
+  }).identifier(['idClient']).authorization((allow) => [allow.publicApiKey()]),
 
   CustomerDiscount: a.model({
     customerDiscountId: a.integer().required(),
@@ -252,6 +267,9 @@ const schema = a.schema({
     number: a.string().required(),
     userId: a.integer().required(),
     customerId: a.integer(),
+    clientId: a.integer(),
+    // Snapshot for traceability (free-text client name, e.g. POS)
+    clientNameSnapshot: a.string(),
     orderNumber: a.string(),
     date: a.date().required(),
     stockDate: a.datetime().required(),
@@ -259,6 +277,8 @@ const schema = a.schema({
     isClockedOut: a.boolean().default(false),
     documentTypeId: a.integer().required(),
     warehouseId: a.integer().required(),
+    // Optional idempotency key for safe retries / double-submits (e.g. POS)
+    idempotencyKey: a.string(),
     referenceDocumentNumber: a.string(),
     internalNote: a.string(),
     note: a.string(),
@@ -270,17 +290,26 @@ const schema = a.schema({
     serviceType: a.integer().default(0),
     user: a.belongsTo('User', 'userId'),
     customer: a.belongsTo('Customer', 'customerId'),
+    client: a.belongsTo('Client', 'clientId'),
     warehouse: a.belongsTo('Warehouse', 'warehouseId'),
     documentType: a.belongsTo('DocumentType', 'documentTypeId'),
     items: a.hasMany('DocumentItem', 'documentId'),
     payments: a.hasMany('Payment', 'documentId'),
     itemPriceViews: a.hasMany('DocumentItemPriceView', 'documentId'),
     kardexEntries: a.hasMany('Kardex', 'documentId'),
-  }).identifier(['documentId']).authorization((allow) => [allow.publicApiKey()]),
+  })
+    .identifier(['documentId'])
+    .secondaryIndexes((index) => [index('idempotencyKey').name('byIdempotencyKey')])
+    .authorization((allow) => [allow.publicApiKey()]),
 
   DocumentItem: a.model({
     documentId: a.integer().required(),
     productId: a.integer().required(),
+    // Snapshots for traceability (avoid depending on current Product master data)
+    productNameSnapshot: a.string(),
+    productCodeSnapshot: a.string(),
+    measurementUnitSnapshot: a.string(),
+    barcodeSnapshot: a.string(),
     quantity: a.float().required(),
     expectedQuantity: a.float().default(0),
     priceBeforeTax: a.float().default(0),

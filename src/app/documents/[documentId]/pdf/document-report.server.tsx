@@ -7,6 +7,7 @@ import {
 } from "@react-pdf/renderer";
 
 import type { DocumentDetails } from "@/actions/get-document-details";
+import { formatDateInBogota, formatDateTimeInBogota } from "@/lib/datetime";
 
 const styles = StyleSheet.create({
   page: {
@@ -132,6 +133,10 @@ function formatInternalNote(note: unknown): { kind: "empty" | "text" | "json"; v
 }
 
 export function DocumentReportPdfServer({ details }: { details: DocumentDetails }) {
+  const templateKey = String((details as any).documenttypeprinttemplate ?? "").trim();
+  const categoryId = Number((details as any).documenttypecategoryid ?? 0) || 0;
+  const terceroLabel = categoryId === 2 ? "Cliente" : categoryId === 1 ? "Proveedor" : "Tercero";
+
   const cfg: any = details.liquidation?.config ?? {};
   const totals: any = details.liquidation?.result?.totals ?? {};
   const lines: any[] = details.liquidation?.result?.lines ?? [];
@@ -141,7 +146,15 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
     freightNameById.set(String(f.id), String(f.name ?? f.id));
   }
 
-  const headerDate = details.stockdate ? String(details.stockdate) : details.date;
+  const rawHeaderDate = categoryId === 1
+    ? (details.stockdate ? String(details.stockdate) : details.date)
+    : details.date;
+
+  const headerDate = !rawHeaderDate
+    ? ""
+    : String(rawHeaderDate).includes("T")
+      ? formatDateTimeInBogota(String(rawHeaderDate))
+      : formatDateInBogota(String(rawHeaderDate));
   const internalNote = formatInternalNote((details as any).internalnote);
   const hasDiscounts = Boolean(cfg.discountsEnabled) && (lines ?? []).some((l) => Number(l.discountPercentage ?? 0) > 0);
 
@@ -151,8 +164,11 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
         <Text style={styles.sectionTitle}>Información</Text>
         <View style={styles.grid}>
           <View style={styles.box}>
-            <Text style={styles.boxLabel}>Tercero</Text>
+            <Text style={styles.boxLabel}>{terceroLabel}</Text>
             <Text style={styles.boxValue}>{details.customername ?? "—"}</Text>
+            {details.customertaxnumber ? (
+              <Text style={styles.boxLabel}>NIT/CC: {details.customertaxnumber}</Text>
+            ) : null}
           </View>
           <View style={styles.box}>
             <Text style={styles.boxLabel}>Tipo</Text>
@@ -162,6 +178,12 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
             <Text style={styles.boxLabel}>Almacén</Text>
             <Text style={styles.boxValue}>{details.warehousename}</Text>
           </View>
+          {details.note ? (
+            <View style={styles.box}>
+              <Text style={styles.boxLabel}>Nota</Text>
+              <Text style={styles.boxValue}>{String(details.note)}</Text>
+            </View>
+          ) : null}
         </View>
       </>
     );
@@ -300,16 +322,263 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
           </View>
         </View>
 
-        {internalNote.kind !== "empty" && (
-          <>
-            <Text style={styles.sectionTitle}>InternalNote</Text>
-            <View style={styles.box}>
-              <Text>{internalNote.value}</Text>
-            </View>
-          </>
-        )}
       </>
     );
+  }
+
+  function GenericItemsSection(opts: { title: string }) {
+    const items = (details as any).items ?? [];
+    const hasTax = (items ?? []).some((it: any) => Number(it.taxamount ?? 0) > 0);
+
+    return (
+      <>
+        <Text style={styles.sectionTitle}>{opts.title}</Text>
+        <View style={styles.table}>
+          <View style={[styles.trRow, styles.th]}>
+            <View style={[styles.cell, styles.colIndex]}>
+              <Text>#</Text>
+            </View>
+            <View style={[styles.cell, styles.colProduct]}>
+              <Text>Producto / Detalle</Text>
+            </View>
+            <View style={[styles.cell, styles.colQty]}>
+              <Text>Cant.</Text>
+            </View>
+            <View style={[styles.cell, styles.colMoney]}>
+              <Text>Unit</Text>
+            </View>
+            {hasTax && (
+              <View style={[styles.cell, styles.colMoney]}>
+                <Text>IVA</Text>
+              </View>
+            )}
+            <View style={[styles.cell, styles.colMoney, styles.lastCell]}>
+              <Text>Total</Text>
+            </View>
+          </View>
+
+          {(items ?? []).map((it: any, idx: number) => {
+            const code = String(it.productcode ?? "").trim();
+            const barcode = String(it.productbarcode ?? "").trim();
+            const unit = String(it.measurementunit ?? "").trim();
+
+            const metaBits: string[] = [];
+            if (code) metaBits.push(`Cód: ${code}`);
+            if (barcode) metaBits.push(`Barcode: ${barcode}`);
+            if (unit) metaBits.push(`Und: ${unit}`);
+            const metaLine = metaBits.join(" · ");
+
+            return (
+              <View key={String(it.id ?? idx)} style={styles.trRow} wrap={false}>
+                <View style={[styles.cell, styles.colIndex]}>
+                  <Text style={styles.right}>{idx + 1}</Text>
+                </View>
+                <View style={[styles.cell, styles.colProduct]}>
+                  <Text style={styles.productName}>{String(it.productname ?? "")}</Text>
+                  {metaLine ? <Text style={styles.productMeta}>{metaLine}</Text> : null}
+                </View>
+                <View style={[styles.cell, styles.colQty]}>
+                  <Text style={styles.right}>{String(Number(it.quantity ?? 0))}</Text>
+                </View>
+                <View style={[styles.cell, styles.colMoney]}>
+                  <Text style={styles.right}>{money(Number(it.price ?? 0))}</Text>
+                </View>
+                {hasTax && (
+                  <View style={[styles.cell, styles.colMoney]}>
+                    <Text style={styles.right}>{money(Number(it.taxamount ?? 0))}</Text>
+                  </View>
+                )}
+                <View style={[styles.cell, styles.colMoney, styles.lastCell]}>
+                  <Text style={styles.right}>{money(Number(it.total ?? 0))}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.footerTotals}>
+          <View style={styles.totalsRow}>
+            <Text style={styles.bold}>TOTAL (documento):</Text>
+            <Text style={styles.bold}>{money(Number((details as any).total ?? 0))}</Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  function SaleSection() {
+    const items = (details as any).items ?? [];
+    const payments = (details as any).payments ?? [];
+    const posTotals = (details as any).posSaleTotals as
+      | { ivaPercentage: number; grossTotal: number; netTotal: number; ivaTotal: number }
+      | undefined;
+
+    const hasTax = (items ?? []).some((it: any) => Number(it.taxamount ?? 0) > 0);
+
+    const subtotal = (items ?? []).reduce((sum: number, it: any) => sum + (Number(it.total ?? 0) || 0), 0);
+    const taxTotal = (items ?? []).reduce((sum: number, it: any) => sum + (Number(it.taxamount ?? 0) || 0), 0);
+    const computedTotal = subtotal + taxTotal;
+
+    const paidTotal = (payments ?? []).reduce((sum: number, p: any) => sum + (Number(p.amount ?? 0) || 0), 0);
+    const balance = computedTotal - paidTotal;
+
+    return (
+      <>
+        {GenericItemsSection({ title: "Detalle de Venta" })}
+
+        {(payments ?? []).length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>Pagos</Text>
+            <View style={styles.table}>
+              <View style={[styles.trRow, styles.th]}>
+                <View style={[styles.cell, styles.colIndex]}>
+                  <Text>#</Text>
+                </View>
+                <View style={[styles.cell, styles.colProduct]}>
+                  <Text>Método</Text>
+                </View>
+                <View style={[styles.cell, styles.colMoney]}>
+                  <Text>Fecha</Text>
+                </View>
+                <View style={[styles.cell, styles.colMoney, styles.lastCell]}>
+                  <Text>Valor</Text>
+                </View>
+              </View>
+              {(payments ?? []).map((p: any, idx: number) => (
+                <View key={String(p.id ?? idx)} style={styles.trRow} wrap={false}>
+                  <View style={[styles.cell, styles.colIndex]}>
+                    <Text style={styles.right}>{idx + 1}</Text>
+                  </View>
+                  <View style={[styles.cell, styles.colProduct]}>
+                    <Text style={styles.productName}>{String(p.paymenttypename ?? "")}</Text>
+                  </View>
+                  <View style={[styles.cell, styles.colMoney]}>
+                    <Text>{String(p.date ?? "")}</Text>
+                  </View>
+                  <View style={[styles.cell, styles.colMoney, styles.lastCell]}>
+                    <Text style={styles.right}>{money(Number(p.amount ?? 0))}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <View style={styles.footerTotals}>
+          <View style={styles.totalsRow}>
+            <Text>Subtotal:</Text>
+            <Text style={styles.bold}>{money(subtotal)}</Text>
+          </View>
+          {posTotals && Number(posTotals.ivaPercentage ?? 0) > 0 ? (
+            <>
+              <View style={styles.totalsRow}>
+                <Text>Venta neta:</Text>
+                <Text style={styles.bold}>{money(Number(posTotals.netTotal ?? 0))}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text>IVA incluido ({pct(Number(posTotals.ivaPercentage ?? 0))}):</Text>
+                <Text style={styles.bold}>{money(Number(posTotals.ivaTotal ?? 0))}</Text>
+              </View>
+            </>
+          ) : null}
+          {hasTax && (
+            <View style={styles.totalsRow}>
+              <Text>IVA (informativo):</Text>
+              <Text style={styles.bold}>{money(taxTotal)}</Text>
+            </View>
+          )}
+          <View style={styles.totalsRow}>
+            <Text>Total (documento):</Text>
+            <Text style={styles.bold}>{money(Number((details as any).total ?? 0))}</Text>
+          </View>
+          <View style={styles.totalsRow}>
+            <Text>Total (subtotal + IVA):</Text>
+            <Text style={styles.bold}>{money(computedTotal)}</Text>
+          </View>
+          {(payments ?? []).length > 0 ? (
+            <>
+              <View style={styles.totalsRow}>
+                <Text>Pagado:</Text>
+                <Text style={styles.bold}>{money(paidTotal)}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text>Saldo:</Text>
+                <Text style={styles.bold}>{money(balance)}</Text>
+              </View>
+            </>
+          ) : null}
+        </View>
+      </>
+    );
+  }
+
+  function InvoiceSection() {
+    const items = (details as any).items ?? [];
+    const hasTax = (items ?? []).some((it: any) => Number(it.taxamount ?? 0) > 0);
+    const posTotals = (details as any).posSaleTotals as
+      | { ivaPercentage: number; grossTotal: number; netTotal: number; ivaTotal: number }
+      | undefined;
+
+    const subtotal = (items ?? []).reduce((sum: number, it: any) => sum + (Number(it.total ?? 0) || 0), 0);
+    const taxTotal = (items ?? []).reduce((sum: number, it: any) => sum + (Number(it.taxamount ?? 0) || 0), 0);
+
+    return (
+      <>
+        {GenericItemsSection({ title: "Detalle de Factura" })}
+
+        <View style={styles.footerTotals}>
+          <View style={styles.totalsRow}>
+            <Text>Subtotal:</Text>
+            <Text style={styles.bold}>{money(subtotal)}</Text>
+          </View>
+          {posTotals && Number(posTotals.ivaPercentage ?? 0) > 0 ? (
+            <>
+              <View style={styles.totalsRow}>
+                <Text>Venta neta:</Text>
+                <Text style={styles.bold}>{money(Number(posTotals.netTotal ?? 0))}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text>IVA incluido ({pct(Number(posTotals.ivaPercentage ?? 0))}):</Text>
+                <Text style={styles.bold}>{money(Number(posTotals.ivaTotal ?? 0))}</Text>
+              </View>
+            </>
+          ) : hasTax ? (
+            <View style={styles.totalsRow}>
+              <Text>IVA:</Text>
+              <Text style={styles.bold}>{money(taxTotal)}</Text>
+            </View>
+          ) : null}
+          <View style={styles.totalsRow}>
+            <Text style={styles.bold}>TOTAL:</Text>
+            <Text style={styles.bold}>{money(Number((details as any).total ?? 0))}</Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  function BodyByTemplate() {
+    switch (templateKey) {
+      case "Purchase":
+        return PurchaseLiquidationSection();
+      case "Sale":
+        return SaleSection();
+      case "Invoice":
+        return InvoiceSection();
+      case "Proforma":
+        return GenericItemsSection({ title: "Detalle de Productos" });
+      case "Refund":
+        return GenericItemsSection({ title: "Detalle de Productos (Devolución)" });
+      case "InventoryCount":
+        return GenericItemsSection({ title: "Detalle de Productos (Conteo)" });
+      case "LossAndDamage":
+        return GenericItemsSection({ title: "Detalle de Productos (Merma/Daño)" });
+      case "StockReturn":
+        return GenericItemsSection({ title: "Detalle de Productos (Devolución de stock)" });
+      default:
+        if ((details as any).liquidation?.result?.lines?.length) return PurchaseLiquidationSection();
+        return GenericItemsSection({ title: "Detalle de Productos" });
+    }
   }
 
   return (
@@ -322,7 +591,16 @@ export function DocumentReportPdfServer({ details }: { details: DocumentDetails 
         </View>
 
         <InfoHeader />
-        <PurchaseLiquidationSection />
+        <BodyByTemplate />
+
+        {categoryId === 1 && internalNote.kind !== "empty" && (
+          <>
+            <Text style={styles.sectionTitle}>InternalNote</Text>
+            <View style={styles.box}>
+              <Text>{internalNote.value}</Text>
+            </View>
+          </>
+        )}
       </Page>
     </Document>
   );

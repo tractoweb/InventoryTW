@@ -151,6 +151,9 @@ export function NewDocumentForm() {
   const [referenceDocumentNumber, setReferenceDocumentNumber] = React.useState('');
   const [note, setNote] = React.useState('');
 
+  // Payment status (0=pending/unpaid, 2=paid)
+  const [paidStatus, setPaidStatus] = React.useState<0 | 2>(0);
+
   const [items, setItems] = React.useState<DraftItem[]>([]);
 
   // Liquidación: configuración global (basada en la calculadora)
@@ -597,6 +600,7 @@ export function NewDocumentForm() {
         warehouseId: Number(warehouseId),
         documentTypeId: Number(documentTypeId),
         date,
+        paidStatus,
         referenceDocumentNumber: referenceDocumentNumber || undefined,
         note: note || undefined,
         internalNote: JSON.stringify({
@@ -707,6 +711,19 @@ export function NewDocumentForm() {
                   {d.label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Factura</Label>
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              value={paidStatus}
+              onChange={(e) => setPaidStatus(e.target.value === '2' ? 2 : 0)}
+              disabled={loading}
+            >
+              <option value={0}>No paga</option>
+              <option value={2}>Paga</option>
             </select>
           </div>
 

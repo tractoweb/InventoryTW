@@ -43,11 +43,12 @@ type Props = {
   warehouses: Warehouse[];
   taxes: Tax[];
   currentUserName: string;
+  accessLevel: number;
   initialQuery?: string;
   initialGroupId?: number | null;
 };
 
-export function ProductsMasterClient({ productGroups, warehouses, taxes, currentUserName, initialQuery, initialGroupId }: Props) {
+export function ProductsMasterClient({ productGroups, warehouses, taxes, currentUserName, accessLevel, initialQuery, initialGroupId }: Props) {
   const { toast } = useToast();
 
   const productsCatalog = useProductsCatalog();
@@ -210,6 +211,10 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
           title: "Producto desactivado",
           description: `${currentUserName} · ${when} · ${whatName} (${whatRef})`,
         });
+
+        // Keep the shared catalog in sync so the product doesn't reappear.
+        productsCatalog.remove(productId);
+
         setRows((prev) => prev.filter((r) => r.id !== productId));
         setGroupProducts((prev) => {
           const next = { ...prev };
@@ -223,7 +228,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
         toast({ variant: "destructive", title: "Error al eliminar", description: result.error });
       }
     },
-    [toast, currentUserName, rows]
+    [toast, currentUserName, rows, productsCatalog]
   );
 
   const tableMeta = React.useMemo(
@@ -232,13 +237,14 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       warehouses,
       taxes,
       handleDeleteProduct,
+      canDeactivate: Number(accessLevel) >= 1,
       disableRowExpansion: true,
       openProductDetails: (productId: number) => {
         setDetailsProductId(Number(productId));
         setDetailsOpen(true);
       },
     }),
-    [productGroups, warehouses, taxes, handleDeleteProduct]
+    [productGroups, warehouses, taxes, handleDeleteProduct, accessLevel]
   );
 
   function GroupNode({ group, depth }: { group: ProductGroup; depth: number }) {

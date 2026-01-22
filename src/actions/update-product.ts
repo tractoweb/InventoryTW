@@ -17,6 +17,8 @@ const UpdateProductSchema = z.object({
   description: z.string().optional(),
   price: z.coerce.number().int().min(1, "El precio debe ser mayor a 0."),
   cost: z.coerce.number().int().min(1, "El costo debe ser mayor a 0."),
+  markup: z.coerce.number().min(0).optional(),
+  isTaxInclusivePrice: z.boolean().optional(),
   measurementunit: z.string().optional(),
   isenabled: z.boolean(),
   productgroupid: z.coerce.number().optional(),
@@ -49,6 +51,9 @@ export async function updateProduct(input: UpdateProductInput) {
     const data = validation.data;
     const idProduct = Number(data.id);
 
+    let oldTaxIdsForAudit: number[] | null = null;
+    let newTaxIdsForAudit: number[] | null = null;
+
     const existingRes: any = await amplifyClient.models.Product.get({ idProduct } as any);
     const existing = existingRes?.data as any;
     if (!existing) return { success: false, error: "Producto no encontrado." };
@@ -73,6 +78,11 @@ export async function updateProduct(input: UpdateProductInput) {
       description: data.description ? String(data.description) : undefined,
       price: Number(data.price),
       cost: Number(data.cost),
+      markup: data.markup !== undefined && data.markup !== null ? Number(data.markup) : undefined,
+      isTaxInclusivePrice:
+        data.isTaxInclusivePrice !== undefined && data.isTaxInclusivePrice !== null
+          ? Boolean(data.isTaxInclusivePrice)
+          : undefined,
       measurementUnit: data.measurementunit ? String(data.measurementunit) : undefined,
       isEnabled: Boolean(data.isenabled),
       productGroupId:
@@ -100,6 +110,9 @@ export async function updateProduct(input: UpdateProductInput) {
           .map((pt: any) => Number(pt?.taxId))
           .filter((t: any) => Number.isFinite(t) && t > 0)
       );
+
+      oldTaxIdsForAudit = Array.from(existingTaxIds).sort((a, b) => a - b);
+      newTaxIdsForAudit = desiredTaxIds.slice().sort((a, b) => a - b);
 
       // Create missing
       for (const taxId of desiredTaxIds) {
@@ -187,6 +200,9 @@ export async function updateProduct(input: UpdateProductInput) {
         description: existing?.description ?? null,
         price: existing?.price ?? null,
         cost: existing?.cost ?? null,
+        markup: existing?.markup ?? null,
+        isTaxInclusivePrice: existing?.isTaxInclusivePrice ?? null,
+        taxes: oldTaxIdsForAudit,
         productGroupId: existing?.productGroupId ?? null,
         measurementUnit: existing?.measurementUnit ?? null,
         isEnabled: existing?.isEnabled ?? null,
@@ -198,6 +214,9 @@ export async function updateProduct(input: UpdateProductInput) {
         description: data.description ?? null,
         price: Number(data.price),
         cost: Number(data.cost),
+        markup: data.markup ?? null,
+        isTaxInclusivePrice: data.isTaxInclusivePrice ?? null,
+        taxes: newTaxIdsForAudit,
         productGroupId: data.productgroupid ?? null,
         measurementUnit: data.measurementunit ?? null,
         isEnabled: Boolean(data.isenabled),

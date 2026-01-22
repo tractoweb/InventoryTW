@@ -16,6 +16,7 @@ type ProductsCatalogApi = ProductsCatalogState & {
   ensureLoaded: () => Promise<void>;
   refresh: () => Promise<void>;
   clear: () => void;
+  remove: (productId: number) => void;
 };
 
 const ProductsCatalogContext = React.createContext<ProductsCatalogApi | null>(null);
@@ -86,6 +87,31 @@ export function ProductsCatalogProvider({ children }: { children: React.ReactNod
     await fetchAll();
   }, [fetchAll]);
 
+  const remove = React.useCallback((productId: number) => {
+    const id = Number(productId);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    setState((prev) => {
+      if (!prev.products.length) return prev;
+      const nextProducts = prev.products.filter((p) => Number((p as any)?.id) !== id);
+      const next = { ...prev, products: nextProducts };
+
+      // Best-effort sync to sessionStorage so it doesn't rehydrate stale items.
+      try {
+        const payload = JSON.stringify({ products: nextProducts, loadedAt: next.loadedAt ?? Date.now() });
+        if (payload.length <= 2_000_000) {
+          window.sessionStorage.setItem(STORAGE_KEY, payload);
+        } else {
+          window.sessionStorage.removeItem(STORAGE_KEY);
+        }
+      } catch {
+        // ignore storage failures
+      }
+
+      return next;
+    });
+  }, []);
+
   const clear = React.useCallback(() => {
     try {
       window.sessionStorage.removeItem(STORAGE_KEY);
@@ -101,8 +127,9 @@ export function ProductsCatalogProvider({ children }: { children: React.ReactNod
       ensureLoaded,
       refresh,
       clear,
+      remove,
     }),
-    [state, ensureLoaded, refresh, clear]
+    [state, ensureLoaded, refresh, clear, remove]
   );
 
   return <ProductsCatalogContext.Provider value={value}>{children}</ProductsCatalogContext.Provider>;

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +53,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { getDocumentDetails, type DocumentDetails } from "@/actions/get-document-details";
 import { getProductDetails } from "@/actions/get-product-details";
 import { deleteDocumentAction } from "@/actions/delete-document";
+import { updateDocumentMetadataAction } from "@/actions/update-document-metadata";
+import { voidDocumentAction } from "@/actions/void-document";
+import { updateDocumentPaidStatusAction } from "@/actions/update-document-paid-status";
 import { getCustomers, type CustomerListItem } from "@/actions/get-customers";
 import { getWarehouses, type WarehouseListItem } from "@/actions/get-warehouses";
 import { getDocumentTypes, type DocumentTypeListItem } from "@/actions/get-document-types";
@@ -59,6 +65,20 @@ import type { DocumentsCatalogRow } from "@/actions/list-documents-for-browser-a
 type Option = { value: string; label: string };
 
 type SortField = "number" | "date" | "total" | "supplier";
+
+function paidStatusLabelEs(paidStatus: number): string {
+  const s = Number(paidStatus ?? 0);
+  if (s === 2) return "Pagada";
+  if (s === 1) return "Parcial";
+  return "No paga";
+}
+
+function paidStatusVariant(paidStatus: number): "default" | "secondary" | "outline" {
+  const s = Number(paidStatus ?? 0);
+  if (s === 2) return "default";
+  if (s === 1) return "secondary";
+  return "outline";
+}
 
 function formatMoney(amount: number) {
   const n = Number(amount ?? 0);
@@ -76,6 +96,18 @@ function todayISODate() {
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function safeParseJson(raw: unknown): any | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  if (!(s.startsWith("{") || s.startsWith("["))) return null;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
 }
 
 export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: number | null }) {
@@ -113,6 +145,58 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [details, setDetails] = useState<DocumentDetails | null>(null);
 
+  const detailsMeta = useMemo(() => {
+    const categoryId = Number(details?.documenttypecategoryid ?? 0) || 0;
+    const isPurchaseCategory = categoryId === 1;
+    const isSalesCategory = categoryId === 2;
+
+    const raw = String(details?.internalnote ?? "").trim();
+    let isPosSale = false;
+    if (raw.startsWith("{") || raw.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw);
+        isPosSale = parsed?.source === "POS" && parsed?.kind === "Sale";
+      } catch {
+        isPosSale = false;
+      }
+    }
+
+    return { categoryId, isPurchaseCategory, isSalesCategory, isPosSale };
+  }, [details]);
+
+  const voidLinkMeta = useMemo(() => {
+    const note = String(details?.note ?? "");
+    const parsed = safeParseJson(details?.internalnote);
+
+    let isVoidDocument = false;
+    let originalDocumentId: number | null = null;
+    let reversalDocumentId: number | null = null;
+    let reversalDocumentNumber: string | null = null;
+
+    if (parsed?.source === "SYSTEM" && parsed?.kind === "VOID") {
+      isVoidDocument = true;
+      const od = Number(parsed?.original?.documentId ?? 0);
+      if (Number.isFinite(od) && od > 0) originalDocumentId = od;
+    }
+
+    const ridFromInternal = Number(parsed?.void?.reversalDocumentId ?? 0);
+    if (Number.isFinite(ridFromInternal) && ridFromInternal > 0) {
+      reversalDocumentId = ridFromInternal;
+      const rn = String(parsed?.void?.reversalDocumentNumber ?? "").trim();
+      reversalDocumentNumber = rn || null;
+    }
+
+    if (!reversalDocumentId) {
+      const m = note.match(/ANULADO_ID\s*:\s*(\d+)/i);
+      if (m?.[1]) {
+        const ridFromNote = Number(m[1]);
+        if (Number.isFinite(ridFromNote) && ridFromNote > 0) reversalDocumentId = ridFromNote;
+      }
+    }
+
+    return { isVoidDocument, originalDocumentId, reversalDocumentId, reversalDocumentNumber };
+  }, [details]);
+
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +205,24 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
   const [productDialogError, setProductDialogError] = useState<string | null>(null);
   const [productDialogData, setProductDialogData] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editThirdPartyName, setEditThirdPartyName] = useState<string>("");
+  const [editNote, setEditNote] = useState<string>("");
+
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voiding, setVoiding] = useState(false);
+  const [voidError, setVoidError] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState<string>("");
+
+  const selectedDocRow = useMemo(() => {
+    if (!selectedDocumentId) return null;
+    return allDocs.find((d) => d.documentId === selectedDocumentId) ?? null;
+  }, [allDocs, selectedDocumentId]);
+
+  const selectedIsFinalized = Boolean(selectedDocRow?.isClockedOut ?? false);
 
   async function openProductDetails(productId: number) {
     setProductDialogOpen(true);
@@ -161,6 +263,91 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
     }
   }
 
+  async function handleTogglePaidStatus() {
+    if (!selectedDocumentId || !selectedDocRow) return;
+
+    // Details can be stale; prefer the catalog row (always has paidStatus).
+    const current = Number(selectedDocRow.paidStatus ?? 0);
+    const next = current === 2 ? 0 : 2;
+
+    try {
+      const res: any = await updateDocumentPaidStatusAction({ documentId: selectedDocumentId, paidStatus: next });
+      if (!res?.success) throw new Error(String(res?.error ?? "No se pudo actualizar"));
+
+      await catalog.refresh();
+      const det: any = await getDocumentDetails(selectedDocumentId);
+      if (det?.error) throw new Error(String(det.error));
+      setDetails(det.data ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "No se pudo actualizar el estado de pago");
+    }
+  }
+
+  function openEditDialog() {
+    if (!details || !selectedDocumentId) return;
+    if (selectedIsFinalized) return;
+    setEditError(null);
+    setEditThirdPartyName(String(details.customername ?? ""));
+    setEditNote(String(details.note ?? ""));
+    setEditOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedDocumentId) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const payload: any = {
+        documentId: selectedDocumentId,
+        note: editNote,
+      };
+      if (detailsMeta.isSalesCategory) {
+        payload.clientName = editThirdPartyName;
+      }
+
+      const res: any = await updateDocumentMetadataAction(payload);
+      if (!res?.success) throw new Error(String(res?.error ?? "No se pudo modificar"));
+
+      setEditOpen(false);
+
+      // Reload detail and refresh catalog for updated thirdPartyName.
+      setLoadingDetails(true);
+      const dres: any = await getDocumentDetails(selectedDocumentId);
+      if (dres?.error) setError(String(dres.error));
+      else setDetails(dres?.data ?? null);
+      await refreshDocs();
+    } catch (e: any) {
+      setEditError(e?.message ?? "No se pudo modificar");
+    } finally {
+      setEditSaving(false);
+      setLoadingDetails(false);
+    }
+  }
+
+  async function handleVoidSelected() {
+    if (!selectedDocumentId) return;
+    setVoiding(true);
+    setVoidError(null);
+    try {
+      const res: any = await voidDocumentAction({ documentId: selectedDocumentId, reason: voidReason });
+      if (!res?.success) throw new Error(String(res?.error ?? 'No se pudo anular'));
+
+      setVoidOpen(false);
+      setVoidReason('');
+
+      await refreshDocs();
+
+      const rid = Number(res?.reversalDocumentId ?? 0);
+      if (Number.isFinite(rid) && rid > 0) {
+        router.push(`/documents/${rid}/pdf`);
+      }
+    } catch (e: any) {
+      setVoidError(e?.message ?? 'No se pudo anular');
+    } finally {
+      setVoiding(false);
+    }
+  }
+
   const customerOptions: Option[] = useMemo(() => {
     return [
       { value: "all", label: "Todos" },
@@ -189,7 +376,11 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
     const dtid = documentTypeId === "all" ? null : Number(documentTypeId);
 
     return allDocs.filter((d) => {
-      if (cid && Number.isFinite(cid) && Number(d.customerId ?? 0) !== cid) return false;
+      if (cid && Number.isFinite(cid)) {
+        // Supplier filter: only meaningful for purchase documents.
+        if (Number((d as any).documentCategoryId ?? 0) !== 1) return false;
+        if (Number(d.customerId ?? 0) !== cid) return false;
+      }
       if (wid && Number.isFinite(wid) && Number(d.warehouseId ?? 0) !== wid) return false;
       if (dtid && Number.isFinite(dtid) && Number(d.documentTypeId ?? 0) !== dtid) return false;
 
@@ -216,7 +407,11 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
     const dir = sortDir === "asc" ? 1 : -1;
     copy.sort((a, b) => {
       if (sortBy === "number") return String(a.number).localeCompare(String(b.number)) * dir;
-      if (sortBy === "supplier") return String(a.customerName ?? "").localeCompare(String(b.customerName ?? "")) * dir;
+      if (sortBy === "supplier") {
+        const an = String((a as any).thirdPartyName ?? a.customerName ?? "");
+        const bn = String((b as any).thirdPartyName ?? b.customerName ?? "");
+        return an.localeCompare(bn) * dir;
+      }
       if (sortBy === "total") return (Number(a.total ?? 0) - Number(b.total ?? 0)) * dir;
       return String(a.stockDate ?? a.date ?? "").localeCompare(String(b.stockDate ?? b.date ?? "")) * dir;
     });
@@ -444,7 +639,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
             />
           </div>
           <div>
-            <div className="text-sm text-muted-foreground mb-1">Proveedor</div>
+            <div className="text-sm text-muted-foreground mb-1">Tercero</div>
             <Select
               value={customerId}
               onValueChange={(v) => {
@@ -453,7 +648,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Proveedor" />
+                <SelectValue placeholder="Tercero" />
               </SelectTrigger>
               <SelectContent>
                 {customerOptions.map((o) => (
@@ -577,8 +772,9 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 <TableHeader>
                   <TableRow>
                     <SortableHead field="number" label="Número" className="w-[110px]" />
+                    <TableHead className="w-[110px]">Pago</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <SortableHead field="supplier" label="Proveedor" />
+                    <SortableHead field="supplier" label="Tercero" />
                     <TableHead>Usuario</TableHead>
                     <SortableHead field="date" label="Fecha" />
                     <SortableHead field="total" label="Total" align="right" />
@@ -587,7 +783,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 <TableBody>
                   {total === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-muted-foreground">
+                      <TableCell colSpan={7} className="text-muted-foreground">
                         Sin resultados.
                       </TableCell>
                     </TableRow>
@@ -610,8 +806,11 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                             )}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={paidStatusVariant(d.paidStatus)}>{paidStatusLabelEs(d.paidStatus)}</Badge>
+                        </TableCell>
                         <TableCell>{d.documentTypeName ?? d.documentTypeId}</TableCell>
-                        <TableCell>{d.customerName ?? "-"}</TableCell>
+                        <TableCell>{(d as any).thirdPartyName ?? d.customerName ?? "-"}</TableCell>
                         <TableCell>{d.userName ?? String(d.userId ?? "-")}</TableCell>
                         <TableCell>{d.date}</TableCell>
                         <TableCell className="text-right">{formatMoney(d.total)}</TableCell>
@@ -691,9 +890,85 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                   <Button variant="outline" onClick={handleViewPdf} disabled={!selectedDocumentId}>
                     Ver / Descargar PDF
                   </Button>
+
+                  {voidLinkMeta.reversalDocumentId ? (
+                    <Button variant="outline" asChild>
+                      <Link href={`/documents/${voidLinkMeta.reversalDocumentId}/pdf`}>
+                        Ver documento de anulación
+                      </Link>
+                    </Button>
+                  ) : null}
+
+                  {voidLinkMeta.originalDocumentId ? (
+                    <Button variant="outline" asChild>
+                      <Link href={`/documents/${voidLinkMeta.originalDocumentId}/pdf`}>
+                        Ver documento original
+                      </Link>
+                    </Button>
+                  ) : null}
+
+                  <Button
+                    variant="outline"
+                    onClick={openEditDialog}
+                    disabled={!selectedDocumentId || !details || selectedIsFinalized}
+                  >
+                    Modificar
+                  </Button>
+
+                  <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setVoidError(null);
+                        setVoidReason('');
+                        setVoidOpen(true);
+                      }}
+                      disabled={!selectedDocumentId || !selectedIsFinalized || voidLinkMeta.isVoidDocument || Boolean(voidLinkMeta.reversalDocumentId)}
+                    >
+                      Anular
+                    </Button>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>¿Anular documento?</DialogTitle>
+                        <DialogDescription>
+                          Se creará un documento inverso para compensar stock/kardex (no se borra el original).
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label>Motivo (opcional)</Label>
+                          <Textarea
+                            value={voidReason}
+                            onChange={(e) => setVoidReason(e.target.value)}
+                            placeholder="Ej: error en la venta / devolución"
+                          />
+                        </div>
+
+                        {voidError ? (
+                          <Alert variant="destructive">
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{voidError}</AlertDescription>
+                          </Alert>
+                        ) : null}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button type="button" variant="outline" onClick={() => setVoidOpen(false)} disabled={voiding}>
+                            Cancelar
+                          </Button>
+                          <Button type="button" onClick={handleVoidSelected} disabled={voiding}>
+                            {voiding ? 'Anulando…' : 'Anular'}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={deleting || !selectedDocumentId}>
+                      <Button variant="destructive" disabled={deleting || !selectedDocumentId || selectedIsFinalized}>
                         {deleting ? 'Eliminando…' : 'Eliminar'}
                       </Button>
                     </AlertDialogTrigger>
@@ -713,10 +988,82 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 </div>
               </div>
 
+              <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Modificar documento</DialogTitle>
+                    <DialogDescription>
+                      Solo se modifican documentos NO finalizados (sin impacto en stock/kardex).
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-3">
+                    {detailsMeta.isSalesCategory ? (
+                      <div className="space-y-1">
+                        <Label>Cliente</Label>
+                        <Input
+                          value={editThirdPartyName}
+                          onChange={(e) => setEditThirdPartyName(e.target.value)}
+                          placeholder="Nombre del cliente"
+                        />
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-1">
+                      <Label>Nota</Label>
+                      <Textarea
+                        value={editNote}
+                        onChange={(e) => setEditNote(e.target.value)}
+                        placeholder="Motivo / observaciones"
+                      />
+                    </div>
+
+                    {editError ? (
+                      <Alert variant="destructive">
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{editError}</AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={editSaving}>
+                        Cancelar
+                      </Button>
+                      <Button type="button" onClick={handleSaveEdit} disabled={editSaving}>
+                        {editSaving ? "Guardando…" : "Guardar"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <div className="grid gap-2 md:grid-cols-4">
                 <div className="text-sm">
-                  <div className="text-muted-foreground">Proveedor</div>
+                  <div className="text-muted-foreground">
+                    {detailsMeta.isSalesCategory ? "Cliente" : detailsMeta.isPurchaseCategory ? "Proveedor" : "Tercero"}
+                  </div>
                   <div>{details.customername ?? "-"}</div>
+                </div>
+                <div className="text-sm">
+                  <div className="text-muted-foreground">Pago</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={paidStatusVariant(selectedDocRow?.paidStatus ?? details.paidstatus)}>
+                      {paidStatusLabelEs(selectedDocRow?.paidStatus ?? details.paidstatus)}
+                    </Badge>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleTogglePaidStatus}
+                      disabled={loadingDetails || deleting || voiding || Boolean(voidLinkMeta.isVoidDocument) || Boolean(voidLinkMeta.reversalDocumentId)}
+                    >
+                      Cambiar
+                    </Button>
+                  </div>
+                  {Boolean(voidLinkMeta.isVoidDocument) || Boolean(voidLinkMeta.reversalDocumentId) ? (
+                    <div className="mt-1 text-xs text-muted-foreground">Bloqueado por anulación.</div>
+                  ) : null}
                 </div>
                 <div className="text-sm">
                   <div className="text-muted-foreground">Tipo</div>
@@ -731,6 +1078,32 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                   <div>{formatMoney(details.total)}</div>
                 </div>
               </div>
+
+              {voidLinkMeta.reversalDocumentId ? (
+                <Alert>
+                  <AlertTitle>Documento anulado</AlertTitle>
+                  <AlertDescription>
+                    Este documento ya fue anulado. Ver el documento de anulación (ID: {voidLinkMeta.reversalDocumentId}
+                    {voidLinkMeta.reversalDocumentNumber ? ` · ${voidLinkMeta.reversalDocumentNumber}` : ''}).
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {voidLinkMeta.isVoidDocument && voidLinkMeta.originalDocumentId ? (
+                <Alert>
+                  <AlertTitle>Documento de anulación</AlertTitle>
+                  <AlertDescription>
+                    Este documento es una anulación del documento original (ID: {voidLinkMeta.originalDocumentId}).
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {details.note ? (
+                <div className="rounded-md border p-3">
+                  <div className="text-sm text-muted-foreground">Nota</div>
+                  <div className="mt-1 text-sm whitespace-pre-wrap">{details.note}</div>
+                </div>
+              ) : null}
 
               <div className="rounded-md border p-3">
                 <div className="text-sm text-muted-foreground">InternalNote</div>
@@ -754,6 +1127,53 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                   }
                 })()}
               </div>
+
+              {(() => {
+                const raw = String(details.internalnote ?? "").trim();
+                if (!raw || !(raw.startsWith("{") || raw.startsWith("["))) return null;
+
+                try {
+                  const parsed = JSON.parse(raw);
+                  if (parsed?.source !== 'POS' || parsed?.kind !== 'Sale') return null;
+                  const t = parsed?.saleTotals;
+                  if (!t) return null;
+
+                  const ivaPct = Number(t?.ivaPercentage ?? 0);
+                  const gross = Number(t?.grossTotal ?? 0);
+                  const net = Number(t?.netTotal ?? 0);
+                  const iva = Number(t?.ivaTotal ?? 0);
+                  if (![ivaPct, gross, net, iva].every((n) => Number.isFinite(n))) return null;
+
+                  return (
+                    <div className="grid gap-2 rounded-md border p-3">
+                      <div className="text-sm font-medium">Venta (Neto / IVA)</div>
+                      <div className="grid gap-2 md:grid-cols-4">
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">IVA (%)</div>
+                          <div className="font-medium">{ivaPct.toFixed(2)}%</div>
+                        </div>
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">Total bruto</div>
+                          <div className="font-medium">{formatMoney(gross)}</div>
+                        </div>
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">Venta neta</div>
+                          <div className="font-medium">{formatMoney(net)}</div>
+                        </div>
+                        <div className="text-sm">
+                          <div className="text-muted-foreground">IVA incluido</div>
+                          <div className="font-medium">{formatMoney(iva)}</div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Nota: estos valores se guardan en InternalNote para trazabilidad.
+                      </div>
+                    </div>
+                  );
+                } catch {
+                  return null;
+                }
+              })()}
 
               {(() => {
                 const raw = String(details.internalnote ?? "").trim();
@@ -817,7 +1237,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 }
               })()}
 
-              {details.liquidation?.result?.totals && (
+              {detailsMeta.isPurchaseCategory && details.documenttypeprinttemplate === 'Purchase' && details.liquidation?.result?.totals && (
                 <Card className="border-0 bg-indigo-600 text-white">
                   <CardHeader>
                     <CardTitle className="text-white">Resumen Financiero</CardTitle>
@@ -904,75 +1324,116 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                 </Card>
               )}
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[90px]">ID</TableHead>
-                    <TableHead>Producto</TableHead>
-                    <TableHead className="w-[120px]">Código</TableHead>
-                    <TableHead className="text-right">Cant.</TableHead>
-                    <TableHead className="text-right">Costo unit.</TableHead>
-                    <TableHead className="text-right">Flete unit.</TableHead>
-                    <TableHead>Flete</TableHead>
-                    <TableHead className="text-right">Costo final</TableHead>
-                    <TableHead className="text-right">Venta unit.</TableHead>
-                    <TableHead className="text-right">Venta total</TableHead>
-                    <TableHead className="text-right">Detalle</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {details.items.length === 0 ? (
+              {detailsMeta.isPurchaseCategory ? (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={11} className="text-muted-foreground">
-                        Sin items.
-                      </TableCell>
+                      <TableHead className="w-[90px]">ID</TableHead>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="w-[120px]">Código</TableHead>
+                      <TableHead className="text-right">Cant.</TableHead>
+                      <TableHead className="text-right">Costo unit.</TableHead>
+                      <TableHead className="text-right">Flete unit.</TableHead>
+                      <TableHead>Flete</TableHead>
+                      <TableHead className="text-right">Costo final</TableHead>
+                      <TableHead className="text-right">Venta unit.</TableHead>
+                      <TableHead className="text-right">Venta total</TableHead>
+                      <TableHead className="text-right">Detalle</TableHead>
                     </TableRow>
-                  ) : (
-                    details.items.map((it, idx) => {
-                      const liqLine = details.liquidation?.result?.lines?.[idx];
-                      const unitFreight = liqLine ? liqLine.unitFreight : 0;
-                      const unitFinalCost = liqLine ? liqLine.unitFinalCost : it.unitcost;
-                      const unitSale = liqLine ? liqLine.unitSalePrice : 0;
-                      const totalSale = liqLine ? liqLine.totalSalePrice : 0;
+                  </TableHeader>
+                  <TableBody>
+                    {details.items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={11} className="text-muted-foreground">
+                          Sin items.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      details.items.map((it, idx) => {
+                        const liqLine = details.liquidation?.result?.lines?.[idx];
+                        const unitFreight = liqLine ? liqLine.unitFreight : 0;
+                        const unitFinalCost = liqLine ? liqLine.unitFinalCost : it.unitcost;
+                        const unitSale = liqLine ? liqLine.unitSalePrice : 0;
+                        const totalSale = liqLine ? liqLine.totalSalePrice : 0;
 
-                      const freightId = liqLine ? String((liqLine as any).freightId ?? '') : '';
-                      const freightRate =
-                        details.liquidation?.config?.freightRates?.find((f: any) => String(f.id) === freightId) ??
-                        (!details.liquidation?.config?.useMultipleFreights
-                          ? details.liquidation?.config?.freightRates?.[0]
-                          : null);
+                        const freightId = liqLine ? String((liqLine as any).freightId ?? '') : '';
+                        const freightRate =
+                          details.liquidation?.config?.freightRates?.find((f: any) => String(f.id) === freightId) ??
+                          (!details.liquidation?.config?.useMultipleFreights
+                            ? details.liquidation?.config?.freightRates?.[0]
+                            : null);
 
-                      const freightName = freightRate?.name ? String(freightRate.name) : '';
-                      const freightCost = freightRate?.cost !== undefined && freightRate?.cost !== null ? Number(freightRate.cost) : 0;
-                      const freightLabel = freightName ? `${freightName}${freightCost ? ` (${formatMoney(freightCost)})` : ''}` : '—';
+                        const freightName = freightRate?.name ? String(freightRate.name) : '';
+                        const freightCost =
+                          freightRate?.cost !== undefined && freightRate?.cost !== null ? Number(freightRate.cost) : 0;
+                        const freightLabel =
+                          freightName ? `${freightName}${freightCost ? ` (${formatMoney(freightCost)})` : ''}` : '—';
 
-                      return (
+                        return (
+                          <TableRow key={it.id}>
+                            <TableCell>{it.id}</TableCell>
+                            <TableCell>{it.productname}</TableCell>
+                            <TableCell className="text-muted-foreground">{it.productcode ?? "—"}</TableCell>
+                            <TableCell className="text-right">{it.quantity}</TableCell>
+                            <TableCell className="text-right">{formatMoney(it.unitcost)}</TableCell>
+                            <TableCell className="text-right">{formatMoney(unitFreight)}</TableCell>
+                            <TableCell>{freightLabel}</TableCell>
+                            <TableCell className="text-right">{formatMoney(unitFinalCost)}</TableCell>
+                            <TableCell className="text-right">{formatMoney(unitSale)}</TableCell>
+                            <TableCell className="text-right">{formatMoney(totalSale)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="outline" size="sm" onClick={() => openProductDetails(it.productid)}>
+                                Ver
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[90px]">ID</TableHead>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="w-[120px]">Código</TableHead>
+                      <TableHead className="text-right">Cant.</TableHead>
+                      <TableHead className="text-right">Precio unit.</TableHead>
+                      <TableHead className="text-right">IVA</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Detalle</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {details.items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-muted-foreground">
+                          Sin items.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      details.items.map((it) => (
                         <TableRow key={it.id}>
                           <TableCell>{it.id}</TableCell>
                           <TableCell>{it.productname}</TableCell>
                           <TableCell className="text-muted-foreground">{it.productcode ?? "—"}</TableCell>
                           <TableCell className="text-right">{it.quantity}</TableCell>
-                          <TableCell className="text-right">{formatMoney(it.unitcost)}</TableCell>
-                          <TableCell className="text-right">{formatMoney(unitFreight)}</TableCell>
-                          <TableCell>{freightLabel}</TableCell>
-                          <TableCell className="text-right">{formatMoney(unitFinalCost)}</TableCell>
-                          <TableCell className="text-right">{formatMoney(unitSale)}</TableCell>
-                          <TableCell className="text-right">{formatMoney(totalSale)}</TableCell>
+                          <TableCell className="text-right">{formatMoney(it.price)}</TableCell>
+                          <TableCell className="text-right">{formatMoney(it.taxamount ?? 0)}</TableCell>
+                          <TableCell className="text-right">{formatMoney(it.total)}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openProductDetails(it.productid)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => openProductDetails(it.productid)}>
                               Ver
                             </Button>
                           </TableCell>
                         </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           )}
         </CardContent>
@@ -983,7 +1444,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
           <DialogHeader>
             <DialogTitle>Detalle de producto</DialogTitle>
             <DialogDescription>
-              {details?.customername ? `Proveedor: ${details.customername}` : ""}
+              {details?.customername ? `Tercero: ${details.customername}` : ""}
               {details?.customercountryname ? ` · País: ${details.customercountryname}` : ""}
             </DialogDescription>
           </DialogHeader>

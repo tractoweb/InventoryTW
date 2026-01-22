@@ -14,5 +14,6 @@ export const CACHE_TAGS = {
     productsCompact: "heavy:products-compact",
     productDetails: "heavy:product-details",
     customers: "heavy:customers",
+    clients: "heavy:clients",
   },
 } as const;

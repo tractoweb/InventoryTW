@@ -45,6 +45,7 @@ export const productsMasterColumns: ColumnDef<ProductsMasterTableRow>[] = [
       const meta: any = table.options.meta ?? {};
       const id = Number(row.original.id);
       const name = String(row.original.name ?? "");
+      const canDeactivate = Boolean(meta.canDeactivate);
       return (
         <div className="min-w-0">
           <div className="font-medium truncate" title={name}>
@@ -63,41 +64,43 @@ export const productsMasterColumns: ColumnDef<ProductsMasterTableRow>[] = [
               Detalles
             </Button>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="destructive"
-                  className="h-7 px-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Desactivar
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar desactivación</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ¿Estás seguro de desactivar <span className="font-medium">{name}</span>?\n
-                    <span className="mt-2 block">
-                      Esto no elimina el producto: solo lo oculta y evita su uso para mantener la trazabilidad.
-                    </span>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={async () => {
-                      await meta.handleDeleteProduct?.(id);
-                    }}
+            {canDeactivate ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 px-2"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     Desactivar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar desactivación</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      ¿Estás seguro de desactivar <span className="font-medium">{name}</span>?\n
+                      <span className="mt-2 block">
+                        Esto no elimina el producto: solo lo oculta y evita su uso para mantener la trazabilidad.
+                      </span>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        await meta.handleDeleteProduct?.(id);
+                      }}
+                    >
+                      Desactivar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : null}
           </div>
         </div>
       );

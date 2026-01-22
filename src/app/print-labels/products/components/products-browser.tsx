@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Eye, Minus, Plus, Trash2 } from "lucide-react";
 import { listProductsForPrintLabels, type PrintLabelsProductRow } from "@/actions/list-products-for-print-labels";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { useBrowserPrint } from "@/hooks/use-browserprint";
@@ -102,13 +102,23 @@ export default function ProductsBrowser() {
   type ConfirmState =
     | { kind: "none" }
     | { kind: "clear-draft" }
-    | { kind: "remove-item"; idProduct: number; name: string };
+    | { kind: "remove-item"; idProduct: number; name: string }
+    | { kind: "delete-request"; requestId: string; label?: string };
   const [confirmState, setConfirmState] = useState<ConfirmState>({ kind: "none" });
 
   const clampQty = (value: unknown) => {
     const n = typeof value === "number" ? value : Number(value);
     if (!Number.isFinite(n)) return 1;
     return Math.max(1, Math.trunc(n));
+  };
+
+  const todayLocalIsoDate = (): string => {
+    // Local date (not UTC) so the label matches the operator's day.
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${day}/${m}/${y}`;
   };
 
   const setDraftQty = (idProduct: number, qty: unknown) => {
@@ -129,7 +139,7 @@ export default function ProductsBrowser() {
     });
   };
 
-  type PreviewSource = "table" | "requests";
+  type PreviewSource = "table" | "requests" | "draft";
   const [previewSource, setPreviewSource] = useState<PreviewSource>("table");
   const [previewRequestIds, setPreviewRequestIds] = useState<string[]>([]);
 
@@ -732,12 +742,16 @@ export default function ProductsBrowser() {
       nombreProducto: String(row.name ?? ""),
       codigoBarras: String(primaryBarcode ?? ""),
       lote: String(row.measurementUnit ?? ""),
-      fecha: toIsoDate(row.createdAt),
+      fecha: todayLocalIsoDate(),
     };
     return renderStickerPreview(label, { widthPx: 160 });
   };
 
-  const buildLabelFromRow = (row: PrintLabelsProductRow, barcodesOverlay?: Record<number, string[]>): LabelData => {
+  const buildLabelFromRow = (
+    row: PrintLabelsProductRow,
+    barcodesOverlay?: Record<number, string[]>,
+    options?: { printDate?: string }
+  ): LabelData => {
     const effectiveBarcodes =
       row.barcodes === null ? (barcodesOverlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
     const primaryBarcode = effectiveBarcodes[0] ?? row.reference ?? String(row.idProduct);
@@ -745,7 +759,7 @@ export default function ProductsBrowser() {
       nombreProducto: row.name,
       codigoBarras: String(primaryBarcode),
       lote: row.measurementUnit ?? "",
-      fecha: toIsoDate(row.createdAt),
+      fecha: options?.printDate ?? todayLocalIsoDate(),
     };
   };
 
@@ -826,12 +840,13 @@ export default function ProductsBrowser() {
     }
   };
 
-  const prepareRequestsPreview = async () => {
+  const prepareRequestsPreview = async (args?: { requestIds?: string[] }) => {
     if (printing) return;
 
-    const reqs = requests;
+    const wanted = (args?.requestIds ?? []).map((x) => String(x)).filter(Boolean);
+    const reqs = wanted.length > 0 ? requests.filter((r) => wanted.includes(r.requestId)) : requests;
     if (reqs.length === 0) {
-      setMessage("No hay solicitudes pendientes.");
+      setMessage(wanted.length > 0 ? "No se encontró la solicitud." : "No hay solicitudes pendientes.");
       return;
     }
 
@@ -840,6 +855,8 @@ export default function ProductsBrowser() {
 
     try {
       await ensureLogoSnippet();
+
+      const printDate = todayLocalIsoDate();
 
       const stickers: LabelData[] = [];
 
@@ -854,7 +871,7 @@ export default function ProductsBrowser() {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
             lote: String(it.measurementUnit ?? ""),
-            fecha: toIsoDate(it.createdAt),
+            fecha: printDate,
           };
           for (let i = 0; i < qty; i++) stickers.push(label);
         }
@@ -878,6 +895,71 @@ export default function ProductsBrowser() {
       // (Dialog already has nice animate-in/zoom/slide transitions.)
       setRequestsOpen(false);
       // Small stagger so the close animation feels smoother.
+      window.setTimeout(() => setPreviewOpen(true), 120);
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const prepareDraftPreview = async () => {
+    if (printing) return;
+
+    const items = Object.values(draftList)
+      .map((it) => ({
+        idProduct: Number(it.idProduct),
+        name: String(it.name ?? ""),
+        reference: it.reference ?? null,
+        measurementUnit: it.measurementUnit ?? null,
+        createdAt: it.createdAt ?? null,
+        barcodes: it.barcodes ?? null,
+        qty: Math.max(0, Number(it.qty) || 0),
+      }))
+      .filter((it) => Number.isFinite(it.idProduct) && it.idProduct > 0 && it.qty > 0);
+
+    if (items.length === 0) {
+      setMessage("La lista actual está vacía.");
+      return;
+    }
+
+    setMessage(null);
+    setPreviewLoading(true);
+
+    try {
+      await ensureLogoSnippet();
+
+      const printDate = todayLocalIsoDate();
+
+      const stickers: LabelData[] = [];
+      const sorted = items.slice().sort((a, b) => a.idProduct - b.idProduct);
+      for (const it of sorted) {
+        const effectiveBarcodes = it.barcodes ?? [];
+        const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+        const label: LabelData = {
+          nombreProducto: String(it.name ?? ""),
+          codigoBarras: String(primaryBarcode ?? ""),
+          lote: String(it.measurementUnit ?? ""),
+          fecha: printDate,
+        };
+        for (let i = 0; i < it.qty; i++) stickers.push(label);
+      }
+
+      if (stickers.length === 0) {
+        setMessage("La lista actual no tiene stickers para imprimir.");
+        return;
+      }
+
+      const plan: LabelSlot[][] = [];
+      for (let i = 0; i < stickers.length; i += 3) {
+        plan.push([stickers[i] ?? null, stickers[i + 1] ?? null, stickers[i + 2] ?? null]);
+      }
+
+      setPreviewSource("draft");
+      setPreviewRequestIds([]);
+      setPreviewRows(plan);
+
+      setRequestsOpen(false);
       window.setTimeout(() => setPreviewOpen(true), 120);
     } catch (e: unknown) {
       setMessage(e instanceof Error ? e.message : String(e));
@@ -1023,6 +1105,8 @@ export default function ProductsBrowser() {
     try {
       await ensureLogoSnippet();
 
+      const printDate = todayLocalIsoDate();
+
       // Print requests in order; mark each as PRINTED on success.
       for (let rIndex = 0; rIndex < requestsToPrint.length; rIndex++) {
         if (abortRef.current.signal.aborted) throw new Error("Impresión detenida.");
@@ -1051,7 +1135,7 @@ export default function ProductsBrowser() {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
             lote: String(it.measurementUnit ?? ""),
-            fecha: toIsoDate(it.createdAt),
+            fecha: printDate,
           };
           for (let i = 0; i < qty; i++) stickers.push(label);
         }
@@ -1131,6 +1215,8 @@ export default function ProductsBrowser() {
     // We pack 3 stickers per row (left-to-right). The last row may contain empty slots.
     const stickers: LabelData[] = [];
 
+    const printDate = todayLocalIsoDate();
+
     for (const idProduct of selectedIds) {
       const row = rowCache[idProduct] ?? rows.find((r) => r.idProduct === idProduct);
       if (!row) continue;
@@ -1138,7 +1224,7 @@ export default function ProductsBrowser() {
       const qtyStickers = Math.max(0, Number(selected[idProduct] ?? 0) || 0);
       if (qtyStickers <= 0) continue;
 
-      const label = buildLabelFromRow(row, barcodesOverlay);
+      const label = buildLabelFromRow(row, barcodesOverlay, { printDate });
       for (let i = 0; i < qtyStickers; i++) stickers.push(label);
     }
 
@@ -1328,10 +1414,14 @@ export default function ProductsBrowser() {
           setRequests((prev) => prev.filter((r) => !previewRequestIds.includes(r.requestId)));
         }
 
-        // Only clear selection when we actually send the print job (this function),
+        // Only clear selection/list when we actually send the print job (this function),
         // not when opening the preview.
         if (previewSource === "table") {
           setSelected({});
+        }
+
+        if (previewSource === "draft") {
+          setDraftList({});
         }
 
         setMessage(
@@ -1601,7 +1691,7 @@ export default function ProductsBrowser() {
                 nombreProducto: String(hoveredRow.name ?? ""),
                 codigoBarras: String(primaryBarcode ?? ""),
                 lote: String(hoveredRow.measurementUnit ?? ""),
-                fecha: toIsoDate(hoveredRow.createdAt),
+                fecha: todayLocalIsoDate(),
               };
 
               return (
@@ -1698,6 +1788,10 @@ export default function ProductsBrowser() {
               {previewSource === "requests" ? (
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary animate-in fade-in-0 zoom-in-95">
                   Desde peticiones
+                </span>
+              ) : previewSource === "draft" ? (
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary animate-in fade-in-0 zoom-in-95">
+                  Lista actual
                 </span>
               ) : null}
             </DialogTitle>
@@ -1880,7 +1974,32 @@ export default function ProductsBrowser() {
                           </div>
                         </div>
 
-                        <div className="mt-2 flex items-center justify-end">
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => prepareRequestsPreview({ requestIds: [r.requestId] })}
+                              disabled={printing || previewLoading}
+                              aria-label="Ver preview"
+                              title="Ver preview"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                              onClick={() => setConfirmState({ kind: "delete-request", requestId: r.requestId, label: `Solicitud #${idx + 1}` })}
+                              disabled={printing || previewLoading}
+                              aria-label="Borrar petición"
+                              title="Borrar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
                           <Button
                             type="button"
                             variant="outline"
@@ -1937,10 +2056,10 @@ export default function ProductsBrowser() {
               Agregar a la lista
             </Button>
             <Button
-              onClick={prepareRequestsPreview}
-              disabled={printing || previewLoading || requests.length === 0}
+              onClick={prepareDraftPreview}
+              disabled={printing || previewLoading || Object.keys(draftList).length === 0}
             >
-              Imprimir (ver preview)
+              Imprimir lista actual (preview)
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1959,6 +2078,8 @@ export default function ProductsBrowser() {
                 ? "Vaciar lista actual"
                 : confirmState.kind === "remove-item"
                   ? "Eliminar producto"
+                  : confirmState.kind === "delete-request"
+                    ? "Borrar petición"
                   : "Confirmación"}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -1966,14 +2087,20 @@ export default function ProductsBrowser() {
                 ? "¿Deseas vaciar la lista actual? Esta acción no se puede deshacer."
                 : confirmState.kind === "remove-item"
                   ? `¿Deseas eliminar “${confirmState.name}” de la lista actual?`
+                  : confirmState.kind === "delete-request"
+                    ? `¿Deseas borrar ${confirmState.label ?? "esta petición"}? Esta acción no se puede deshacer.`
                   : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className={confirmState.kind === "remove-item" || confirmState.kind === "clear-draft" ? "bg-red-600 hover:bg-red-700" : undefined}
-              onClick={() => {
+              className={
+                confirmState.kind === "remove-item" || confirmState.kind === "clear-draft" || confirmState.kind === "delete-request"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : undefined
+              }
+              onClick={async () => {
                 if (confirmState.kind === "clear-draft") {
                   setDraftList({});
                   setMessage("Lista actual vaciada.");
@@ -1987,6 +2114,21 @@ export default function ProductsBrowser() {
                     return next;
                   });
                   setMessage("Producto eliminado de la lista actual.");
+                }
+
+                if (confirmState.kind === "delete-request") {
+                  const requestId = String(confirmState.requestId ?? "");
+                  if (requestId) {
+                    const del = await deletePrintLabelRequests({ requestIds: [requestId] });
+                    if (!del.ok) {
+                      setMessage(del.error ?? "No se pudo borrar la petición.");
+                    } else {
+                      setRequests((prev) => prev.filter((r) => r.requestId !== requestId));
+                      // Also remove from preview selection if present.
+                      setPreviewRequestIds((prev) => prev.filter((id) => id !== requestId));
+                      setMessage("Petición borrada.");
+                    }
+                  }
                 }
 
                 setConfirmState({ kind: "none" });

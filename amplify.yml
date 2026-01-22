@@ -6,6 +6,8 @@ frontend:
         - corepack enable
         # Pin pnpm to a known version for reproducible builds
         - corepack prepare pnpm@9.15.4 --activate
+        # Optional: show whether SMTP is configured (don't fail the build)
+        - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
         # Keep the pnpm store inside the workspace so Amplify cache can persist it
         - pnpm config set store-dir .pnpm-store
         - pnpm install --frozen-lockfile
