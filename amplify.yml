@@ -14,6 +14,8 @@ frontend:
     build:
       commands:
         - pnpm run build
+        # Persist SMTP config into the deployed Next server bundle for runtime.
+        - node scripts/write-runtime-email-config.cjs
   artifacts:
     baseDirectory: .next
     files:

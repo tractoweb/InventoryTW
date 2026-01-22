@@ -1,6 +1,8 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import fs from "fs";
+import path from "path";
 
 export type EmailAttachment = {
   filename: string;
@@ -36,6 +38,21 @@ function readEnv(name: string): string | null {
   const secretVal = secrets?.[name];
   const secretStr = secretVal ? String(secretVal).trim() : "";
   if (secretStr) return secretStr;
+
+  // Some hosting setups expose env vars during build but not at SSR runtime.
+  // As a fallback, read a build-time snapshot written into `.next/server/`.
+  try {
+    const cfgPath = path.join(process.cwd(), ".next", "server", "runtime-email-config.json");
+    if (fs.existsSync(cfgPath)) {
+      const raw = fs.readFileSync(cfgPath, "utf8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const v = parsed?.[name];
+      const s = v ? String(v).trim() : "";
+      if (s) return s;
+    }
+  } catch {
+    // ignore
+  }
 
   return null;
 }
