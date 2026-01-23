@@ -30,7 +30,29 @@ export type Generate3UpLabelOptions = {
   dpi?: number;
   /** Draw a rounded border per sticker (can be disabled for firmware compatibility). */
   includeBorder?: boolean;
+  /** Print darkness (0-30). If omitted, uses env NEXT_PUBLIC_ZEBRA_DARKNESS/ZEBRA_DARKNESS or defaults. */
+  darkness?: number;
 };
+
+function clampInt(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.trunc(value)));
+}
+
+function getZebraDarkness(explicit?: number) {
+  // Zebra: typical supported range is 0-30 for ~SD.
+  if (Number.isFinite(explicit)) return clampInt(Number(explicit), 0, 30);
+  const raw = Number(process.env.NEXT_PUBLIC_ZEBRA_DARKNESS ?? process.env.ZEBRA_DARKNESS ?? 25);
+  return clampInt(raw, 0, 30);
+}
+
+function getBarcodeByParams(barcode: string) {
+  // Keep within narrow labels: long barcodes get thinner modules.
+  const len = String(barcode ?? "").trim().length;
+  if (len >= 14) return { moduleW: 1, ratio: 2 };
+  if (len >= 10) return { moduleW: 2, ratio: 2 };
+  return { moduleW: 2, ratio: 3 };
+}
 
 function cmToDots(cm: number, dpi: number): number {
   const dots = (cm * dpi) / 2.54;
@@ -120,6 +142,7 @@ export const generate3UpLabelsRow = (
       const barcodeGap = layout.barcodeGap;
       const barcodeY = y0 + layout.barcodeY;
       const barcodeTextY = y0 + layout.barcodeTextY;
+      const { moduleW, ratio } = getBarcodeByParams(barcode);
 
       return [
         border,
@@ -127,7 +150,7 @@ export const generate3UpLabelsRow = (
         `^FO${textX},${nameY}^A0N,${nameFont},${nameFont}^FB${textW},${nameLinesMax},0,L,0^FD${nombre}^FS`,
         `^FO${textX},${posY}^A0N,${posFont},${posFont}^FD${lote}^FS`,
         `^FO${textX},${dateY}^A0N,${dateFont},${dateFont}^FD${fecha}^FS`,
-        `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
+        `^FO${barcodeX},${barcodeY}^BY${moduleW},${ratio},${barcodeH}^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
         `^FO${x0 + xShift},${barcodeTextY}^FB${Math.max(10, labelW - xShift)},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcode}^FS`,
       ]
         .filter(Boolean)
@@ -135,9 +158,13 @@ export const generate3UpLabelsRow = (
     })
     .join("\n");
 
+  const darkness = getZebraDarkness(options?.darkness);
+
   return (
     `^XA
 ^CI28
+^PR2,2
+~SD${darkness}
 ^PW${totalW}
 ^LL${pitchH}
 ^LH0,0
@@ -164,8 +191,10 @@ export const generateProductLabel = (data: LabelData, options?: GenerateProductL
   const logoZpl = String(options?.logoZpl ?? "").trim();
 
   const header = includeDefaultsHeader
-    ? "^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR2,2~SD15^JUS^LRN^CI0^XZ\n"
+    ? `^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR2,2~SD${getZebraDarkness()}^JUS^LRN^CI0^XZ\n`
     : "";
+
+  const { moduleW, ratio } = getBarcodeByParams(barcode);
 
   return (
     header +
@@ -179,7 +208,7 @@ ${logoZpl ? `${logoZpl}\n` : ""}
 ^FO40,16^A0N,${nameFont},${nameFont}^FB751,3,0,L,0^FD${nombre}^FS
 ^FO40,92^A0N,22,22^FD${lote}^FS
 ^FO40,112^A0N,20,20^FD${fecha}^FS
-^FO40,130^BY1,3,40^BCN,40,N,N,N^FD${barcode}^FS
+^FO40,130^BY${moduleW},${ratio},40^BCN,40,N,N,N^FD${barcode}^FS
 ^FO0,174^FB831,1,0,C,0^A0N,16,16^FD${barcode}^FS
 ${copies ? `^PQ${copies},0,1,Y` : ""}
 ^XZ`

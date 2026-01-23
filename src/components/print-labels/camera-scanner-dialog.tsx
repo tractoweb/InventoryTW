@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Flashlight, FlashlightOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,8 @@ export function CameraScannerDialog(props: {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
@@ -56,8 +59,42 @@ export function CameraScannerDialog(props: {
   const supportedBarcodeDetector = useMemo(() => isBarcodeDetectorSupported(), []);
   const secureContext = useMemo(() => isSecureCameraContext(), []);
 
+  const getActiveStream = (): MediaStream | null => {
+    const fromRef = streamRef.current;
+    if (fromRef) return fromRef;
+    const video = videoRef.current as any;
+    const src = video?.srcObject as MediaStream | null | undefined;
+    return src ?? null;
+  };
+
+  const getActiveVideoTrack = (): MediaStreamTrack | null => {
+    const stream = getActiveStream();
+    const tracks = stream?.getVideoTracks?.() ?? [];
+    return tracks[0] ?? null;
+  };
+
+  const detectTorchSupport = () => {
+    const track: any = getActiveVideoTrack();
+    const caps = track && typeof track.getCapabilities === "function" ? track.getCapabilities() : null;
+    setTorchSupported(Boolean(caps?.torch));
+    setTorchOn(false);
+  };
+
+  const applyTorch = async (nextOn: boolean) => {
+    const track: any = getActiveVideoTrack();
+    if (!track) return;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: nextOn }] } as any);
+      setTorchOn(nextOn);
+    } catch {
+      setTorchOn(false);
+    }
+  };
+
   const stopStream = () => {
     setScanning(false);
+    setTorchOn(false);
+    setTorchSupported(false);
 
     if (zxingControlsRef.current) {
       try {
@@ -147,6 +184,8 @@ export function CameraScannerDialog(props: {
         video.muted = true;
         await video.play();
 
+        detectTorchSupport();
+
         await refreshDevices();
 
         const Detector = (window as any).BarcodeDetector as any;
@@ -204,6 +243,9 @@ export function CameraScannerDialog(props: {
         });
 
         zxingControlsRef.current = controls as any;
+        // ZXing internally attaches a stream to the <video>; use it if available.
+        streamRef.current = ((video as any).srcObject as MediaStream | null) ?? null;
+        detectTorchSupport();
         await refreshDevices();
       }
     } catch (e: unknown) {
@@ -281,6 +323,18 @@ export function CameraScannerDialog(props: {
             </div>
 
             <div className="flex gap-2">
+              {torchSupported ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void applyTorch(!torchOn)}
+                  disabled={starting}
+                  title={torchOn ? "Apagar flash" : "Encender flash"}
+                >
+                  {torchOn ? <FlashlightOff className="h-4 w-4 mr-2" /> : <Flashlight className="h-4 w-4 mr-2" />}
+                  Flash
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" onClick={() => start()} disabled={starting}>
                 Reintentar
               </Button>

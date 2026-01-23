@@ -1,7 +1,9 @@
 "use client";
 
+import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +16,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import { Minus, Plus, Tag } from "lucide-react";
+
 import type { ProductsMasterTableRow } from "./products-master-client";
 
 function formatCurrency(value: number | null | undefined) {
@@ -25,6 +29,93 @@ function formatCurrency(value: number | null | undefined) {
     maximumFractionDigits: 0,
   }).format(amount);
   return formatted;
+}
+
+function SendToLabelsDialog(props: { product: ProductsMasterTableRow; meta: any }) {
+  const { product, meta } = props;
+  const name = String(product?.name ?? "");
+
+  const [open, setOpen] = React.useState(false);
+  const [qty, setQty] = React.useState(1);
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setQty(1);
+      }}
+    >
+      <AlertDialogTrigger asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 px-2"
+          onClick={(e) => e.stopPropagation()}
+          title="Enviar a etiquetas"
+        >
+          <Tag className="h-4 w-4 mr-2" />
+          Etiquetas
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enviar a etiquetas</AlertDialogTitle>
+          <AlertDialogDescription>
+            Producto: <span className="font-medium">{name}</span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Cantidad de etiquetas</div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Input
+              type="number"
+              min={1}
+              value={String(qty)}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setQty(Number.isFinite(n) ? Math.max(1, Math.trunc(n)) : 1);
+              }}
+              className="w-24 h-9"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setQty((q) => q + 1)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={async (e) => {
+              e.preventDefault();
+              await meta.sendToLabels?.(product, qty);
+              setOpen(false);
+            }}
+          >
+            Enviar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 export const productsMasterColumns: ColumnDef<ProductsMasterTableRow>[] = [
@@ -63,6 +154,8 @@ export const productsMasterColumns: ColumnDef<ProductsMasterTableRow>[] = [
             >
               Detalles
             </Button>
+
+            <SendToLabelsDialog product={row.original} meta={meta} />
 
             {canDeactivate ? (
               <AlertDialog>

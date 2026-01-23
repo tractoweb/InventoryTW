@@ -78,6 +78,12 @@ export default function ProductsBrowser() {
 
   const [scanOpen, setScanOpen] = useState(false);
 
+  type RowSortKey = "createdAt" | "idProduct" | "name" | "reference" | "measurementUnit";
+  const [rowSort, setRowSort] = useState<{ key: RowSortKey; dir: "asc" | "desc" }>({
+    key: "createdAt",
+    dir: "desc",
+  });
+
   type RequestItemSnapshot = {
     idProduct: number;
     name: string;
@@ -277,9 +283,8 @@ export default function ProductsBrowser() {
   }
 
   const selectedIdsAll = useMemo(() => {
-    return Object.entries(selected)
-      .filter(([, qty]) => Math.max(0, Number(qty) || 0) > 0)
-      .map(([id]) => Number(id))
+    return Object.keys(selected)
+      .map((id) => Number(id))
       .filter((id) => Number.isFinite(id) && id > 0);
   }, [selected]);
 
@@ -375,7 +380,9 @@ export default function ProductsBrowser() {
   };
 
   const handleQtyChange = (idProduct: number, qty: number) => {
-    setSelected((prev) => ({ ...prev, [idProduct]: qty }));
+    const n = Number(qty);
+    const clean = Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+    setSelected((prev) => ({ ...prev, [idProduct]: clean }));
   };
 
   const selectedCount = useMemo(() => Object.keys(selected).length, [selected]);
@@ -595,7 +602,12 @@ export default function ProductsBrowser() {
           }}
           title={barcode}
         >
-          <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
+          <BarcodeSvg
+            value={barcode}
+            height={Math.max(18, Math.round(barcodeH * scale))}
+            barWidth={barcode.trim().length >= 14 ? 1 : 2}
+            className="w-full"
+          />
           <div
             style={{
               fontSize: Math.max(7, Math.round(9 * scale)),
@@ -770,6 +782,15 @@ export default function ProductsBrowser() {
 
     if (selectedIds.length === 0) {
       setMessage("Selecciona productos en la tabla para agregar.");
+      return;
+    }
+
+    const invalidQtyIds = selectedIds.filter((id) => {
+      const q = Number(selected[id] ?? 0);
+      return !Number.isFinite(q) || q < 1;
+    });
+    if (invalidQtyIds.length > 0) {
+      setMessage("Hay productos seleccionados con Etiquetas = 0. Ajusta la cantidad o quítalos de la selección.");
       return;
     }
 
@@ -977,6 +998,15 @@ export default function ProductsBrowser() {
       return;
     }
 
+    const invalidQtyIds = selectedIds.filter((id) => {
+      const q = Number(selected[id] ?? 0);
+      return !Number.isFinite(q) || q < 1;
+    });
+    if (invalidQtyIds.length > 0) {
+      setMessage("Hay productos seleccionados con Etiquetas = 0. Ajusta la cantidad o quítalos de la selección.");
+      return;
+    }
+
     try {
       setMessage(null);
 
@@ -1012,7 +1042,7 @@ export default function ProductsBrowser() {
       for (const idProduct of selectedIds) {
         const row = rowCache[idProduct] ?? rows.find((r) => r.idProduct === idProduct);
         if (!row) continue;
-        const qty = Math.max(1, Number(selected[idProduct] ?? 1) || 1);
+        const qty = Number(selected[idProduct] ?? 0);
         const effectiveBarcodes = row.barcodes === null ? (overlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
 
         map[idProduct] = {
@@ -1242,6 +1272,16 @@ export default function ProductsBrowser() {
 
     const selectedIds = selectedIdsAll;
     if (selectedIds.length === 0) {
+      setPreviewLoading(false);
+      return;
+    }
+
+    const invalidQtyIds = selectedIds.filter((id) => {
+      const q = Number(selected[id] ?? 0);
+      return !Number.isFinite(q) || q < 1;
+    });
+    if (invalidQtyIds.length > 0) {
+      setMessage("Hay productos seleccionados con Etiquetas = 0. Ajusta la cantidad o quítalos de la selección.");
       setPreviewLoading(false);
       return;
     }
@@ -1561,6 +1601,23 @@ export default function ProductsBrowser() {
             onChange={(e) => setQuery(e.target.value)}
             className="max-w-md"
           />
+          <select
+            className="h-9 rounded-md border px-2 text-sm"
+            value={`${rowSort.key}:${rowSort.dir}`}
+            onChange={(e) => {
+              const [key, dir] = String(e.target.value).split(":") as [RowSortKey, "asc" | "desc"]; 
+              setRowSort({ key, dir });
+            }}
+            disabled={printing || previewLoading}
+            title="Ordenar"
+          >
+            <option value="createdAt:desc">Más recientes</option>
+            <option value="createdAt:asc">Más antiguos</option>
+            <option value="name:asc">Nombre A→Z</option>
+            <option value="name:desc">Nombre Z→A</option>
+            <option value="idProduct:desc">ID ↓</option>
+            <option value="idProduct:asc">ID ↑</option>
+          </select>
           <Button variant="outline" onClick={() => setScanOpen(true)} disabled={printing || previewLoading}>
             Escanear
           </Button>
@@ -1597,7 +1654,91 @@ export default function ProductsBrowser() {
             className="rounded-lg border bg-card overflow-x-hidden overflow-y-auto"
             onMouseLeave={() => setHoveredProductId(null)}
           >
-            <table className="w-full table-fixed text-sm">
+            <div className="sm:hidden">
+              {(() => {
+                const toMs = (v: unknown) => {
+                  const ms = Date.parse(String(v ?? ""));
+                  return Number.isFinite(ms) ? ms : 0;
+                };
+                const sorted = [...rows].sort((a, b) => {
+                  const dir = rowSort.dir === "asc" ? 1 : -1;
+                  switch (rowSort.key) {
+                    case "createdAt":
+                      return (toMs(a.createdAt) - toMs(b.createdAt)) * dir;
+                    case "name":
+                      return String(a.name ?? "").localeCompare(String(b.name ?? "")) * dir;
+                    case "reference":
+                      return String(a.reference ?? "").localeCompare(String(b.reference ?? "")) * dir;
+                    case "measurementUnit":
+                      return String(a.measurementUnit ?? "").localeCompare(String(b.measurementUnit ?? "")) * dir;
+                    case "idProduct":
+                    default:
+                      return (Number(a.idProduct) - Number(b.idProduct)) * dir;
+                  }
+                });
+
+                return (
+                  <div className="divide-y">
+                    {sorted.map((r) => {
+                      const checked = Object.prototype.hasOwnProperty.call(selected, r.idProduct);
+                      const qty = Number(selected[r.idProduct] ?? 1);
+
+                      return (
+                        <div key={r.idProduct} className="p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Checkbox checked={checked} onCheckedChange={(v) => handleSelect(r.idProduct, Boolean(v))} />
+                                <div className="text-xs font-mono text-muted-foreground">#{r.idProduct}</div>
+                              </div>
+                              <div className="mt-1 font-medium leading-tight break-words">{r.name}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Ref: {r.reference ?? "—"}</div>
+                              <div className="text-xs text-muted-foreground">Posición: {r.measurementUnit ?? "—"}</div>
+                              <div className="text-xs text-muted-foreground">Creación: {toIsoDate(r.createdAt)}</div>
+                            </div>
+
+                            {checked ? (
+                              <div className="shrink-0">
+                                <div className="text-xs text-muted-foreground mb-1">Etiquetas</div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={() => handleQtyChange(r.idProduct, Math.max(0, qty - 1))}
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </Button>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={String(qty)}
+                                    onChange={(e) => handleQtyChange(r.idProduct, Number(e.target.value))}
+                                    className="w-20 h-9"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={() => handleQtyChange(r.idProduct, qty + 1)}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <table className="hidden sm:table w-full table-fixed text-sm">
             <colgroup>
               <col style={{ width: "44px" }} />
               <col style={{ width: "80px" }} />
@@ -1615,13 +1756,37 @@ export default function ProductsBrowser() {
                 <th className="p-2 text-left whitespace-nowrap">Referencia</th>
                 <th className="p-2 text-left whitespace-nowrap">Posición</th>
                 <th className="p-2 text-left whitespace-nowrap">Fecha creación</th>
-                <th className="p-2 text-left whitespace-nowrap">Stickers</th>
+                <th className="p-2 text-left whitespace-nowrap">Etiquetas</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const checked = Boolean(selected[r.idProduct]);
-                const qty = selected[r.idProduct] ?? 1;
+              {(() => {
+                const toMs = (v: unknown) => {
+                  const ms = Date.parse(String(v ?? ""));
+                  return Number.isFinite(ms) ? ms : 0;
+                };
+
+                const sorted = [...rows].sort((a, b) => {
+                  const dir = rowSort.dir === "asc" ? 1 : -1;
+                  switch (rowSort.key) {
+                    case "createdAt":
+                      return (toMs(a.createdAt) - toMs(b.createdAt)) * dir;
+                    case "name":
+                      return String(a.name ?? "").localeCompare(String(b.name ?? "")) * dir;
+                    case "reference":
+                      return String(a.reference ?? "").localeCompare(String(b.reference ?? "")) * dir;
+                    case "measurementUnit":
+                      return String(a.measurementUnit ?? "").localeCompare(String(b.measurementUnit ?? "")) * dir;
+                    case "idProduct":
+                    default:
+                      return (Number(a.idProduct) - Number(b.idProduct)) * dir;
+                  }
+                });
+
+                return sorted;
+              })().map((r) => {
+                const checked = Object.prototype.hasOwnProperty.call(selected, r.idProduct);
+                const qty = Number(selected[r.idProduct] ?? 1);
 
                 return (
                   <tr
@@ -1642,9 +1807,9 @@ export default function ProductsBrowser() {
                       {checked ? (
                         <Input
                           type="number"
-                          min={1}
-                          value={qty}
-                          onChange={(e) => handleQtyChange(r.idProduct, Math.max(1, Number(e.target.value)))}
+                          min={0}
+                          value={String(qty)}
+                          onChange={(e) => handleQtyChange(r.idProduct, Number(e.target.value))}
                           className="w-20"
                         />
                       ) : null}
@@ -1726,7 +1891,12 @@ export default function ProductsBrowser() {
                         <div className="text-sm text-muted-foreground">Cargando códigos…</div>
                       ) : hoveredRow.barcodes && hoveredRow.barcodes.length ? (
                         <div className="space-y-1">
-                          <BarcodeSvg value={hoveredRow.barcodes[0]} height={34} barWidth={1} className="w-full" />
+                          <BarcodeSvg
+                            value={hoveredRow.barcodes[0]}
+                            height={44}
+                            barWidth={String(hoveredRow.barcodes[0] ?? "").trim().length >= 14 ? 1 : 2}
+                            className="w-full"
+                          />
                           <div className="text-xs text-center text-muted-foreground truncate" title={hoveredRow.barcodes[0]}>
                             {hoveredRow.barcodes[0]}
                           </div>

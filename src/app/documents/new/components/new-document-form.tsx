@@ -63,6 +63,11 @@ import { getCurrencies, type CurrencyListItem } from '@/actions/get-currencies';
 import { createProductsFromDocumentLinesAction } from '@/actions/create-products-from-document-lines';
 
 import {
+  isStockDirectionIn,
+  isStockDirectionOut,
+} from '@/lib/amplify-config';
+
+import {
   computeLiquidation,
   type LiquidationConfig,
   type LiquidationFreightRate,
@@ -70,6 +75,12 @@ import {
 } from '@/lib/liquidation';
 
 type SelectOption = { value: number; label: string };
+
+function stockDirectionLabelEs(stockDirection: unknown): string {
+  if (isStockDirectionIn(stockDirection)) return 'Entrada (compra)';
+  if (isStockDirectionOut(stockDirection)) return 'Salida (venta)';
+  return 'Sin movimiento';
+}
 
 type DraftProduct = {
   name: string;
@@ -264,9 +275,32 @@ export function NewDocumentForm() {
         // This screen is the purchase liquidation flow; only show Purchase document types.
         // (Avoid confusion when multiple "Compra"-like types exist or misconfigured directions.)
         const purchaseTypes = (dt.data ?? []).filter((d: any) => Number(d?.documentCategoryId ?? 0) === 1);
-        const options = (purchaseTypes.length ? purchaseTypes : (dt.data ?? []))
+        const raw = (purchaseTypes.length ? purchaseTypes : (dt.data ?? []))
           .filter((d: any) => d?.isEnabled !== false)
-          .map((d: any) => ({ value: Number(d.documentTypeId), label: String(d.name) }));
+          .map((d: any) => {
+            const base = String(d?.name ?? '').trim();
+            const prefix = stockDirectionLabelEs(d?.stockDirection);
+            return {
+              value: Number(d.documentTypeId),
+              baseLabel: `${prefix} — ${base || 'Documento'}`,
+              code: d?.code ?? null,
+            };
+          });
+
+        const labelCounts = new Map<string, number>();
+        for (const r of raw) {
+          labelCounts.set(r.baseLabel, (labelCounts.get(r.baseLabel) ?? 0) + 1);
+        }
+
+        const options = raw
+          .filter((r) => Number.isFinite(r.value) && r.value > 0)
+          .map((r) => {
+            const needsSuffix = (labelCounts.get(r.baseLabel) ?? 0) > 1;
+            const suffix = needsSuffix
+              ? ` (#${r.value}${r.code ? `, ${String(r.code)}` : ''})`
+              : '';
+            return { value: r.value, label: `${r.baseLabel}${suffix}` };
+          });
 
         setDocumentTypesState(options);
         if (documentTypeId === '' && options.length === 1) {
@@ -775,7 +809,7 @@ export function NewDocumentForm() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nuevo documento</h1>
-          <p className="text-muted-foreground">Ingreso/Salida con impacto en stock y kardex.</p>
+          <p className="text-muted-foreground">Entrada (compra) / Salida (venta) con impacto en stock y kardex.</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/documents">Volver</Link>

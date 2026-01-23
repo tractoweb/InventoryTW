@@ -95,17 +95,24 @@ export async function createPrintLabelRequest(items: CreatePrintLabelRequestItem
   noStore();
 
   try {
-    const clean = (items ?? [])
-      .map((it) => ({
-        productId: safeInt(it?.productId, 0),
-        qty: Math.max(1, safeInt(it?.qty, 1)),
-        name: String(it?.name ?? "").trim(),
-        reference: it?.reference ? String(it.reference) : null,
-        measurementUnit: it?.measurementUnit ? String(it.measurementUnit) : null,
-        productCreatedAt: it?.productCreatedAt ? String(it.productCreatedAt) : null,
-        primaryBarcode: String(it?.primaryBarcode ?? "").trim(),
-      }))
-      .filter((it) => it.productId > 0 && it.qty > 0 && it.name.length > 0 && it.primaryBarcode.length > 0);
+    const normalized = (items ?? []).map((it) => ({
+      productId: safeInt(it?.productId, 0),
+      qty: safeInt(it?.qty, 1),
+      name: String(it?.name ?? "").trim(),
+      reference: it?.reference ? String(it.reference) : null,
+      measurementUnit: it?.measurementUnit ? String(it.measurementUnit) : null,
+      productCreatedAt: it?.productCreatedAt ? String(it.productCreatedAt) : null,
+      primaryBarcode: String(it?.primaryBarcode ?? "").trim(),
+    }));
+
+    if (normalized.length === 0) return { error: "Solicitud vacía." };
+
+    const invalidQty = normalized.filter((it) => it.productId > 0 && it.qty < 1);
+    if (invalidQty.length > 0) {
+      return { error: "Hay productos con cantidad de etiquetas inválida (debe ser ≥ 1)." };
+    }
+
+    const clean = normalized.filter((it) => it.productId > 0 && it.qty >= 1 && it.name.length > 0 && it.primaryBarcode.length > 0);
 
     if (clean.length === 0) return { error: "Solicitud vacía." };
 
@@ -222,6 +229,12 @@ export async function listPendingPrintLabelRequests(): Promise<{
     });
 
     dtos.sort((a, b) => String(a.requestedAt).localeCompare(String(b.requestedAt)));
+
+    dtos.sort((a, b) => {
+      const ams = parseIsoMs(a.requestedAt) ?? 0;
+      const bms = parseIsoMs(b.requestedAt) ?? 0;
+      return bms - ams;
+    });
 
     return { data: dtos };
   } catch (error) {

@@ -33,6 +33,8 @@ import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-di
 import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
 import { ScanLine } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
+import { createPrintLabelRequest } from "@/actions/print-label-requests";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -231,6 +233,52 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
     [toast, currentUserName, rows, productsCatalog]
   );
 
+  const handleSendToLabels = React.useCallback(
+    async (product: ProductsMasterTableRow, qty: number) => {
+      const id = Number((product as any)?.id);
+      const name = String((product as any)?.name ?? "").trim();
+      const reference = (product as any)?.code ? String((product as any).code) : null;
+      const measurementUnit = (product as any)?.measurementUnit ? String((product as any).measurementUnit) : null;
+      const createdAt = (product as any)?.createdAt ? String((product as any).createdAt) : null;
+
+      if (!Number.isFinite(id) || id <= 0) {
+        toast({ variant: "destructive", title: "Error", description: "Producto inválido." });
+        return;
+      }
+
+      const qtyClean = Number.isFinite(Number(qty)) ? Math.max(1, Math.trunc(Number(qty))) : 1;
+
+      try {
+        const bcRes = await getBarcodesForProducts([id]);
+        if (bcRes.error) throw new Error(bcRes.error);
+        const barcodes = bcRes.data?.[id] ?? [];
+        const primaryBarcode = String(barcodes[0] ?? reference ?? id);
+
+        const res = await createPrintLabelRequest([
+          {
+            productId: id,
+            qty: qtyClean,
+            name,
+            reference,
+            measurementUnit,
+            productCreatedAt: createdAt,
+            primaryBarcode,
+          },
+        ]);
+
+        if (res.error) throw new Error(res.error);
+
+        toast({
+          title: "Enviado a etiquetas",
+          description: `${name} (${qtyClean})`,
+        });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "No se pudo enviar a etiquetas", description: e?.message ?? "Error" });
+      }
+    },
+    [toast]
+  );
+
   const tableMeta = React.useMemo(
     () => ({
       productGroups,
@@ -239,12 +287,13 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       handleDeleteProduct,
       canDeactivate: Number(accessLevel) >= 1,
       disableRowExpansion: true,
+      sendToLabels: handleSendToLabels,
       openProductDetails: (productId: number) => {
         setDetailsProductId(Number(productId));
         setDetailsOpen(true);
       },
     }),
-    [productGroups, warehouses, taxes, handleDeleteProduct, accessLevel]
+    [productGroups, warehouses, taxes, handleDeleteProduct, accessLevel, handleSendToLabels]
   );
 
   function GroupNode({ group, depth }: { group: ProductGroup; depth: number }) {

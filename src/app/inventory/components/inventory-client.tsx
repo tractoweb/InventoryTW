@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { deleteProduct } from "@/actions/delete-product";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import { ScanLine } from "lucide-react";
+import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
+import { createPrintLabelRequest } from "@/actions/print-label-requests";
 
 
 type InventoryClientProps = {
@@ -84,14 +86,63 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
     }
   }, [toast]);
 
+  const handleSendToLabels = useCallback(
+    async (item: StockInfo, qty: number) => {
+      const id = Number((item as any)?.id);
+      const name = String((item as any)?.name ?? "").trim();
+      const reference = (item as any)?.code ? String((item as any).code) : null;
+      const measurementUnit = (item as any)?.measurementunit ? String((item as any).measurementunit) : null;
+      const barcodesInline = Array.isArray((item as any)?.barcodes) ? ((item as any).barcodes as any[]) : [];
 
-  const tableMeta = useMemo(() => ({
-    productGroups,
-    warehouses,
-    taxes,
-    handleDeleteProduct,
-    pageType,
-  }), [productGroups, warehouses, taxes, handleDeleteProduct]);
+      if (!Number.isFinite(id) || id <= 0) {
+        toast({ variant: "destructive", title: "Error", description: "Producto inválido." });
+        return;
+      }
+      const qtyClean = Number.isFinite(Number(qty)) ? Math.max(1, Math.trunc(Number(qty))) : 1;
+
+      try {
+        let barcodes = barcodesInline.map((b) => String(b ?? "").trim()).filter((v) => v.length > 0);
+        if (barcodes.length === 0) {
+          const bcRes = await getBarcodesForProducts([id]);
+          if (bcRes.error) throw new Error(bcRes.error);
+          barcodes = bcRes.data?.[id] ?? [];
+        }
+
+        const primaryBarcode = String(barcodes[0] ?? reference ?? id);
+
+        const res = await createPrintLabelRequest([
+          {
+            productId: id,
+            qty: qtyClean,
+            name,
+            reference,
+            measurementUnit,
+            productCreatedAt: null,
+            primaryBarcode,
+          },
+        ]);
+        if (res.error) throw new Error(res.error);
+
+        toast({ title: "Enviado a etiquetas", description: `${name} (${qtyClean})` });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "No se pudo enviar a etiquetas", description: e?.message ?? "Error" });
+      }
+    },
+    [toast]
+  );
+
+
+  const tableMeta = useMemo(
+    () => ({
+      productGroups,
+      warehouses,
+      taxes,
+      handleDeleteProduct,
+      pageType,
+      sendToLabels: handleSendToLabels,
+    }),
+    [productGroups, warehouses, taxes, handleDeleteProduct, pageType, handleSendToLabels]
+  );
 
   const isStockPage = pageType === 'stock';
   

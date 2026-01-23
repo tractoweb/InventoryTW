@@ -55,18 +55,31 @@ function toProductLite(p: any): ProductLite {
   };
 }
 
-async function listProductsPageCached(args: { pageSize: number; nextToken: string | null }): Promise<{ products: ProductLite[]; nextToken: string | null }> {
-  const tokenKey = args.nextToken ? hashKey(String(args.nextToken)) : "_";
-  const keyParts = ["print-labels", "products", "page", String(args.pageSize), tokenKey];
+async function listAllProductsCached(): Promise<ProductLite[]> {
+  const keyParts = ["print-labels", "products", "all"];
+
   const fn = unstable_cache(
     async () => {
-      const res: any = await amplifyClient.models.Product.list({
-        limit: args.pageSize,
-        nextToken: args.nextToken ?? undefined,
-      } as any);
+      const res = await listAllPages<any>((listArgs) => amplifyClient.models.Product.list(listArgs), {});
+      if ("error" in res) throw new Error(res.error);
 
-      const products = ((res?.data ?? []) as any[]).map(toProductLite).filter((p) => Number.isFinite(p.idProduct) && p.idProduct > 0);
-      return { products, nextToken: (res?.nextToken ?? null) as string | null };
+      const items = ((res.data ?? []) as any[])
+        .map(toProductLite)
+        .filter((p) => Number.isFinite(p.idProduct) && p.idProduct > 0);
+
+      const toMs = (v: unknown) => {
+        const ms = Date.parse(String(v ?? ""));
+        return Number.isFinite(ms) ? ms : 0;
+      };
+
+      items.sort((a, b) => {
+        const ams = toMs(a.createdAt);
+        const bms = toMs(b.createdAt);
+        if (ams !== bms) return bms - ams;
+        return b.idProduct - a.idProduct;
+      });
+
+      return items;
     },
     keyParts,
     {
@@ -115,7 +128,17 @@ async function searchProductsCached(qRaw: string): Promise<ProductLite[]> {
         return idText.includes(qLoose) || name.includes(qLoose) || code.includes(qLoose);
       });
 
-      merged.sort((a, b) => a.idProduct - b.idProduct);
+      const toMs = (v: unknown) => {
+        const ms = Date.parse(String(v ?? ""));
+        return Number.isFinite(ms) ? ms : 0;
+      };
+
+      merged.sort((a, b) => {
+        const ams = toMs(a.createdAt);
+        const bms = toMs(b.createdAt);
+        if (ams !== bms) return bms - ams;
+        return b.idProduct - a.idProduct;
+      });
       return merged;
     },
     keyParts,
@@ -144,12 +167,14 @@ export async function listProductsForPrintLabels(args?: ListProductsForPrintLabe
     let nextToken: string | null = null;
 
     if (!searchMode) {
-      const res = await listProductsPageCached({
-        pageSize,
-        nextToken: args?.nextToken ?? null,
-      });
-      products = res.products;
-      nextToken = res.nextToken;
+      const offsetRaw = args?.nextToken ?? "0";
+      const offsetParsed = Number.parseInt(String(offsetRaw), 10);
+      const offset = Number.isFinite(offsetParsed) && offsetParsed >= 0 ? offsetParsed : 0;
+
+      const all = await listAllProductsCached();
+      products = all.slice(offset, offset + pageSize);
+      const nextOffset = offset + pageSize;
+      nextToken = nextOffset < all.length ? String(nextOffset) : null;
     } else {
       // Search mode: cache the merged candidate set (Products table only), then paginate locally.
       const offsetRaw = args?.nextToken ?? "0";

@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 
+import { Eye, EyeOff } from "lucide-react";
+
 import {
   ColumnDef,
   flexRender,
@@ -43,18 +45,30 @@ function money(value: number | null | undefined) {
   }).format(Number.isFinite(n) ? n : 0);
 }
 
-function toCsv(rows: PriceRow[]): string {
-  const header = ["ID", "Código", "Nombre", "Costo", "Precio", "Margen%", "Activo", "Actualizado"];
-  const lines = rows.map((r) => [
-    String(r.id),
-    String(r.code ?? ""),
-    String(r.name ?? ""),
-    String(r.cost ?? ""),
-    String(r.price ?? ""),
-    r.marginPct === null ? "" : String(r.marginPct.toFixed(2)),
-    r.isEnabled ? "1" : "0",
-    String(r.updatedAt ?? ""),
-  ]);
+function toCsv(rows: PriceRow[], opts?: { includeCost?: boolean }): string {
+  const includeCost = opts?.includeCost ?? true;
+
+  const header = [
+    "ID",
+    "Código",
+    "Nombre",
+    ...(includeCost ? ["Costo", "Precio", "Margen%"] : ["Precio"]),
+    "Activo",
+    "Actualizado",
+  ];
+
+  const lines = rows.map((r) => {
+    const base = [String(r.id), String(r.code ?? ""), String(r.name ?? "")];
+    const pricing = includeCost
+      ? [String(r.cost ?? ""), String(r.price ?? ""), r.marginPct === null ? "" : String(r.marginPct.toFixed(2))]
+      : [String(r.price ?? "")];
+    return [
+      ...base,
+      ...pricing,
+      r.isEnabled ? "1" : "0",
+      String(r.updatedAt ?? ""),
+    ];
+  });
 
   const esc = (v: string) => {
     const s = String(v ?? "");
@@ -68,10 +82,33 @@ function toCsv(rows: PriceRow[]): string {
 export default function PriceListsPage() {
   const productsCatalog = useProductsCatalog();
 
+  const COST_VIS_KEY = "priceLists.showCost";
+
   const [q, setQ] = React.useState("");
   const dq = useDebounce(q, 250);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [jumpTo, setJumpTo] = React.useState("");
+
+  const [showCost, setShowCost] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(COST_VIS_KEY);
+      if (stored === null) return;
+      setShowCost(stored === "1" || stored === "true");
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(COST_VIS_KEY, showCost ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [showCost]);
 
   React.useEffect(() => {
     productsCatalog.ensureLoaded();
@@ -101,7 +138,8 @@ export default function PriceListsPage() {
   }, [productsCatalog.products, dq]);
 
   const columns = React.useMemo<ColumnDef<PriceRow>[]>(
-    () => [
+    () => {
+      const cols: ColumnDef<PriceRow>[] = [
       {
         accessorKey: "id",
         header: "ID",
@@ -125,26 +163,9 @@ export default function PriceListsPage() {
         ),
       },
       {
-        accessorKey: "cost",
-        header: () => <div className="text-right">Costo</div>,
-        cell: ({ row }) => <div className="text-right font-medium">{money(row.original.cost)}</div>,
-      },
-      {
         accessorKey: "price",
         header: () => <div className="text-right">Precio</div>,
         cell: ({ row }) => <div className="text-right font-medium">{money(row.original.price)}</div>,
-      },
-      {
-        accessorKey: "marginPct",
-        header: () => <div className="text-right">Margen%</div>,
-        cell: ({ row }) => (
-          <div className="text-right">{row.original.marginPct === null ? "—" : `${row.original.marginPct.toFixed(2)}%`}</div>
-        ),
-        sortingFn: (a, b) => {
-          const av = (a.original.marginPct ?? Number.NEGATIVE_INFINITY) as number;
-          const bv = (b.original.marginPct ?? Number.NEGATIVE_INFINITY) as number;
-          return av - bv;
-        },
       },
       {
         accessorKey: "isEnabled",
@@ -156,8 +177,32 @@ export default function PriceListsPage() {
         header: "Actualizado",
         cell: ({ row }) => <div className="text-xs text-muted-foreground">{row.original.updatedAt ?? "—"}</div>,
       },
-    ],
-    []
+      ];
+
+      if (showCost) {
+        cols.splice(3, 0, {
+          accessorKey: "cost",
+          header: () => <div className="text-right">Costo</div>,
+          cell: ({ row }) => <div className="text-right font-medium">{money(row.original.cost)}</div>,
+        });
+
+        cols.splice(5, 0, {
+          accessorKey: "marginPct",
+          header: () => <div className="text-right">Margen%</div>,
+          cell: ({ row }) => (
+            <div className="text-right">{row.original.marginPct === null ? "—" : `${row.original.marginPct.toFixed(2)}%`}</div>
+          ),
+          sortingFn: (a, b) => {
+            const av = (a.original.marginPct ?? Number.NEGATIVE_INFINITY) as number;
+            const bv = (b.original.marginPct ?? Number.NEGATIVE_INFINITY) as number;
+            return av - bv;
+          },
+        });
+      }
+
+      return cols;
+    },
+    [showCost]
   );
 
   const table = useReactTable({
@@ -183,6 +228,19 @@ export default function PriceListsPage() {
           <p className="text-muted-foreground">Vista tipo Aronium para revisar precios/costos y exportar.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowCost((v) => !v)}>
+            {showCost ? (
+              <>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Ocultar costos
+              </>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Mostrar costos
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             onClick={() => productsCatalog.refresh()}
@@ -193,7 +251,7 @@ export default function PriceListsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              const csv = toCsv(rows);
+              const csv = toCsv(rows, { includeCost: showCost });
               const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
@@ -264,7 +322,7 @@ export default function PriceListsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-24 text-center">
                   No hay resultados.
                 </TableCell>
               </TableRow>
