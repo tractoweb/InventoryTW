@@ -24,32 +24,41 @@ export default function UserUiPreferencesForm() {
   const { toast } = useToast();
   const { preferences, setPreferences, loading, refresh } = useUiPreferences();
   const [error, setError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
 
   const form = useForm<UserUiPreferences>({
     resolver: zodResolver(UserUiPreferencesSchema),
     defaultValues: preferences,
   });
 
+  const isDirty = form.formState.isDirty;
   React.useEffect(() => {
+    if (loading) return;
+    if (isDirty) return;
     form.reset(preferences);
-  }, [preferences, form]);
+  }, [preferences, loading, isDirty, form]);
 
   async function onSubmit(values: UserUiPreferences) {
     setError(null);
-    const res = await updateUserUiPreferencesAction(values);
-    if (!res.success || !res.data) {
-      setError(res.error || "No se pudo guardar");
-      return;
+    setSaving(true);
+    try {
+      const res = await updateUserUiPreferencesAction(values);
+      if (!res.success || !res.data) {
+        setError(res.error || "No se pudo guardar");
+        return;
+      }
+
+      setPreferences(res.data);
+      toast({
+        title: "Preferencias guardadas",
+        description: "Se aplicaron a tu sesión actual.",
+      });
+
+      // Best-effort sync from backend
+      await refresh();
+    } finally {
+      setSaving(false);
     }
-
-    setPreferences(res.data);
-    toast({
-      title: "Preferencias guardadas",
-      description: "Se aplicaron a tu sesión actual.",
-    });
-
-    // Best-effort sync from backend
-    await refresh();
   }
 
   return (
@@ -180,7 +189,7 @@ export default function UserUiPreferencesForm() {
               <Switch
                 checked={Boolean(form.watch("enableDecor"))}
                 onCheckedChange={(v) => form.setValue("enableDecor", Boolean(v))}
-                disabled={loading}
+                disabled={saving}
               />
             </div>
 
@@ -191,9 +200,10 @@ export default function UserUiPreferencesForm() {
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   value={form.watch("decorStyle")}
                   onChange={(e) => form.setValue("decorStyle", e.target.value as any)}
-                  disabled={loading || !form.watch("enableDecor")}
+                  disabled={saving || !form.watch("enableDecor")}
                 >
                   <option value="floral">Floral (gradientes)</option>
+                  <option value="flowerRing">🌼 Flores alrededor del botón</option>
                   <option value="emoji">Emoji (🌼)</option>
                   <option value="stickers">Stickers (suave)</option>
                 </select>
@@ -210,13 +220,13 @@ export default function UserUiPreferencesForm() {
                     value={form.watch("decorAccentHex") ?? "#F2C94C"}
                     onChange={(e) => form.setValue("decorAccentHex", e.target.value)}
                     className="h-10 w-14 p-1"
-                    disabled={loading || !form.watch("enableDecor")}
+                    disabled={saving || !form.watch("enableDecor")}
                   />
                   <Input
                     value={form.watch("decorAccentHex") ?? ""}
                     onChange={(e) => form.setValue("decorAccentHex", e.target.value || null)}
                     placeholder="#F2C94C"
-                    disabled={loading || !form.watch("enableDecor")}
+                    disabled={saving || !form.watch("enableDecor")}
                   />
                 </div>
               </div>
@@ -231,7 +241,7 @@ export default function UserUiPreferencesForm() {
                   max={1}
                   step={0.01}
                   onValueChange={(v) => form.setValue("decorIntensity", Number(v?.[0] ?? 0.35))}
-                  disabled={loading || !form.watch("enableDecor")}
+                  disabled={saving || !form.watch("enableDecor")}
                 />
                 <span className="w-16 text-right text-sm text-muted-foreground">
                   {Math.round(Number(form.watch("decorIntensity") ?? 0.35) * 100)}%
@@ -243,11 +253,11 @@ export default function UserUiPreferencesForm() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => form.reset(preferences)} disabled={loading}>
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => form.reset(preferences)} disabled={saving}>
               Revertir
             </Button>
-            <Button uiAction type="submit" disabled={loading}>
+              <Button uiAction type="submit" disabled={saving}>
               Guardar
             </Button>
           </div>

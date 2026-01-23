@@ -235,6 +235,7 @@ function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Ro
                     productId={(row.original as any).id}
                     productGroups={productGroups}
                     taxes={taxes}
+                warehouses={Array.isArray(warehouses) ? warehouses : []}
                     onClose={() => closeRow(row.id)}
                 />
             </TabsContent>

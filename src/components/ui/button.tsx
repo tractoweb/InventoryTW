@@ -42,16 +42,32 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, uiAction = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, asChild = false, uiAction = false, children, ...props }, ref) => {
+    if (asChild) {
+      // Radix Slot requires exactly ONE child element.
+      return (
+        <Slot
+          data-anime="button"
+          data-anime-hover="lift"
+          className={cn(buttonVariants({ variant, size, className }), uiAction ? "ui-action-btn" : null)}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
+      <button
         data-anime="button"
         data-anime-hover="lift"
         className={cn(buttonVariants({ variant, size, className }), uiAction ? "ui-action-btn" : null)}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+      </button>
     )
   }
 )

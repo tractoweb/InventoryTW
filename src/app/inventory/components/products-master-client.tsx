@@ -508,6 +508,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
                     productId={detailsProductId}
                     productGroups={productGroups}
                     taxes={taxes}
+                    warehouses={warehouses}
                     currentUserName={currentUserName}
                     onClose={() => setDetailsOpen(false)}
                   />

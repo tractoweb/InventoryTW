@@ -5,7 +5,7 @@ export const UserUiPreferencesSchema = z.object({
   enableAnimeJs: z.boolean().default(false),
   animationPreset: z.enum(["standard", "show"]).default("standard"),
   enableDecor: z.boolean().default(false),
-  decorStyle: z.enum(["floral", "emoji", "stickers"]).default("floral"),
+  decorStyle: z.enum(["floral", "emoji", "stickers", "flowerRing"]).default("floral"),
   decorIntensity: z.coerce.number().min(0).max(1).default(0.35),
   decorAccentHex: z
     .string()

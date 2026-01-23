@@ -111,7 +111,7 @@
     --ui-action-bg: hsl(var(--secondary));
   }
 
-  html[data-ui-decor="on"] .ui-action-btn::after {
+  html[data-ui-decor="on"]:not([data-ui-decor-style="flowerRing"]) .ui-action-btn::after {
     content: "";
     position: absolute;
     right: 10px;
@@ -138,10 +138,182 @@
       2px 2px 0 rgba(0, 0, 0, 0.12);
   }
 
-  html.dark[data-ui-decor="on"] .ui-action-btn::after {
+  html.dark[data-ui-decor="on"]:not([data-ui-decor-style="flowerRing"]) .ui-action-btn::after {
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.12),
       2px 2px 0 rgba(0, 0, 0, 0.22);
+  }
+
+  /* ---------------------------------------- */
+  /* Decor style: flowerRing (snippet-based)   */
+  /* ---------------------------------------- */
+  html[data-ui-decor="on"][data-ui-decor-style="flowerRing"] .ui-action-btn {
+    overflow: visible;
+  }
+
+  /* CSS-only flowers: avoids extra DOM so Button asChild won't break. */
+  html[data-ui-decor="on"][data-ui-decor-style="flowerRing"] .ui-action-btn::before,
+  html[data-ui-decor="on"][data-ui-decor-style="flowerRing"] .ui-action-btn::after {
+    content: "";
+    position: absolute;
+    inset: -28px;
+    pointer-events: none;
+    opacity: calc(0.25 + (var(--ui-decor-opacity) * 0.35));
+    filter: hue-rotate(180deg) saturate(1.1) contrast(1.05);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+
+  /* Petals mask */
+  html[data-ui-decor="on"][data-ui-decor-style="flowerRing"] .ui-action-btn::before {
+    background-color: hsl(var(--ui-decor-accent));
+    -webkit-mask-image:
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%);
+    mask-image:
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 6px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 10px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 30px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 26px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 18px 30px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 26px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 6px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 6px at 10px 10px, #000 99%, transparent 100%);
+    -webkit-mask-size:
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px;
+    mask-size:
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px,
+      36px 36px, 36px 36px, 36px 36px, 36px 36px;
+
+    /* 8 flowers around the button (each flower is 8 petals -> 64 masks) */
+    -webkit-mask-position:
+      50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px,
+      75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px,
+      calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%,
+      75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px),
+      50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px),
+      25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px),
+      -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%,
+      25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px;
+    mask-position:
+      50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px, 50% -25px,
+      75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px, 75% -18px,
+      calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%, calc(100% + 20px) 50%,
+      75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px), 75% calc(100% + 18px),
+      50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px), 50% calc(100% + 25px),
+      25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px), 25% calc(100% + 18px),
+      -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%, -20px 50%,
+      25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px, 25% -18px;
+  }
+
+  /* Centers (orange) */
+  html[data-ui-decor="on"][data-ui-decor-style="flowerRing"] .ui-action-btn::after {
+    background-color: hsl(25 95% 53% / 0.9);
+    -webkit-mask-image:
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%);
+    mask-image:
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%),
+      radial-gradient(circle 7px at 18px 18px, #000 99%, transparent 100%);
+    -webkit-mask-size: 36px 36px;
+    mask-size: 36px 36px;
+    -webkit-mask-position:
+      50% -25px,
+      75% -18px,
+      calc(100% + 20px) 50%,
+      75% calc(100% + 18px),
+      50% calc(100% + 25px),
+      25% calc(100% + 18px),
+      -20px 50%,
+      25% -18px;
+    mask-position:
+      50% -25px,
+      75% -18px,
+      calc(100% + 20px) 50%,
+      75% calc(100% + 18px),
+      50% calc(100% + 25px),
+      25% calc(100% + 18px),
+      -20px 50%,
+      25% -18px;
   }
 
   html[data-ui-animejs="on"][data-ui-animation-preset="show"] .ui-show-glow {

@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getProductDetails } from "@/actions/get-product-details";
 import { updateProduct, UpdateProductInput } from "@/actions/update-product";
+import { adjustStock } from "@/actions/adjust-stock";
+import { useRouter } from "next/navigation";
 import {
   Form,
   FormControl,
@@ -29,6 +31,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { Warehouse } from "@/actions/get-warehouses";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Tax } from "@/actions/get-taxes";
 
@@ -36,6 +39,7 @@ type EditProductFormProps = {
   productId: number | null;
   productGroups: ProductGroup[];
   taxes: Tax[];
+    warehouses: Warehouse[];
     currentUserName?: string;
   onClose: () => void;
 };
@@ -73,8 +77,9 @@ const formSchema = z.object({
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
   description: z.string().optional(),
-    price: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El precio debe ser mayor a 0.")),
-    cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El costo debe ser mayor a 0.")),
+        allowUndefinedPricing: z.boolean().default(false),
+        price: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El precio debe ser mayor a 0.").optional()),
+        cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El costo debe ser mayor a 0.").optional()),
     markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
     isTaxInclusivePrice: z.boolean().default(true),
   measurementunit: z.string().min(1, "La posición es obligatoria."),
@@ -84,15 +89,35 @@ const formSchema = z.object({
   reorderpoint: z.coerce.number().min(0).optional(),
   lowstockwarningquantity: z.coerce.number().min(0).optional(),
   islowstockwarningenabled: z.boolean(),
+}).superRefine((data, ctx) => {
+        if (data.allowUndefinedPricing) return;
+        if (data.price === undefined || data.price === null || Number(data.price) <= 0) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "El precio es obligatorio." });
+        }
+        if (data.cost === undefined || data.cost === null || Number(data.cost) <= 0) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cost"], message: "El costo es obligatorio." });
+        }
 });
 
 
-export function EditProductForm({ productId, productGroups, taxes, currentUserName, onClose }: EditProductFormProps) {
+export function EditProductForm({ productId, productGroups, taxes, warehouses, currentUserName, onClose }: EditProductFormProps) {
+    const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
     const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+        const [loadedDetails, setLoadedDetails] = useState<any>(null);
+
+        const defaultWarehouseId = useMemo(() => {
+                const first = warehouses?.[0]?.idWarehouse;
+                return Number.isFinite(Number(first)) ? String(first) : "";
+        }, [warehouses]);
+        const [stockWarehouseId, setStockWarehouseId] = useState<string>(defaultWarehouseId);
+        const [stockQuantity, setStockQuantity] = useState<number>(0);
+        const [stockReason, setStockReason] = useState<string>("");
+        const [isStockSubmitting, setIsStockSubmitting] = useState(false);
 
     const loadedProductIdRef = useRef<number | null>(null);
     const pendingTaxNamesRef = useRef<string[] | null>(null);
@@ -103,6 +128,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
       name: "",
       code: "",
       description: "",
+                        allowUndefinedPricing: false,
             price: undefined,
             cost: undefined,
             markup: 40,
@@ -122,6 +148,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
     const wMarkup = useWatch({ control: form.control, name: "markup" });
     const wTaxes = useWatch({ control: form.control, name: "taxes" });
     const wIsTaxInclusivePrice = useWatch({ control: form.control, name: "isTaxInclusivePrice" });
+    const wAllowUndefinedPricing = useWatch({ control: form.control, name: "allowUndefinedPricing" });
 
     const selectedTaxRate = useMemo(() => {
         const selectedTaxIds = Array.isArray(wTaxes) ? wTaxes : [];
@@ -152,6 +179,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
     }, []);
 
     useEffect(() => {
+        if (wAllowUndefinedPricing) return;
         const markupPercent = Number(wMarkup ?? 0);
         const markupRate = (Number.isFinite(markupPercent) ? Math.max(0, markupPercent) : 0) / 100;
         const includeTax = Boolean(wIsTaxInclusivePrice);
@@ -181,7 +209,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                 form.setValue("price", newPrice as any, { shouldValidate: true, shouldDirty: false });
             }
         }
-    }, [wCost, wPrice, wMarkup, wIsTaxInclusivePrice, selectedTaxRate, lastEdited, calculatePrice, calculateCost, form]);
+    }, [wCost, wPrice, wMarkup, wIsTaxInclusivePrice, selectedTaxRate, lastEdited, wAllowUndefinedPricing, calculatePrice, calculateCost, form]);
 
     useEffect(() => {
         if (!productId) {
@@ -206,6 +234,17 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
 
                 const data: any = (result as any).data;
                 if (!data) return;
+
+                setLoadedDetails(data);
+
+                // Seed stock editor with current warehouse quantity when possible.
+                if (Array.isArray(data.stocklocations) && data.stocklocations.length > 0) {
+                    const byFirst = data.stocklocations.find((x: any) => String(x?.warehouseid ?? x?.warehouseId ?? "") === String(defaultWarehouseId));
+                    const qty = Number(byFirst?.quantity ?? data.stocklocations?.[0]?.quantity ?? 0);
+                    setStockQuantity(Number.isFinite(qty) ? Math.max(0, Math.trunc(qty)) : 0);
+                } else {
+                    setStockQuantity(0);
+                }
 
                 let taxIds: number[] = [];
 
@@ -238,8 +277,9 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                     name: data.name || "",
                     code: data.code || "",
                     description: data.description || "",
-                    price: data.price ?? undefined,
-                    cost: data.cost ?? undefined,
+                    allowUndefinedPricing: !(Number(data.price ?? 0) > 0 && Number(data.cost ?? 0) > 0),
+                    price: Number(data.price ?? 0) > 0 ? (data.price ?? undefined) : undefined,
+                    cost: Number(data.cost ?? 0) > 0 ? (data.cost ?? undefined) : undefined,
                     markup: data.markup ?? 40,
                     isTaxInclusivePrice:
                         data.istaxinclusiveprice !== undefined && data.istaxinclusiveprice !== null
@@ -257,6 +297,15 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
             .finally(() => setIsLoading(false));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [productId]);
+
+    useEffect(() => {
+        // Keep stock editor aligned to selected warehouse.
+        const whId = String(stockWarehouseId || "");
+        const locations = Array.isArray(loadedDetails?.stocklocations) ? loadedDetails.stocklocations : [];
+        const match = locations.find((x: any) => String(x?.warehouseid ?? x?.warehouseId ?? "") === whId);
+        const qty = Number(match?.quantity ?? 0);
+        setStockQuantity(Number.isFinite(qty) ? Math.max(0, Math.trunc(qty)) : 0);
+    }, [stockWarehouseId, loadedDetails]);
 
     useEffect(() => {
         const pending = pendingTaxNamesRef.current;
@@ -278,7 +327,15 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
         setSubmitStatus(null);
-    const result = await updateProduct(values as UpdateProductInput);
+
+    const payload: UpdateProductInput = {
+        ...(values as any),
+        allowUndefinedPricing: Boolean(values.allowUndefinedPricing),
+        price: values.allowUndefinedPricing ? Number(values.price ?? 0) : Number(values.price ?? 0),
+        cost: values.allowUndefinedPricing ? Number(values.cost ?? 0) : Number(values.cost ?? 0),
+    };
+
+    const result = await updateProduct(payload);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -309,6 +366,53 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
             setSubmitStatus({ type: "error", message: result.error || "No se pudieron guardar los cambios." });
     }
   }
+
+    async function onApplyStock() {
+        if (!productId) return;
+
+        const whId = Number(stockWarehouseId);
+        if (!Number.isFinite(whId) || whId <= 0) {
+            toast({
+                variant: "destructive",
+                title: "Selecciona un almacén",
+                description: "Debes elegir un almacén para editar el stock.",
+            });
+            return;
+        }
+
+        const qty = Math.trunc(Number(stockQuantity));
+        if (!Number.isFinite(qty) || qty < 0) {
+            toast({
+                variant: "destructive",
+                title: "Cantidad inválida",
+                description: "La cantidad debe ser un número mayor o igual a 0.",
+            });
+            return;
+        }
+
+        setIsStockSubmitting(true);
+        const res = await adjustStock({
+            productId,
+            warehouseId: whId,
+            quantity: qty,
+            reason: stockReason?.trim() ? stockReason.trim() : "Edición desde producto",
+        });
+        setIsStockSubmitting(false);
+
+        if (res.success) {
+            toast({ title: "Stock actualizado", description: res.message || "Stock ajustado correctamente." });
+            router.refresh();
+            const refreshed = await getProductDetails(productId);
+            if (!(refreshed as any).error) setLoadedDetails((refreshed as any).data);
+            return;
+        }
+
+        toast({
+            variant: "destructive",
+            title: "Error al ajustar stock",
+            description: res.error || "No se pudo ajustar el stock.",
+        });
+    }
   
   if (isLoading) {
     return (
@@ -434,6 +538,37 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                  <TabsContent value="price" className="space-y-4 pt-4">
                                         <FormField
                                             control={form.control}
+                                            name="allowUndefinedPricing"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                    <div className="space-y-1">
+                                                        <FormLabel>Valores indefinidos</FormLabel>
+                                                        <FormDescription>
+                                                            Permite guardar sin costo/precio y desactiva el recálculo automático.
+                                                        </FormDescription>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value}
+                                                            onCheckedChange={(checked) => {
+                                                                const next = Boolean(checked);
+                                                                field.onChange(next);
+                                                                if (next) {
+                                                                    form.clearErrors(["price", "cost"]);
+                                                                    form.setValue("price", undefined as any, { shouldValidate: false, shouldDirty: true });
+                                                                    form.setValue("cost", undefined as any, { shouldValidate: false, shouldDirty: true });
+                                                                } else {
+                                                                    form.trigger(["price", "cost"]);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
                                             name="markup"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -460,6 +595,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                                     <Input
                                                                             inputMode="numeric"
                                                                             pattern="[0-9]*"
+                                                                            disabled={Boolean(wAllowUndefinedPricing)}
                                                                                                                                                         value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
                                                                                                                                                         onChange={(e) => {
                                                                                                                                                             setLastEdited("price");
@@ -481,6 +617,7 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                                     <Input
                                                                             inputMode="numeric"
                                                                             pattern="[0-9]*"
+                                                                            disabled={Boolean(wAllowUndefinedPricing)}
                                                                                                                                                         value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
                                                                                                                                                         onChange={(e) => {
                                                                                                                                                             setLastEdited("cost");
@@ -595,6 +732,70 @@ export function EditProductForm({ productId, productGroups, taxes, currentUserNa
                                 </FormItem>
                             )}
                         />
+                    </div>
+
+                    <div className="pt-6">
+                        <div className="rounded-lg border bg-card p-4 space-y-3">
+                            <div>
+                                <div className="font-medium">Editar stock del producto</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Ajusta la cantidad por almacén (no afecta punto de reorden).
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <FormLabel>Almacén</FormLabel>
+                                    <Select value={stockWarehouseId} onValueChange={setStockWarehouseId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona un almacén" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {(warehouses ?? []).map((wh) => (
+                                                <SelectItem key={wh.idWarehouse} value={String(wh.idWarehouse)}>
+                                                    {wh.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <FormLabel>Cantidad</FormLabel>
+                                    <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        min={0}
+                                        value={String(stockQuantity)}
+                                        onChange={(e) => setStockQuantity(Number(e.target.value))}
+                                        className="max-w-[200px]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <FormLabel>Motivo (opcional)</FormLabel>
+                                <Input
+                                    value={stockReason}
+                                    onChange={(e) => setStockReason(e.target.value)}
+                                    placeholder="Ej: corrección de inventario"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="text-xs text-muted-foreground">
+                                    Stock actual: {(() => {
+                                        const locs = Array.isArray(loadedDetails?.stocklocations) ? loadedDetails.stocklocations : [];
+                                        const match = locs.find((x: any) => String(x?.warehouseid ?? x?.warehouseId ?? "") === String(stockWarehouseId));
+                                        const qty = Number(match?.quantity ?? 0);
+                                        return Number.isFinite(qty) ? Math.max(0, Math.trunc(qty)) : 0;
+                                    })()}
+                                </div>
+                                <Button type="button" onClick={onApplyStock} disabled={isStockSubmitting || !productId}>
+                                    {isStockSubmitting ? "Actualizando..." : "Actualizar stock"}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                  </TabsContent>
             </Tabs>

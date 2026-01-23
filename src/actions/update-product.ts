@@ -15,8 +15,9 @@ const UpdateProductSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
   description: z.string().optional(),
-  price: z.coerce.number().int().min(1, "El precio debe ser mayor a 0."),
-  cost: z.coerce.number().int().min(1, "El costo debe ser mayor a 0."),
+  allowUndefinedPricing: z.boolean().optional(),
+  price: z.coerce.number().int().min(0, "El precio no puede ser negativo."),
+  cost: z.coerce.number().int().min(0, "El costo no puede ser negativo."),
   markup: z.coerce.number().min(0).optional(),
   isTaxInclusivePrice: z.boolean().optional(),
   measurementunit: z.string().optional(),
@@ -26,6 +27,15 @@ const UpdateProductSchema = z.object({
   reorderpoint: z.coerce.number().min(0).optional(),
   lowstockwarningquantity: z.coerce.number().min(0).optional(),
   islowstockwarningenabled: z.boolean(),
+}).superRefine((data, ctx) => {
+  const allow = Boolean((data as any).allowUndefinedPricing);
+  if (allow) return;
+  if (!Number.isFinite(Number(data.price)) || Number(data.price) <= 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "El precio debe ser mayor a 0." });
+  }
+  if (!Number.isFinite(Number(data.cost)) || Number(data.cost) <= 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cost"], message: "El costo debe ser mayor a 0." });
+  }
 });
 
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
