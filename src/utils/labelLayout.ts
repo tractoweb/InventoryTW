@@ -42,9 +42,11 @@ export function compute3UpStickerLayout(dpi: number, rawName: string): StickerLa
   const nameY = marginTop + nameYOffset;
 
   // Barcode block
-  const barcodeHCandidates = [56, 52, 48, 44, 40];
-  const barcodeTextHCandidates = [18, 16, 14];
+  const barcodeH = 40;
+  const barcodeTextH = 18;
   const barcodeGap = cmToDots(0.1, safeDpi);
+
+  const barcodeTotalH = barcodeH + barcodeGap + barcodeTextH;
 
   const minGap = cmToDots(0.05, safeDpi);
 
@@ -68,44 +70,39 @@ export function compute3UpStickerLayout(dpi: number, rawName: string): StickerLa
   ];
 
   for (const bottomPad of bottomPadCandidates) {
-    for (const barcodeH of barcodeHCandidates) {
-      for (const barcodeTextH of barcodeTextHCandidates) {
-        const barcodeTotalH = barcodeH + barcodeGap + barcodeTextH;
-        const barcodeY = labelH - bottomPad - barcodeTotalH;
+    const barcodeY = labelH - bottomPad - barcodeTotalH;
 
-        for (const nameLinesMax of linesCandidates) {
-          for (const nameFont of nameFontCandidates) {
-            const nameBlockH = nameFont * nameLinesMax + 2;
-            const posY = nameY + nameBlockH;
+    for (const nameLinesMax of linesCandidates) {
+      for (const nameFont of nameFontCandidates) {
+        const nameBlockH = nameFont * nameLinesMax + 2;
+        const posY = nameY + nameBlockH;
 
-            for (const posFont of posFontCandidates) {
-              for (const dateFont of dateFontCandidates) {
-                for (const lineGap of lineGapCandidates) {
-                  const dateY = posY + posFont + lineGap;
-                  const textBottom = dateY + dateFont;
+        for (const posFont of posFontCandidates) {
+          for (const dateFont of dateFontCandidates) {
+            for (const lineGap of lineGapCandidates) {
+              const dateY = posY + posFont + lineGap;
+              const textBottom = dateY + dateFont;
 
-                  if (textBottom <= barcodeY - minGap) {
-                    const barcodeTextY = barcodeY + barcodeH + barcodeGap;
+              if (textBottom <= barcodeY - minGap) {
+                const barcodeTextY = barcodeY + barcodeH + barcodeGap;
 
-                    return {
-                      nameLinesMax,
-                      nameFont,
-                      posFont,
-                      dateFont,
-                      lineGap,
-                      nameY,
-                      posY,
-                      dateY,
-                      barcodeY,
-                      barcodeTextY,
-                      barcodeH,
-                      barcodeTextH,
-                      barcodeGap,
-                      bottomPad,
-                      minGap,
-                    };
-                  }
-                }
+                return {
+                  nameLinesMax,
+                  nameFont,
+                  posFont,
+                  dateFont,
+                  lineGap,
+                  nameY,
+                  posY,
+                  dateY,
+                  barcodeY,
+                  barcodeTextY,
+                  barcodeH,
+                  barcodeTextH,
+                  barcodeGap,
+                  bottomPad,
+                  minGap,
+                };
               }
             }
           }
@@ -116,9 +113,6 @@ export function compute3UpStickerLayout(dpi: number, rawName: string): StickerLa
 
   // Absolute fallback: smallest fonts/1 line, minimum gap, minimum bottom pad.
   const bottomPad = Math.max(0, marginBottomBase - cmToDots(0.1, safeDpi));
-  const barcodeH = 40;
-  const barcodeTextH = 14;
-  const barcodeTotalH = barcodeH + barcodeGap + barcodeTextH;
   const barcodeY = labelH - bottomPad - barcodeTotalH;
   const nameLinesMax = 1;
   const nameFont = 16;

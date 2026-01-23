@@ -72,6 +72,17 @@ function applyUiPreferencesToDom(preferences: UserUiPreferences) {
   root.dataset.uiAnimejs = preferences.enableAnimeJs ? "on" : "off";
   root.dataset.uiAnimationPreset = preferences.animationPreset;
 
+  root.dataset.uiDecor = preferences.enableDecor ? "on" : "off";
+  root.dataset.uiDecorStyle = preferences.decorStyle;
+
+  const decorIntensity = clamp(Number(preferences.decorIntensity ?? 0.35), 0, 1);
+  root.style.setProperty("--ui-decor-opacity", String(decorIntensity));
+
+  if (preferences.decorAccentHex) {
+    const hsl = hexToHslString(preferences.decorAccentHex);
+    if (hsl) root.style.setProperty("--ui-decor-accent", hsl);
+  }
+
   const baseFontPx = 16;
   const fontScale = clamp(Number(preferences.fontScale ?? 1), 0.85, 1.25);
   root.style.fontSize = `${Math.round(baseFontPx * fontScale)}px`;

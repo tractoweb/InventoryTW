@@ -37,16 +37,18 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /** Opt-in decoration: shows a small retro flower stamp (only if user enabled decor). */
+  uiAction?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, uiAction = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         data-anime="button"
         data-anime-hover="lift"
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, className }), uiAction ? "ui-action-btn" : null)}
         ref={ref}
         {...props}
       />

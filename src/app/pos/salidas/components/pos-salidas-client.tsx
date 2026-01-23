@@ -840,7 +840,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
           <Button variant="outline" onClick={() => setItems([])} disabled={items.length === 0 || saving}>
             Limpiar
           </Button>
-          <Button onClick={handleSaveSalida} disabled={saving}>
+          <Button uiAction onClick={handleSaveSalida} disabled={saving}>
             {saving ? "Guardando…" : "Guardar venta"}
           </Button>
         </div>
@@ -1618,7 +1618,7 @@ export function PosSalidasClientPage({ userId }: { userId: number }) {
             <CardDescription>Guarda y genera Kardex/Stock.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button onClick={handleSaveSalida} disabled={saving} className="w-full">
+            <Button uiAction onClick={handleSaveSalida} disabled={saving} className="w-full">
               {saving ? "Guardando…" : "Guardar venta"}
             </Button>
             <Button variant="outline" onClick={() => searchRef.current?.focus()} className="w-full">

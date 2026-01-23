@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { ProductsCatalogProvider } from '@/components/catalog/products-catalog-provider';
 import { DocumentsCatalogProvider } from '@/components/catalog/documents-catalog-provider';
 import { RealtimeAuditToasts } from '@/components/realtime/realtime-audit-toasts';
+import { UiPreferencesProvider } from '@/components/ui-preferences/ui-preferences-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -32,11 +33,13 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} font-body antialiased min-h-svh w-full overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <ProductsCatalogProvider>
-            <DocumentsCatalogProvider>
-              <AppShell>{children}</AppShell>
-            </DocumentsCatalogProvider>
-          </ProductsCatalogProvider>
+          <UiPreferencesProvider>
+            <ProductsCatalogProvider>
+              <DocumentsCatalogProvider>
+                <AppShell>{children}</AppShell>
+              </DocumentsCatalogProvider>
+            </ProductsCatalogProvider>
+          </UiPreferencesProvider>
           <RealtimeAuditToasts />
           <Toaster />
         </ThemeProvider>

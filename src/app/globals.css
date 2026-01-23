@@ -37,6 +37,10 @@
     --sidebar-accent-foreground: 231 48% 48%;
     --sidebar-border: 220 13% 89%;
     --sidebar-ring: 231 48% 48%;
+
+    /* UI Decor (layered themes) */
+    --ui-decor-accent: 43 90% 62%;
+    --ui-decor-opacity: 0.35;
   }
   .dark {
     --background: 222 47% 11%;
@@ -87,6 +91,59 @@
 }
 
 @layer utilities {
+  /* ---------------------------------------- */
+  /* UI Decor: ONLY on explicit action buttons */
+  /* ---------------------------------------- */
+  html[data-ui-decor="on"] .ui-action-btn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* Map the button's background to a var (complement computed via hue-rotate). */
+  html[data-ui-decor="on"] .ui-action-btn.bg-primary {
+    --ui-action-bg: hsl(var(--primary));
+  }
+  html[data-ui-decor="on"] .ui-action-btn.bg-destructive {
+    --ui-action-bg: hsl(var(--destructive));
+  }
+  html[data-ui-decor="on"] .ui-action-btn.bg-secondary {
+    --ui-action-bg: hsl(var(--secondary));
+  }
+
+  html[data-ui-decor="on"] .ui-action-btn::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 22px;
+    height: 22px;
+    transform: translateY(-50%) rotate(-8deg);
+    pointer-events: none;
+    opacity: calc(0.20 + (var(--ui-decor-opacity) * 0.35));
+
+    /* Retro-ish flower stamp using hard radial gradients + outline */
+    background:
+      radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.15) 0 10%, transparent 11%),
+      radial-gradient(circle at 50% 35%, var(--ui-action-bg, hsl(var(--ui-decor-accent))) 0 26%, transparent 27%),
+      radial-gradient(circle at 65% 50%, var(--ui-action-bg, hsl(var(--ui-decor-accent))) 0 26%, transparent 27%),
+      radial-gradient(circle at 50% 65%, var(--ui-action-bg, hsl(var(--ui-decor-accent))) 0 26%, transparent 27%),
+      radial-gradient(circle at 35% 50%, var(--ui-action-bg, hsl(var(--ui-decor-accent))) 0 26%, transparent 27%),
+      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.75) 0 20%, transparent 21%);
+
+    /* Complementary color relative to the button bg */
+    filter: hue-rotate(180deg) saturate(1.25) contrast(1.08);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.18),
+      2px 2px 0 rgba(0, 0, 0, 0.12);
+  }
+
+  html.dark[data-ui-decor="on"] .ui-action-btn::after {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12),
+      2px 2px 0 rgba(0, 0, 0, 0.22);
+  }
+
   html[data-ui-animejs="on"][data-ui-animation-preset="show"] .ui-show-glow {
     filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.55));
   }

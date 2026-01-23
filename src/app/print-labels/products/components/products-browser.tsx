@@ -602,12 +602,7 @@ export default function ProductsBrowser() {
           }}
           title={barcode}
         >
-          <BarcodeSvg
-            value={barcode}
-            height={Math.max(18, Math.round(barcodeH * scale))}
-            barWidth={barcode.trim().length >= 14 ? 1 : 2}
-            className="w-full"
-          />
+          <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
           <div
             style={{
               fontSize: Math.max(7, Math.round(9 * scale)),
@@ -1891,12 +1886,7 @@ export default function ProductsBrowser() {
                         <div className="text-sm text-muted-foreground">Cargando códigos…</div>
                       ) : hoveredRow.barcodes && hoveredRow.barcodes.length ? (
                         <div className="space-y-1">
-                          <BarcodeSvg
-                            value={hoveredRow.barcodes[0]}
-                            height={44}
-                            barWidth={String(hoveredRow.barcodes[0] ?? "").trim().length >= 14 ? 1 : 2}
-                            className="w-full"
-                          />
+                          <BarcodeSvg value={hoveredRow.barcodes[0]} height={34} barWidth={1} className="w-full" />
                           <div className="text-xs text-center text-muted-foreground truncate" title={hoveredRow.barcodes[0]}>
                             {hoveredRow.barcodes[0]}
                           </div>
