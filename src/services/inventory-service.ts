@@ -186,7 +186,7 @@ export async function getProductDetails(productId: string): Promise<{
   barcodesText?: string;
   taxesText?: string;
   totalstock?: number;
-  stocklocations?: Array<{ warehousename: string; quantity: number }>;
+  stocklocations?: Array<{ warehouseid?: number; warehouseId?: number; warehousename: string; quantity: number }>;
   reorderpoint?: number;
   lowstockwarningquantity?: number;
   islowstockwarningenabled?: boolean;
@@ -556,7 +556,11 @@ export async function getProductDetails(productId: string): Promise<{
       .sort((a: any, b: any) => Number(a.stockControlId) - Number(b.stockControlId));
 
     const totalstock = stocks.reduce((sum, s) => sum + (Number(s.quantity ?? 0) || 0), 0);
-    const stocklocations = stocks.map((s) => ({ warehousename: String(s.warehouseName ?? `#${s.warehouseId}`), quantity: s.quantity }));
+    const stocklocations = stocks.map((s) => ({
+      warehouseid: s.warehouseId,
+      warehousename: String(s.warehouseName ?? `#${s.warehouseId}`),
+      quantity: s.quantity,
+    }));
 
     const defaultStockControl = stockControls.find((sc: any) => sc.customerId === null) ?? stockControls[0] ?? null;
 
@@ -927,6 +931,9 @@ export async function adjustStock(
   userId: string
 ): Promise<{
   success: boolean;
+  previousQuantity?: number;
+  newQuantity?: number;
+  difference?: number;
   error?: string;
 }> {
   try {
@@ -934,31 +941,33 @@ export async function adjustStock(
     const normalizedWarehouseId = Number(warehouseId);
     const normalizedUserId = Number(userId);
 
-    // Obtener stock actual
-    const { data: stocks } = await amplifyClient.models.Stock.list({
-      filter: {
-        productId: { eq: normalizedProductId },
-        warehouseId: { eq: normalizedWarehouseId },
-      },
-    });
+    const normalizedNewQuantityRaw = Number(newQuantity);
+    const normalizedNewQuantity = Number.isFinite(normalizedNewQuantityRaw) ? Math.max(0, normalizedNewQuantityRaw) : 0;
 
-    const stock = stocks?.[0];
-    const currentQuantity = stock?.quantity || 0;
-    const difference = newQuantity - currentQuantity;
+    // Read current stock using the composite identifier.
+    // This matches amplify/data/resource.ts: Stock.identifier(['productId','warehouseId']).
+    const { data: existing } = await amplifyClient.models.Stock.get({
+      productId: normalizedProductId,
+      warehouseId: normalizedWarehouseId,
+    } as any);
 
-    // Actualizar stock
-    if (stock) {
+    const currentQuantityRaw: unknown = (existing as any)?.quantity ?? 0;
+    const currentQuantity = Number.isFinite(Number(currentQuantityRaw)) ? Number(currentQuantityRaw) : 0;
+    const difference = normalizedNewQuantity - currentQuantity;
+
+    // Upsert Stock
+    if (existing) {
       await amplifyClient.models.Stock.update({
-        productId: (stock as any).productId,
-        warehouseId: (stock as any).warehouseId,
-        quantity: newQuantity,
-      });
+        productId: normalizedProductId,
+        warehouseId: normalizedWarehouseId,
+        quantity: normalizedNewQuantity,
+      } as any);
     } else {
       await amplifyClient.models.Stock.create({
         productId: normalizedProductId,
         warehouseId: normalizedWarehouseId,
-        quantity: newQuantity,
-      });
+        quantity: normalizedNewQuantity,
+      } as any);
     }
 
     // Crear entrada en Kardex para auditoría
@@ -968,14 +977,19 @@ export async function adjustStock(
       date: new Date(),
       type: 'AJUSTE',
       quantity: difference,
-      balance: newQuantity,
+      balance: normalizedNewQuantity,
       warehouseId: normalizedWarehouseId,
       previousBalance: currentQuantity,
       note: reason,
       userId: normalizedUserId,
     });
 
-    return { success: true };
+    return {
+      success: true,
+      previousQuantity: currentQuantity,
+      newQuantity: normalizedNewQuantity,
+      difference,
+    };
   } catch (error) {
     return {
       success: false,

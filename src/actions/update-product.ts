@@ -30,11 +30,11 @@ const UpdateProductSchema = z.object({
 }).superRefine((data, ctx) => {
   const allow = Boolean((data as any).allowUndefinedPricing);
   if (allow) return;
-  if (!Number.isFinite(Number(data.price)) || Number(data.price) <= 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "El precio debe ser mayor a 0." });
+  if (!Number.isFinite(Number(data.price)) || Number(data.price) < 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "El precio no puede ser negativo." });
   }
-  if (!Number.isFinite(Number(data.cost)) || Number(data.cost) <= 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cost"], message: "El costo debe ser mayor a 0." });
+  if (!Number.isFinite(Number(data.cost)) || Number(data.cost) < 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cost"], message: "El costo no puede ser negativo." });
   }
 });
 

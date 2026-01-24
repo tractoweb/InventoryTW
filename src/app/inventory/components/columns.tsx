@@ -22,6 +22,7 @@ function StockActionsCell(props: { row: any; meta: any }) {
   const { row, meta } = props;
   const isExpanded = row.getIsExpanded();
   const name = String(row.original?.name ?? "");
+  const isStockPage = meta?.pageType === "stock";
 
   const [labelsOpen, setLabelsOpen] = React.useState(false);
   const [labelsQty, setLabelsQty] = React.useState(1);
@@ -112,9 +113,9 @@ function StockActionsCell(props: { row: any; meta: any }) {
           row.toggleExpanded();
         }}
         className="h-8 w-8 p-0"
-        title={isExpanded ? "Cerrar" : "Ver detalles"}
+        title={isExpanded ? "Cerrar" : isStockPage ? "Editar stock" : "Ver detalles"}
       >
-        <span className="sr-only">Ver detalles</span>
+        <span className="sr-only">{isStockPage ? "Editar stock" : "Ver detalles"}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
       </Button>
     </div>

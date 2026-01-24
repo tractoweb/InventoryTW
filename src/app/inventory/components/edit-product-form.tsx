@@ -9,6 +9,7 @@ import * as z from "zod";
 import { getProductDetails } from "@/actions/get-product-details";
 import { updateProduct, UpdateProductInput } from "@/actions/update-product";
 import { adjustStock } from "@/actions/adjust-stock";
+import { refreshStockCache } from "@/actions/refresh-stock-cache";
 import { useRouter } from "next/navigation";
 import {
   Form,
@@ -27,10 +28,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import type { Warehouse } from "@/actions/get-warehouses";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Tax } from "@/actions/get-taxes";
@@ -72,15 +80,23 @@ function roundMoneyInt(value: number): number {
     return Math.max(0, Math.round(value));
 }
 
+function parseNumberOptional(input: unknown): number | undefined {
+    const raw = String(input ?? "").trim();
+    if (!raw) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return undefined;
+    return n;
+}
+
 const formSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre es obligatorio."),
   code: z.string().optional(),
   description: z.string().optional(),
         allowUndefinedPricing: z.boolean().default(false),
-        price: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El precio debe ser mayor a 0.").optional()),
-        cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El costo debe ser mayor a 0.").optional()),
-    markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
+    price: z.preprocess(parseMoneyIntOptional, z.number().int().min(0, "El precio no puede ser negativo.").optional()),
+    cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(0, "El costo no puede ser negativo.").optional()),
+        markup: z.preprocess(parseNumberOptional, z.number().min(0, "El margen no puede ser negativo.").optional()),
     isTaxInclusivePrice: z.boolean().default(true),
   measurementunit: z.string().min(1, "La posición es obligatoria."),
   isenabled: z.boolean(),
@@ -91,10 +107,10 @@ const formSchema = z.object({
   islowstockwarningenabled: z.boolean(),
 }).superRefine((data, ctx) => {
         if (data.allowUndefinedPricing) return;
-        if (data.price === undefined || data.price === null || Number(data.price) <= 0) {
+    if (data.price === undefined || data.price === null) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "El precio es obligatorio." });
         }
-        if (data.cost === undefined || data.cost === null || Number(data.cost) <= 0) {
+    if (data.cost === undefined || data.cost === null) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cost"], message: "El costo es obligatorio." });
         }
 });
@@ -108,6 +124,10 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
   const [error, setError] = useState<string | null>(null);
     const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+                const [priceText, setPriceText] = useState<string>("");
+                const [costText, setCostText] = useState<string>("");
+                const [markupText, setMarkupText] = useState<string>("");
+
         const [loadedDetails, setLoadedDetails] = useState<any>(null);
 
         const defaultWarehouseId = useMemo(() => {
@@ -118,6 +138,13 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         const [stockQuantity, setStockQuantity] = useState<number>(0);
         const [stockReason, setStockReason] = useState<string>("");
         const [isStockSubmitting, setIsStockSubmitting] = useState(false);
+        const [stockResultOpen, setStockResultOpen] = useState(false);
+        const [stockResultPayload, setStockResultPayload] = useState<{
+            warehouseName?: string;
+            previousQty?: number | null;
+            newQty?: number | null;
+            reason?: string;
+        } | null>(null);
 
     const loadedProductIdRef = useRef<number | null>(null);
     const pendingTaxNamesRef = useRef<string[] | null>(null);
@@ -180,8 +207,12 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
 
     useEffect(() => {
         if (wAllowUndefinedPricing) return;
-        const markupPercent = Number(wMarkup ?? 0);
-        const markupRate = (Number.isFinite(markupPercent) ? Math.max(0, markupPercent) : 0) / 100;
+        const markupIsEmpty = wMarkup === null || wMarkup === undefined || String(wMarkup).trim() === "";
+        if (markupIsEmpty) return;
+
+        const markupPercent = Number(wMarkup);
+        if (!Number.isFinite(markupPercent) || markupPercent < 0) return;
+        const markupRate = markupPercent / 100;
         const includeTax = Boolean(wIsTaxInclusivePrice);
 
         const currentCost = wCost === null || wCost === undefined ? null : Number(wCost);
@@ -191,19 +222,15 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.5;
 
         if (lastEdited === "price") {
-            if (currentPrice === null || !Number.isFinite(currentPrice) || currentPrice <= 0) {
-                if (wCost !== undefined) form.setValue("cost", undefined as any, { shouldValidate: true, shouldDirty: false });
-                return;
-            }
+            if (currentPrice === null || !Number.isFinite(currentPrice)) return;
+            if (currentPrice <= 0) return;
             const newCost = calculateCost(nextValue(currentPrice), markupRate, selectedTaxRate, includeTax);
             if (!nearlyEqual(newCost, currentCost)) {
                 form.setValue("cost", newCost as any, { shouldValidate: true, shouldDirty: false });
             }
         } else {
-            if (currentCost === null || !Number.isFinite(currentCost) || currentCost <= 0) {
-                if (wPrice !== undefined) form.setValue("price", undefined as any, { shouldValidate: true, shouldDirty: false });
-                return;
-            }
+            if (currentCost === null || !Number.isFinite(currentCost)) return;
+            if (currentCost <= 0) return;
             const newPrice = calculatePrice(nextValue(currentCost), markupRate, selectedTaxRate, includeTax);
             if (!nearlyEqual(newPrice, currentPrice)) {
                 form.setValue("price", newPrice as any, { shouldValidate: true, shouldDirty: false });
@@ -272,15 +299,20 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                     }
                 }
 
+                const resetPrice = Number(data.price ?? 0);
+                const resetCost = Number(data.cost ?? 0);
+                const resetMarkup = data.markup ?? 40;
+                const resetAllowUndefined = Number(resetPrice ?? 0) === 0 && Number(resetCost ?? 0) === 0;
+
                 form.reset({
                     id: data.id,
                     name: data.name || "",
                     code: data.code || "",
                     description: data.description || "",
-                    allowUndefinedPricing: !(Number(data.price ?? 0) > 0 && Number(data.cost ?? 0) > 0),
-                    price: Number(data.price ?? 0) > 0 ? (data.price ?? undefined) : undefined,
-                    cost: Number(data.cost ?? 0) > 0 ? (data.cost ?? undefined) : undefined,
-                    markup: data.markup ?? 40,
+                    allowUndefinedPricing: resetAllowUndefined,
+                    price: resetPrice,
+                    cost: resetCost,
+                    markup: resetMarkup,
                     isTaxInclusivePrice:
                         data.istaxinclusiveprice !== undefined && data.istaxinclusiveprice !== null
                             ? Boolean(data.istaxinclusiveprice)
@@ -293,6 +325,11 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                     lowstockwarningquantity: data.lowstockwarningquantity ?? 0,
                     islowstockwarningenabled: !!data.islowstockwarningenabled,
                 });
+
+                // Sync input text to loaded values (formatted by default).
+                setPriceText(resetPrice === null || resetPrice === undefined ? "" : formatMoneyInt(resetPrice));
+                setCostText(resetCost === null || resetCost === undefined ? "" : formatMoneyInt(resetCost));
+                setMarkupText(resetMarkup === null || resetMarkup === undefined ? "" : String(resetMarkup));
             })
             .finally(() => setIsLoading(false));
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -333,6 +370,8 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         allowUndefinedPricing: Boolean(values.allowUndefinedPricing),
         price: values.allowUndefinedPricing ? Number(values.price ?? 0) : Number(values.price ?? 0),
         cost: values.allowUndefinedPricing ? Number(values.cost ?? 0) : Number(values.cost ?? 0),
+        markup: values.allowUndefinedPricing ? 0 : (values as any).markup,
+        taxes: values.allowUndefinedPricing ? [] : (values as any).taxes,
     };
 
     const result = await updateProduct(payload);
@@ -401,6 +440,26 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
 
         if (res.success) {
             toast({ title: "Stock actualizado", description: res.message || "Stock ajustado correctamente." });
+
+            const whName = (warehouses ?? []).find((w: any) => Number(w?.idWarehouse) === whId)?.name;
+            const nextQty =
+                typeof (res as any)?.newQuantity === "number" && Number.isFinite((res as any).newQuantity)
+                    ? Number((res as any).newQuantity)
+                    : qty;
+            const prevQty =
+                typeof (res as any)?.previousQuantity === "number" && Number.isFinite((res as any).previousQuantity)
+                    ? Number((res as any).previousQuantity)
+                    : null;
+
+            setStockResultPayload({
+                warehouseName: whName ? String(whName) : undefined,
+                previousQty: prevQty,
+                newQty: nextQty,
+                reason: stockReason?.trim() ? stockReason.trim() : "Edición desde producto",
+            });
+            setStockResultOpen(true);
+
+            await refreshStockCache();
             router.refresh();
             const refreshed = await getProductDetails(productId);
             if (!(refreshed as any).error) setLoadedDetails((refreshed as any).data);
@@ -436,6 +495,55 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
 
   return (
     <Form {...form}>
+        <Dialog open={stockResultOpen} onOpenChange={setStockResultOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Stock actualizado</DialogTitle>
+                    <DialogDescription>
+                        Cambio registrado y trazado en Kardex.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-2 text-sm">
+                    <div>
+                        <span className="text-muted-foreground">Producto:</span>{" "}
+                        <span className="font-medium">
+                            {String(loadedDetails?.name ?? "").trim() || `#${productId}`}
+                        </span>
+                        {loadedDetails?.code ? (
+                            <span className="text-muted-foreground"> ({String(loadedDetails.code)})</span>
+                        ) : null}
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">Almacén:</span>{" "}
+                        <span className="font-medium">{stockResultPayload?.warehouseName || "—"}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-md border p-3">
+                            <div className="text-xs text-muted-foreground">Antes</div>
+                            <div className="text-lg font-semibold">{stockResultPayload?.previousQty ?? "—"}</div>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <div className="text-xs text-muted-foreground">Ahora</div>
+                            <div className="text-lg font-semibold">{stockResultPayload?.newQty ?? "—"}</div>
+                        </div>
+                    </div>
+                    {stockResultPayload?.reason ? (
+                        <div>
+                            <span className="text-muted-foreground">Motivo:</span>{" "}
+                            <span className="font-medium">{stockResultPayload.reason}</span>
+                        </div>
+                    ) : null}
+                </div>
+
+                <DialogFooter>
+                    <Button type="button" onClick={() => setStockResultOpen(false)}>
+                        Cerrar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         {submitStatus ? (
                             <Alert variant={submitStatus.type === "error" ? "destructive" : "default"}>
@@ -555,8 +663,13 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                 field.onChange(next);
                                                                 if (next) {
                                                                     form.clearErrors(["price", "cost"]);
-                                                                    form.setValue("price", undefined as any, { shouldValidate: false, shouldDirty: true });
-                                                                    form.setValue("cost", undefined as any, { shouldValidate: false, shouldDirty: true });
+                                                                        form.setValue("price", 0 as any, { shouldValidate: false, shouldDirty: true });
+                                                                        form.setValue("cost", 0 as any, { shouldValidate: false, shouldDirty: true });
+                                                                        form.setValue("markup", 0 as any, { shouldValidate: false, shouldDirty: true });
+                                                                        form.setValue("taxes", [] as any, { shouldValidate: false, shouldDirty: true });
+                                                                    setPriceText("0");
+                                                                    setCostText("0");
+                                                                    setMarkupText("0");
                                                                 } else {
                                                                     form.trigger(["price", "cost"]);
                                                                 }
@@ -574,7 +687,35 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                 <FormItem>
                                                     <FormLabel>Margen / Markup (%)</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" inputMode="decimal" min={0} step={0.1} {...field} />
+                                                        <Input
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            disabled={Boolean(wAllowUndefinedPricing)}
+                                                            value={markupText}
+                                                            onFocus={() => {
+                                                                const current = field.value === null || field.value === undefined ? "" : String(field.value);
+                                                                setMarkupText(current);
+                                                            }}
+                                                            onBlur={() => {
+                                                                const v = form.getValues("markup" as any) as any;
+                                                                setMarkupText(v === null || v === undefined ? "" : String(v));
+                                                            }}
+                                                            onChange={(e) => {
+                                                                const raw = String(e.target.value ?? "");
+                                                                setMarkupText(raw);
+                                                                const trimmed = raw.trim();
+                                                                if (!trimmed) {
+                                                                    form.setValue("markup", undefined as any, { shouldValidate: true, shouldDirty: true });
+                                                                    return;
+                                                                }
+
+                                                                const normalized = trimmed.replace(",", ".");
+                                                                const n = Number(normalized);
+                                                                if (!Number.isFinite(n)) return;
+                                                                if (n < 0) return;
+                                                                field.onChange(n);
+                                                            }}
+                                                        />
                                                     </FormControl>
                                                     <FormDescription>
                                                         Por defecto es 40%. Cambiarlo recalcula costo/precio automáticamente.
@@ -596,10 +737,27 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                             inputMode="numeric"
                                                                             pattern="[0-9]*"
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
-                                                                                                                                                        value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                                                                            value={priceText}
+                                                                            onFocus={() => {
+                                                                                const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
+                                                                                setPriceText(current);
+                                                                            }}
+                                                                            onBlur={() => {
+                                                                                const v = form.getValues("price" as any) as any;
+                                                                                if (v === null || v === undefined || String(v).trim() === "") setPriceText("");
+                                                                                else setPriceText(formatMoneyInt(v));
+                                                                            }}
                                                                                                                                                         onChange={(e) => {
                                                                                                                                                             setLastEdited("price");
-                                                                                                                                                            field.onChange(parseMoneyIntOptional(e.target.value));
+                                                                                                                                                            const raw = e.target.value;
+                                                                                                                                                            const digits = String(raw ?? "").replace(/[^0-9]/g, "");
+                                                                                                                                                            setPriceText(digits);
+                                                                                                                                                            if (digits.trim() === "") {
+                                                                                                                                                                form.setValue("price", undefined as any, { shouldValidate: true, shouldDirty: true });
+                                                                                                                                                                return;
+                                                                                                                                                            }
+                                                                                                                                                            const n = Number.parseInt(digits, 10);
+                                                                                                                                                            field.onChange(Number.isFinite(n) ? Math.max(0, n) : undefined);
                                                                                                                                                         }}
                                     />
                                 </FormControl>
@@ -618,10 +776,27 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                             inputMode="numeric"
                                                                             pattern="[0-9]*"
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
-                                                                                                                                                        value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                                                                            value={costText}
+                                                                            onFocus={() => {
+                                                                                const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
+                                                                                setCostText(current);
+                                                                            }}
+                                                                            onBlur={() => {
+                                                                                const v = form.getValues("cost" as any) as any;
+                                                                                if (v === null || v === undefined || String(v).trim() === "") setCostText("");
+                                                                                else setCostText(formatMoneyInt(v));
+                                                                            }}
                                                                                                                                                         onChange={(e) => {
                                                                                                                                                             setLastEdited("cost");
-                                                                                                                                                            field.onChange(parseMoneyIntOptional(e.target.value));
+                                                                                                                                                            const raw = e.target.value;
+                                                                                                                                                            const digits = String(raw ?? "").replace(/[^0-9]/g, "");
+                                                                                                                                                            setCostText(digits);
+                                                                                                                                                            if (digits.trim() === "") {
+                                                                                                                                                                form.setValue("cost", undefined as any, { shouldValidate: true, shouldDirty: true });
+                                                                                                                                                                return;
+                                                                                                                                                            }
+                                                                                                                                                            const n = Number.parseInt(digits, 10);
+                                                                                                                                                            field.onChange(Number.isFinite(n) ? Math.max(0, n) : undefined);
                                                                                                                                                         }}
                                     />
                                 </FormControl>
@@ -639,35 +814,32 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                 <FormItem>
                                     {taxes.map((item) => (
                                         <FormField
-                                        key={item.id}
-                                        control={form.control}
-                                        name="taxes"
-                                        render={({ field }) => {
-                                            return (
-                                            <FormItem
-                                                key={item.id}
-                                                className="flex flex-row items-start space-x-3 space-y-0 mt-2"
-                                            >
-                                                <FormControl>
-                                                <Checkbox
-                                                    checked={field.value?.includes(item.id)}
-                                                    onCheckedChange={(checked) => {
-                                                    return checked
-                                                        ? field.onChange([...(field.value || []), item.id])
-                                                        : field.onChange(
-                                                            field.value?.filter(
-                                                            (value) => value !== item.id
-                                                            )
-                                                        );
-                                                    }}
-                                                />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">
-                                                {item.name} ({item.rate}%)
-                                                </FormLabel>
-                                            </FormItem>
-                                            );
-                                        }}
+                                            key={item.id}
+                                            control={form.control}
+                                            name="taxes"
+                                            render={({ field }) => (
+                                                <FormItem
+                                                    key={item.id}
+                                                    className="flex flex-row items-start space-x-3 space-y-0 mt-2"
+                                                >
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            disabled={Boolean(wAllowUndefinedPricing)}
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), item.id])
+                                                                    : field.onChange(
+                                                                          field.value?.filter((value) => value !== item.id)
+                                                                      );
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">
+                                                        {item.name} ({item.rate}%)
+                                                    </FormLabel>
+                                                </FormItem>
+                                            )}
                                         />
                                     ))}
                                     <FormMessage />

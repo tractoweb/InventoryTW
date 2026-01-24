@@ -1,4 +1,4 @@
-import { getStockData } from "@/actions/get-stock-data";
+import { getStockDataForWarehouse } from "@/actions/get-stock-data-for-warehouse";
 import { InventoryClient } from "../inventory/components/inventory-client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
@@ -10,11 +10,28 @@ export default async function StockPage({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const { data: items, error: itemsError } = await getStockData();
   const { data: warehouses, error: warehousesError } = await getWarehouses();
   // Los taxes y productGroups no son estrictamente necesarios para la página de stock, 
   // pero sí para el formulario de añadir producto. Se pasan vacíos o se pueden obtener de otra forma.
   const { data: taxes, error: taxesError } = await getTaxes();
+
+  const requestedWarehouseIdRaw = Array.isArray(searchParams?.warehouseId)
+    ? searchParams?.warehouseId?.[0]
+    : (searchParams?.warehouseId as string | undefined);
+
+  const requestedWarehouseId = Number(requestedWarehouseIdRaw);
+  const fallbackWarehouseId = Number(warehouses?.[0]?.idWarehouse);
+  const selectedWarehouseId = Number.isFinite(requestedWarehouseId) && requestedWarehouseId > 0
+    ? requestedWarehouseId
+    : (Number.isFinite(fallbackWarehouseId) && fallbackWarehouseId > 0 ? fallbackWarehouseId : 0);
+
+  const { data: items, error: itemsError } = selectedWarehouseId
+    ? await getStockDataForWarehouse({ warehouseId: selectedWarehouseId })
+    : {
+        data: [],
+        error:
+          "No hay almacenes disponibles. Verifica que existan registros en 'Warehouse' o que Amplify esté apuntando al mismo backend donde ves los datos.",
+      };
   
   const error = itemsError || warehousesError || taxesError;
 
@@ -36,6 +53,7 @@ export default async function StockPage({
         productGroups={[]} // No se necesita en la página de stock
         taxes={taxes || []}
         initialSearch={Array.isArray(searchParams?.q) ? searchParams?.q?.[0] : (searchParams?.q as string | undefined)}
+        stockWarehouseId={selectedWarehouseId || undefined}
         pageType="stock" 
       />
     </div>

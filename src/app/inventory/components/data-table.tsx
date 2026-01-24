@@ -205,7 +205,7 @@ export function DataTable<TData extends { id: number }, TValue>({
 
 // A new sub-component for the expanded content
 function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Row<TData>, table: TanstackTable<TData> }) {
-  const { closeRow, productGroups, taxes, handleDeleteProduct, pageType, warehouses } = (table.options.meta || {}) as any;
+  const { closeRow, productGroups, taxes, handleDeleteProduct, pageType, warehouses, stockWarehouseId } = (table.options.meta || {}) as any;
 
   const isStockPage = pageType === "stock";
 
@@ -214,7 +214,10 @@ function ExpandedContent<TData extends { id: number }>({ row, table }: { row: Ro
       <div className="py-4">
         <StockQuickAdjust
           productId={Number((row.original as any).id)}
+          productName={String((row.original as any)?.name ?? "").trim() || undefined}
+          productCode={(row.original as any)?.code ? String((row.original as any).code) : undefined}
           warehouses={Array.isArray(warehouses) ? warehouses : []}
+          defaultWarehouseId={Number(stockWarehouseId) || undefined}
         />
       </div>
     );

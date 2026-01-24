@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "./data-table";
@@ -16,9 +17,17 @@ import { AdjustStockForm } from "./adjust-stock-form";
 import { useToast } from "@/hooks/use-toast";
 import { deleteProduct } from "@/actions/delete-product";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
-import { ScanLine } from "lucide-react";
+import { RefreshCcw, ScanLine } from "lucide-react";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
+import { refreshStockCache } from "@/actions/refresh-stock-cache";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 type InventoryClientProps = {
@@ -27,15 +36,21 @@ type InventoryClientProps = {
   warehouses: Warehouse[];
   taxes: Tax[];
   initialSearch?: string;
+  stockWarehouseId?: number;
   pageType: "inventory" | "stock";
 };
 
-export function InventoryClient({ items: initialItems, productGroups, warehouses, taxes, initialSearch, pageType }: InventoryClientProps) {
+export function InventoryClient({ items: initialItems, productGroups, warehouses, taxes, initialSearch, stockWarehouseId, pageType }: InventoryClientProps) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState(String(initialSearch ?? ""));
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setItems(initialItems);
@@ -139,9 +154,10 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
       taxes,
       handleDeleteProduct,
       pageType,
+      stockWarehouseId,
       sendToLabels: handleSendToLabels,
     }),
-    [productGroups, warehouses, taxes, handleDeleteProduct, pageType, handleSendToLabels]
+    [productGroups, warehouses, taxes, handleDeleteProduct, pageType, stockWarehouseId, handleSendToLabels]
   );
 
   const isStockPage = pageType === 'stock';
@@ -152,6 +168,28 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
     <>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
+          {isStockPage ? (
+            <Select
+              value={stockWarehouseId ? String(stockWarehouseId) : ""}
+              onValueChange={(value) => {
+                const params = new URLSearchParams(searchParams?.toString?.() ?? "");
+                params.set("warehouseId", value);
+                router.push(`${pathname}?${params.toString()}`);
+              }}
+            >
+              <SelectTrigger className="w-[240px]">
+                <SelectValue placeholder="Selecciona almacén" />
+              </SelectTrigger>
+              <SelectContent>
+                {(warehouses ?? []).map((wh) => (
+                  <SelectItem key={wh.idWarehouse} value={String(wh.idWarehouse)}>
+                    {wh.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+
           <Input
             placeholder="Buscar por nombre, código, almacén..."
             value={search}
@@ -168,6 +206,35 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
             <ScanLine className="h-4 w-4 mr-2" />
             Escanear
           </Button>
+
+          {isStockPage ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isRefreshing}
+              onClick={async () => {
+                setIsRefreshing(true);
+                const res = await refreshStockCache();
+                setIsRefreshing(false);
+
+                if (!res?.success) {
+                  toast({
+                    variant: "destructive",
+                    title: "No se pudo refrescar",
+                    description: res?.error || "Intenta de nuevo.",
+                  });
+                  return;
+                }
+
+                router.refresh();
+                toast({ title: "Actualizado", description: "Stock refrescado." });
+              }}
+              title="Refrescar stock"
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Refrescar
+            </Button>
+          ) : null}
 
           {!isStockPage ? (
             <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>

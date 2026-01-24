@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { revalidateTag } from "next/cache";
-import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { inventoryService } from "@/services/inventory-service";
@@ -25,7 +25,14 @@ export type AdjustStockInput = z.infer<typeof AdjustStockSchema>;
  * ON DUPLICATE KEY UPDATE quantity = VALUES(quantity);
  */
 export async function adjustStock(input: AdjustStockInput) {
-  const session = await requireSession(ACCESS_LEVELS.ADMIN);
+  let session: any;
+  try {
+    // Stock editing must never crash the UI; return structured errors.
+    // If you want to restrict this to admins only, change to ACCESS_LEVELS.ADMIN.
+    session = await requireSession(ACCESS_LEVELS.CASHIER);
+  } catch (e) {
+    return { success: false, error: formatAmplifyError(e) };
+  }
 
   const validation = AdjustStockSchema.safeParse(input);
 
@@ -55,7 +62,13 @@ export async function adjustStock(input: AdjustStockInput) {
     revalidateTag(CACHE_TAGS.heavy.stockData);
     revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
 
-    return { success: true, message: "Stock ajustado correctamente." };
+    return {
+      success: true,
+      message: "Stock ajustado correctamente.",
+      newQuantity: res.newQuantity,
+      previousQuantity: res.previousQuantity,
+      difference: res.difference,
+    };
   } catch (error: any) {
     console.error("Error al ajustar stock:", error);
     return { success: false, error: error.message || "Error al conectar con la base de datos." };

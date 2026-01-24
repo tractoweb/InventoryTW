@@ -7,18 +7,38 @@ import { ymdToBogotaMidnightUtc } from "@/lib/datetime";
 import { cached } from "@/lib/server-cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
+const BOGOTA_TIME_ZONE = "America/Bogota";
+
+function toYmdInBogota(now: Date): string {
+  // Use formatToParts so we don't depend on server locale/time zone.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BOGOTA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const map: Record<string, string> = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
+  }
+
+  const year = map.year;
+  const month = map.month;
+  const day = map.day;
+  if (!year || !month || !day) {
+    // Fallback: UTC date-only.
+    return toIsoDateOnly(now);
+  }
+  return `${year}-${month}-${day}`;
+}
+
 function toIsoDateOnly(d: Date): string {
   // Use UTC to avoid server TZ surprises.
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function addDaysUtc(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d;
 }
 
 function safeNumber(value: unknown, fallback = 0): number {
@@ -165,9 +185,13 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     async () => {
       try {
 
-    const todayUtc = new Date();
-    const to = toIsoDateOnly(todayUtc);
-    const from = toIsoDateOnly(addDaysUtc(todayUtc, -days + 1));
+    // IMPORTANT: Document.date is date-only (YYYY-MM-DD) and business logic is in Colombia time.
+    // Using UTC here can shift the window and hide "today" documents during Bogotá evening hours.
+    const now = new Date();
+    const to = toYmdInBogota(now);
+    const toBogotaStartUtc = ymdToBogotaMidnightUtc(to);
+    const fromBogotaStartUtc = new Date(toBogotaStartUtc.getTime() - (days - 1) * 86400000);
+    const from = toYmdInBogota(fromBogotaStartUtc);
 
     // Bulk load the data needed by the dashboard.
     const [
@@ -213,6 +237,10 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
       const id = Number((p as any)?.idProduct);
       if (Number.isFinite(id) && id > 0) productById.set(id, p);
     }
+
+    const enabledProductIds = Array.from(productById.entries())
+      .filter(([, p]) => (p as any)?.isEnabled !== false)
+      .map(([id]) => id);
 
     const warehouseNameById = new Map<number, string>();
     if (!("error" in warehousesResult)) {
@@ -269,7 +297,6 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
 
     for (const [productId, qty] of stockTotalByProductId.entries()) {
       totalUnitsFromStocks += qty;
-      if (qty <= 0) outOfStockCountByProduct++;
 
       const product = productById.get(productId);
       const price = safeNumber(product?.price, 0);
@@ -303,6 +330,13 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
         const taxPerUnit = taxFromPercent + fixedPerUnit;
         estimatedIvaOnSaleValue += qty * taxPerUnit;
       }
+    }
+
+    // Out-of-stock should include products with no Stock rows (treated as 0).
+    outOfStockCountByProduct = 0;
+    for (const productId of enabledProductIds) {
+      const qty = safeNumber(stockTotalByProductId.get(productId) ?? 0, 0);
+      if (qty <= 0) outOfStockCountByProduct++;
     }
 
     // Build chart datasets
@@ -525,7 +559,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
       .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
     // Receivables details (sales docs, unpaid/partial).
-    const now = new Date();
+    const nowForReceivables = new Date();
     const pendingSalesDocs = salesDocs
       .filter((d: any) => safeNumber(d?.total, 0) > 0)
       .filter((d: any) => Number(d?.paidStatus ?? 0) !== 2);
@@ -557,7 +591,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
         let daysOverdue = 0;
         if (dueDate) {
           const due = ymdToBogotaMidnightUtc(dueDate);
-          const diffMs = now.getTime() - due.getTime();
+          const diffMs = nowForReceivables.getTime() - due.getTime();
           daysOverdue = diffMs > 0 ? Math.floor(diffMs / 86400000) : 0;
         }
 
@@ -630,7 +664,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     const data: DashboardOverview = {
       window: { days, from, to },
       inventory: {
-        productsCount: stockTotalByProductId.size,
+        productsCount: enabledProductIds.length,
         totalUnits: safeNumber(totalUnitsFromStocks, 0),
         lowStockCount: safeNumber(lowStockAlerts.length, 0),
         outOfStockCount: safeNumber(outOfStockCountByProduct, 0),

@@ -3,11 +3,11 @@
 import { z } from "zod";
 import { revalidateTag } from "next/cache";
 
-import { ACCESS_LEVELS } from "@/lib/amplify-config";
+import { ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { inventoryService } from "@/services/inventory-service";
-import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-config";
 
 const ChangeStockSchema = z.object({
   productId: z.coerce.number().int().min(1),
@@ -21,8 +21,17 @@ export async function changeStock(input: ChangeStockInput): Promise<{
   success: boolean;
   error?: string;
   newQuantity?: number;
+  previousQuantity?: number;
+  difference?: number;
 }> {
-  const session = await requireSession(ACCESS_LEVELS.ADMIN);
+  let session: any;
+  try {
+    // Stock editing must never crash the UI; return structured errors.
+    // If you want to restrict this to admins only, change to ACCESS_LEVELS.ADMIN.
+    session = await requireSession(ACCESS_LEVELS.CASHIER);
+  } catch (e) {
+    return { success: false, error: formatAmplifyError(e) };
+  }
 
   const parsed = ChangeStockSchema.safeParse(input);
   if (!parsed.success) {
@@ -33,45 +42,18 @@ export async function changeStock(input: ChangeStockInput): Promise<{
   if (!delta) return { success: true, newQuantity: undefined };
 
   try {
-    // Read current stock as reliably as possible.
-    // Stock has a composite identifier (productId, warehouseId), so get() is ideal.
-    let currentQuantityRaw: unknown = 0;
-
-    try {
-      const { data: stock } = await amplifyClient.models.Stock.get({ productId, warehouseId } as any);
-      if (stock) {
-        currentQuantityRaw = (stock as any)?.quantity ?? 0;
-      } else {
-        const { data: stocks } = await amplifyClient.models.Stock.list({
-          filter: {
-            productId: { eq: productId },
-            warehouseId: { eq: warehouseId },
-          },
-          limit: 1,
-        });
-        currentQuantityRaw = (stocks?.[0] as any)?.quantity ?? 0;
-      }
-    } catch {
-      const { data: stocks } = await amplifyClient.models.Stock.list({
-        filter: {
-          productId: { eq: productId },
-          warehouseId: { eq: warehouseId },
-        },
-        limit: 1,
-      });
-      currentQuantityRaw = (stocks?.[0] as any)?.quantity ?? 0;
-    }
-
-    const currentQuantity = Number(currentQuantityRaw ?? 0);
-    const safeCurrent = Number.isFinite(currentQuantity) ? currentQuantity : 0;
-    const newQuantity = Math.max(0, safeCurrent + delta);
+    const { data: stock } = await amplifyClient.models.Stock.get({ productId, warehouseId } as any).catch(() => ({ data: null } as any));
+    const currentQtyRaw: unknown = (stock as any)?.quantity ?? 0;
+    const currentQty = Number(currentQtyRaw);
+    const safeCurrent = Number.isFinite(currentQty) ? currentQty : 0;
+    const targetQty = Math.max(0, safeCurrent + delta);
 
     const reason = `Ajuste rápido (${delta > 0 ? "+" : ""}${delta})`;
 
     const res = await inventoryService.adjustStock(
       String(productId),
       String(warehouseId),
-      newQuantity,
+      targetQty,
       reason,
       String(session.userId)
     );
@@ -83,7 +65,12 @@ export async function changeStock(input: ChangeStockInput): Promise<{
     revalidateTag(CACHE_TAGS.heavy.stockData);
     revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
 
-    return { success: true, newQuantity };
+    return {
+      success: true,
+      newQuantity: res.newQuantity,
+      previousQuantity: res.previousQuantity,
+      difference: res.difference,
+    };
   } catch (e) {
     return { success: false, error: formatAmplifyError(e) };
   }
