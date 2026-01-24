@@ -206,14 +206,14 @@ export function StatsCards({ data, error }: StatsCardsProps) {
             <HelpPopover
               title="IVA estimado del inventario"
               description="Estimación calculada desde impuestos configurados por producto. Sirve como referencia (depende de si el precio incluye impuestos)."
-              href="/settings/taxes"
-              hrefLabel="Ir a Impuestos"
+              href="/reports/iva-neto"
+              hrefLabel="Ver reporte IVA Neto"
             />
           </CardTitle>
           <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <Link href="/settings/taxes" className="text-2xl font-bold hover:underline">
+          <Link href="/reports/iva-neto" className="text-2xl font-bold hover:underline">
             {formatCurrency(inv.estimatedIvaOnSaleValue)}
           </Link>
           <p className="text-xs text-muted-foreground">Estimación según impuestos del producto</p>
@@ -246,14 +246,14 @@ export function StatsCards({ data, error }: StatsCardsProps) {
             <HelpPopover
               title="IVA ventas − IVA compras"
               description="IVA neto del período consultado (por defecto 30 días). Se calcula desde impuestos por ítem de documento (si existen)."
-              href="/documents"
-              hrefLabel="Ver documentos"
+              href="/reports/iva-neto"
+              hrefLabel="Ver reporte IVA Neto"
             />
           </CardTitle>
           <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <Link href="/documents" className="text-2xl font-bold hover:underline">
+          <Link href="/reports/iva-neto" className="text-2xl font-bold hover:underline">
             {formatCurrency(iva.netIva)}
           </Link>
           <p className="text-xs text-muted-foreground">IVA ventas − IVA compras</p>

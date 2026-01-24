@@ -22,8 +22,9 @@ const AddProductSchema = z.object({
   description: z.string().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
-  price: z.coerce.number().int().min(1, "El precio debe ser mayor a 0."),
-  cost: z.coerce.number().int().min(1, "El costo debe ser mayor a 0."),
+  allowUndefinedPricing: z.boolean().default(false),
+  price: z.coerce.number().int().min(0).optional(),
+  cost: z.coerce.number().int().min(0).optional(),
   markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
   isTaxInclusivePrice: z.boolean().default(true),
   taxes: z.array(z.coerce.number()).optional(),
@@ -32,7 +33,29 @@ const AddProductSchema = z.object({
   isLowStockWarningEnabled: z.boolean().default(true),
   initialQuantity: z.coerce.number().min(0).optional(),
   warehouseId: z.coerce.number().optional(),
-}).refine(data => {
+})
+.superRefine((data, ctx) => {
+  if (data.allowUndefinedPricing) return;
+
+  const price = Number(data.price);
+  if (!Number.isFinite(price) || price < 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "El precio debe ser mayor a 0.",
+      path: ["price"],
+    });
+  }
+
+  const cost = Number(data.cost);
+  if (!Number.isFinite(cost) || cost < 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "El costo debe ser mayor a 0.",
+      path: ["cost"],
+    });
+  }
+})
+.refine(data => {
     if (data.initialQuantity && data.initialQuantity > 0) {
         return !!data.warehouseId;
     }
@@ -86,17 +109,17 @@ export async function addProduct(input: AddProductInput) {
     const createRes = await createProductAction({
       name: data.name,
       code: code || undefined,
-      cost: data.cost,
-      price: data.price,
+      cost: data.allowUndefinedPricing ? 0 : Number(data.cost ?? 0),
+      price: data.allowUndefinedPricing ? 0 : Number(data.price ?? 0),
       productGroupId: data.productGroupId,
       measurementUnit: data.measurementUnit,
-      markup: data.markup,
+      markup: data.allowUndefinedPricing ? 0 : data.markup,
       isUsingDefaultQuantity: data.isUsingDefaultQuantity,
       isEnabled: data.isEnabled,
       isService: false,
       isTaxInclusivePrice: data.isTaxInclusivePrice,
       barcodes: code ? [code] : undefined,
-      taxIds: Array.isArray(data.taxes) ? data.taxes : undefined,
+      taxIds: data.allowUndefinedPricing ? [] : (Array.isArray(data.taxes) ? data.taxes : undefined),
     });
 
     if (!createRes.success || !createRes.idProduct) {

@@ -74,8 +74,9 @@ const formSchema = z.object({
   description: z.string().optional(),
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
-  price: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El precio debe ser mayor a 0.")),
-  cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(1, "El costo debe ser mayor a 0.")),
+  allowUndefinedPricing: z.boolean().default(false),
+  price: z.preprocess(parseMoneyIntOptional, z.number().int().min(0).optional()),
+  cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(0).optional()),
   markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
   isTaxInclusivePrice: z.boolean().default(true),
   taxes: z.array(z.coerce.number()).optional(),
@@ -84,7 +85,29 @@ const formSchema = z.object({
   isLowStockWarningEnabled: z.boolean().default(true),
   initialQuantity: z.coerce.number().min(0).optional(),
   warehouseId: z.coerce.number().optional(),
-}).refine(data => {
+})
+.superRefine((data, ctx) => {
+  if (data.allowUndefinedPricing) return;
+
+  const price = Number(data.price);
+  if (!Number.isFinite(price) || price < 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "El precio debe ser mayor a 0.",
+      path: ["price"],
+    });
+  }
+
+  const cost = Number(data.cost);
+  if (!Number.isFinite(cost) || cost < 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "El costo debe ser mayor a 0.",
+      path: ["cost"],
+    });
+  }
+})
+.refine(data => {
     if (data.initialQuantity && data.initialQuantity > 0) {
         return !!data.warehouseId;
     }
@@ -119,6 +142,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
       description: "",
       isEnabled: true,
       isUsingDefaultQuantity: true,
+      allowUndefinedPricing: false,
       price: undefined,
       cost: undefined,
       markup: 40,
@@ -139,6 +163,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
   const wMarkup = useWatch({ control: form.control, name: "markup" });
   const wTaxes = useWatch({ control: form.control, name: "taxes" });
   const wIsTaxInclusivePrice = useWatch({ control: form.control, name: "isTaxInclusivePrice" });
+  const wAllowUndefinedPricing = useWatch({ control: form.control, name: "allowUndefinedPricing" });
 
   const codeValue = form.watch("code");
   const debouncedCode = useDebounce(codeValue, 500);
@@ -198,6 +223,8 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
   }, []);
 
   useEffect(() => {
+    if (wAllowUndefinedPricing) return;
+
     const markupPercent = Number(wMarkup ?? 0);
     const markupRate = (Number.isFinite(markupPercent) ? Math.max(0, markupPercent) : 0) / 100;
     const includeTax = Boolean(wIsTaxInclusivePrice);
@@ -227,13 +254,33 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
         form.setValue("price", newPrice as any, { shouldValidate: true, shouldDirty: false });
       }
     }
-  }, [wCost, wPrice, wMarkup, wIsTaxInclusivePrice, selectedTaxRate, lastEdited, calculatePrice, calculateCost, form]);
+  }, [wCost, wPrice, wMarkup, wIsTaxInclusivePrice, selectedTaxRate, lastEdited, calculatePrice, calculateCost, form, wAllowUndefinedPricing]);
+
+  useEffect(() => {
+    if (!wAllowUndefinedPricing) return;
+    // When enabled, force pricing/taxes to 0 and disable recalculation.
+    form.setValue("price", 0 as any, { shouldValidate: true, shouldDirty: true });
+    form.setValue("cost", 0 as any, { shouldValidate: true, shouldDirty: true });
+    form.setValue("markup", 0 as any, { shouldValidate: true, shouldDirty: true });
+    form.setValue("taxes", [], { shouldValidate: true, shouldDirty: true });
+    form.setValue("isTaxInclusivePrice", true as any, { shouldValidate: false, shouldDirty: true });
+    setLastEdited("cost");
+  }, [wAllowUndefinedPricing, form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     setSubmitStatus(null);
-    const result = await addProduct(values);
+    const payload = {
+      ...(values as any),
+      allowUndefinedPricing: Boolean(values.allowUndefinedPricing),
+      price: values.allowUndefinedPricing ? 0 : (values as any).price,
+      cost: values.allowUndefinedPricing ? 0 : (values as any).cost,
+      markup: values.allowUndefinedPricing ? 0 : (values as any).markup,
+      taxes: values.allowUndefinedPricing ? [] : (values as any).taxes,
+    };
+
+    const result = await addProduct(payload as any);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -398,12 +445,30 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
           <TabsContent value="price" className="space-y-4 pt-4">
             <FormField
               control={form.control}
+              name="allowUndefinedPricing"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div>
+                    <FormLabel>Valores indefinidos</FormLabel>
+                    <FormDescription>
+                      Permite guardar sin costo/precio y desactiva el recálculo automático.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Checkbox checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="markup"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Margen / Markup (%)</FormLabel>
                   <FormControl>
-                    <Input type="number" inputMode="decimal" min={0} step={0.1} {...field} />
+                    <Input type="number" inputMode="decimal" min={0} step={0.1} disabled={Boolean(wAllowUndefinedPricing)} {...field} />
                   </FormControl>
                   <FormDescription>
                     Por defecto es 40%. Cambiarlo recalcula costo/precio automáticamente.
@@ -424,6 +489,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                             <Input
                               inputMode="numeric"
                               pattern="[0-9]*"
+                        disabled={Boolean(wAllowUndefinedPricing)}
                               value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
                               onChange={(e) => {
                                 setLastEdited("price");
@@ -445,6 +511,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                     <Input
                       inputMode="numeric"
                       pattern="[0-9]*"
+                    disabled={Boolean(wAllowUndefinedPricing)}
                       value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
                       onChange={(e) => {
                         setLastEdited("cost");
@@ -477,6 +544,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                                     >
                                         <FormControl>
                                         <Checkbox
+                              disabled={Boolean(wAllowUndefinedPricing)}
                                             checked={field.value?.includes(item.id)}
                                             onCheckedChange={(checked) => {
                                             return checked

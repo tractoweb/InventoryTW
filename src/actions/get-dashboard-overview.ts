@@ -227,14 +227,14 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     const taxById = new Map<number, any>();
     if (!("error" in taxesResult)) {
       for (const t of taxesResult.data ?? []) {
-        const id = Number((t as any)?.idTax);
+        const id = Number((t as any)?.idTax ?? (t as any)?.taxId ?? (t as any)?.id);
         if (Number.isFinite(id) && id > 0) taxById.set(id, t);
       }
     }
 
     const productById = new Map<number, any>();
     for (const p of productsResult.data ?? []) {
-      const id = Number((p as any)?.idProduct);
+      const id = Number((p as any)?.idProduct ?? (p as any)?.productId ?? (p as any)?.id);
       if (Number.isFinite(id) && id > 0) productById.set(id, p);
     }
 
@@ -245,7 +245,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     const warehouseNameById = new Map<number, string>();
     if (!("error" in warehousesResult)) {
       for (const w of warehousesResult.data ?? []) {
-        const id = Number((w as any)?.idWarehouse);
+        const id = Number((w as any)?.idWarehouse ?? (w as any)?.warehouseId ?? (w as any)?.id);
         if (!Number.isFinite(id) || id <= 0) continue;
         warehouseNameById.set(id, String((w as any)?.name ?? ""));
       }
@@ -254,7 +254,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     const groupNameById = new Map<number, string>();
     if (!("error" in productGroupsResult)) {
       for (const g of productGroupsResult.data ?? []) {
-        const id = Number((g as any)?.idProductGroup);
+        const id = Number((g as any)?.idProductGroup ?? (g as any)?.productGroupId ?? (g as any)?.id);
         if (!Number.isFinite(id) || id <= 0) continue;
         groupNameById.set(id, String((g as any)?.name ?? ""));
       }
@@ -439,7 +439,7 @@ export async function getDashboardOverview(args?: DashboardOverviewArgs): Promis
     const stockDirectionByDocTypeId = new Map<number, number>();
     if (!("error" in docTypesResult)) {
       for (const dt of docTypesResult.data ?? []) {
-        const id = Number((dt as any)?.documentTypeId);
+        const id = Number((dt as any)?.documentTypeId ?? (dt as any)?.idDocumentType ?? (dt as any)?.id);
         const sd = normalizeStockDirection((dt as any)?.stockDirection);
         if (Number.isFinite(id) && id > 0) stockDirectionByDocTypeId.set(id, sd);
       }

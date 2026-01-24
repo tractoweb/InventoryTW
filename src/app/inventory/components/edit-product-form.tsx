@@ -128,6 +128,10 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                 const [costText, setCostText] = useState<string>("");
                 const [markupText, setMarkupText] = useState<string>("");
 
+            const priceFocusedRef = useRef(false);
+            const costFocusedRef = useRef(false);
+            const markupFocusedRef = useRef(false);
+
         const [loadedDetails, setLoadedDetails] = useState<any>(null);
 
         const defaultWarehouseId = useMemo(() => {
@@ -176,6 +180,70 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
     const wTaxes = useWatch({ control: form.control, name: "taxes" });
     const wIsTaxInclusivePrice = useWatch({ control: form.control, name: "isTaxInclusivePrice" });
     const wAllowUndefinedPricing = useWatch({ control: form.control, name: "allowUndefinedPricing" });
+
+    // Keep displayed text in sync with form values when those values are changed programmatically
+    // (e.g., auto recalculation). Do not override while the user is typing (focused).
+    useEffect(() => {
+        if (priceFocusedRef.current) return;
+        if (wAllowUndefinedPricing) {
+            setPriceText("0");
+            return;
+        }
+
+        if (wPrice === null || wPrice === undefined || String(wPrice).trim() === "") {
+            setPriceText("");
+            return;
+        }
+        setPriceText(formatMoneyInt(wPrice));
+    }, [wPrice, wAllowUndefinedPricing]);
+
+    useEffect(() => {
+        if (wAllowUndefinedPricing) {
+            form.clearErrors(["price", "cost"]);
+            return;
+        }
+        if (wPrice !== null && wPrice !== undefined && String(wPrice).trim() !== "") {
+            form.clearErrors("price");
+        }
+    }, [wPrice, wAllowUndefinedPricing, form]);
+
+    useEffect(() => {
+        if (costFocusedRef.current) return;
+        if (wAllowUndefinedPricing) {
+            setCostText("0");
+            return;
+        }
+
+        if (wCost === null || wCost === undefined || String(wCost).trim() === "") {
+            setCostText("");
+            return;
+        }
+        setCostText(formatMoneyInt(wCost));
+    }, [wCost, wAllowUndefinedPricing]);
+
+    useEffect(() => {
+        if (wAllowUndefinedPricing) {
+            form.clearErrors(["price", "cost"]);
+            return;
+        }
+        if (wCost !== null && wCost !== undefined && String(wCost).trim() !== "") {
+            form.clearErrors("cost");
+        }
+    }, [wCost, wAllowUndefinedPricing, form]);
+
+    useEffect(() => {
+        if (markupFocusedRef.current) return;
+        if (wAllowUndefinedPricing) {
+            setMarkupText("0");
+            return;
+        }
+
+        if (wMarkup === null || wMarkup === undefined || String(wMarkup).trim() === "") {
+            setMarkupText("");
+            return;
+        }
+        setMarkupText(String(wMarkup));
+    }, [wMarkup, wAllowUndefinedPricing]);
 
     const selectedTaxRate = useMemo(() => {
         const selectedTaxIds = Array.isArray(wTaxes) ? wTaxes : [];
@@ -693,10 +761,13 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                             disabled={Boolean(wAllowUndefinedPricing)}
                                                             value={markupText}
                                                             onFocus={() => {
+                                                                markupFocusedRef.current = true;
                                                                 const current = field.value === null || field.value === undefined ? "" : String(field.value);
                                                                 setMarkupText(current);
                                                             }}
                                                             onBlur={() => {
+                                                                markupFocusedRef.current = false;
+                                                                field.onBlur();
                                                                 const v = form.getValues("markup" as any) as any;
                                                                 setMarkupText(v === null || v === undefined ? "" : String(v));
                                                             }}
@@ -739,10 +810,13 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
                                                                             value={priceText}
                                                                             onFocus={() => {
+                                                                                priceFocusedRef.current = true;
                                                                                 const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
                                                                                 setPriceText(current);
                                                                             }}
                                                                             onBlur={() => {
+                                                                                priceFocusedRef.current = false;
+                                                                                field.onBlur();
                                                                                 const v = form.getValues("price" as any) as any;
                                                                                 if (v === null || v === undefined || String(v).trim() === "") setPriceText("");
                                                                                 else setPriceText(formatMoneyInt(v));
@@ -753,7 +827,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                                                                                                             const digits = String(raw ?? "").replace(/[^0-9]/g, "");
                                                                                                                                                             setPriceText(digits);
                                                                                                                                                             if (digits.trim() === "") {
-                                                                                                                                                                form.setValue("price", undefined as any, { shouldValidate: true, shouldDirty: true });
+                                                                                                                                                                field.onChange(undefined);
                                                                                                                                                                 return;
                                                                                                                                                             }
                                                                                                                                                             const n = Number.parseInt(digits, 10);
@@ -778,10 +852,13 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
                                                                             value={costText}
                                                                             onFocus={() => {
+                                                                                costFocusedRef.current = true;
                                                                                 const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
                                                                                 setCostText(current);
                                                                             }}
                                                                             onBlur={() => {
+                                                                                costFocusedRef.current = false;
+                                                                                field.onBlur();
                                                                                 const v = form.getValues("cost" as any) as any;
                                                                                 if (v === null || v === undefined || String(v).trim() === "") setCostText("");
                                                                                 else setCostText(formatMoneyInt(v));
@@ -792,7 +869,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                                                                                                             const digits = String(raw ?? "").replace(/[^0-9]/g, "");
                                                                                                                                                             setCostText(digits);
                                                                                                                                                             if (digits.trim() === "") {
-                                                                                                                                                                form.setValue("cost", undefined as any, { shouldValidate: true, shouldDirty: true });
+                                                                                                                                                                field.onChange(undefined);
                                                                                                                                                                 return;
                                                                                                                                                             }
                                                                                                                                                             const n = Number.parseInt(digits, 10);
