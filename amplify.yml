@@ -49,7 +49,7 @@ frontend:
 
               echo "[amplify] pipeline-deploy (app-id=$APP_ID, branch=$BRANCH)"
               # Use pnpm dlx for better reliability (corepack bootstrap above).
-              ./pnpm dlx @aws-amplify/backend-cli@1.8.1 pipeline-deploy \
+              ./pnpm --package=@aws-amplify/backend-cli@1.8.1 dlx ampx pipeline-deploy \
                 --app-id "$APP_ID" \
                 --branch "$BRANCH" \
                 --outputs-out-dir "$PWD" \
