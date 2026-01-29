@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Amplify (generated)
+/.amplify/
+/.amplify-hosting/
+
+# VS Code
+*.code-workspace
