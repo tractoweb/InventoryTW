@@ -34,6 +34,11 @@ frontend:
             ./pnpm --version
         # Optional: deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json for this branch.
         # Enabled only when DEPLOY_BACKEND=1 is set on the Amplify Console branch.
+        # Keep the pnpm store inside the workspace so Amplify cache can persist it
+        - ./pnpm config set store-dir .pnpm-store
+        - ./pnpm install --frozen-lockfile
+        # Optional: deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json for this branch.
+        # Enabled only when DEPLOY_BACKEND=1 is set on the Amplify Console branch.
         - |
             set -e
             if [ "${DEPLOY_BACKEND:-0}" = "1" ]; then
@@ -64,9 +69,6 @@ frontend:
             fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
-        # Keep the pnpm store inside the workspace so Amplify cache can persist it
-        - ./pnpm config set store-dir .pnpm-store
-        - ./pnpm install --frozen-lockfile
     build:
       commands:
         - ./pnpm run build
