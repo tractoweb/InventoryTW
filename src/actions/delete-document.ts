@@ -3,7 +3,8 @@
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { listAllPages } from '@/services/amplify-list-all';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';

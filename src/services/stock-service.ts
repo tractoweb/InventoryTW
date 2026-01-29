@@ -1,4 +1,4 @@
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 
 export async function listStocks() {
   return amplifyClient.models.Stock.list();

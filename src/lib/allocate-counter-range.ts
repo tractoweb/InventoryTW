@@ -1,4 +1,4 @@
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 
 /**
  * Allocates a contiguous range of numeric IDs using the `Counter` model.

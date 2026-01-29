@@ -1,6 +1,7 @@
 "use server";
 
-import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { listAllPages } from "@/services/amplify-list-all";
 import { documentTypeLabelEs } from "@/lib/document-type-label";
 import { cached } from "@/lib/server-cache";

@@ -3,7 +3,8 @@
 
 import { cached } from "@/lib/server-cache";
 
-import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { listAllPages } from "@/services/amplify-list-all";
 
 export type WarehouseListItem = {

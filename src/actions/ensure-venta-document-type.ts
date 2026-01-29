@@ -5,11 +5,11 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import {
   ACCESS_LEVELS,
-  amplifyClient,
   DOCUMENT_STOCK_DIRECTION,
   formatAmplifyError,
   normalizeStockDirection,
 } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { allocateCounterRange, ensureCounterAtLeast } from "@/lib/allocate-counter-range";
 import { requireSession } from "@/lib/session";
 import { listAllPages } from "@/services/amplify-list-all";

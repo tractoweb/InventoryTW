@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 import { revalidateTag, unstable_cache } from "next/cache";
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { createCustomer } from '@/services/customer-service';
 import { listAllPages } from '@/services/amplify-list-all';
@@ -43,7 +44,7 @@ export async function createCustomerAction(raw: CreateCustomerInput): Promise<{ 
       async () => {
         const existingCustomers = await listAllPages((args) => amplifyClient.models.Customer.list(args));
         if ('error' in existingCustomers) throw new Error(existingCustomers.error);
-        return existingCustomers.data.reduce((max, c: any) => {
+        return existingCustomers.data.reduce<number>((max, c: any) => {
           const id = Number(c?.idCustomer ?? 0);
           return Number.isFinite(id) ? Math.max(max, id) : max;
         }, 0);

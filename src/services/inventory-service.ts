@@ -3,7 +3,8 @@
  * Gestiona operaciones de productos, stocks y alertas
  */
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
+import { formatAmplifyError } from '@/lib/amplify-config';
 import { listAllPages } from '@/services/amplify-list-all';
 import { computeLiquidation, type LiquidationConfig, type LiquidationLineInput } from '@/lib/liquidation';
 

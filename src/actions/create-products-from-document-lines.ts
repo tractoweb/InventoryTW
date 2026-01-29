@@ -3,7 +3,8 @@
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { listAllPages } from '@/services/amplify-list-all';
 
@@ -47,7 +48,7 @@ export async function createProductsFromDocumentLinesAction(
       if ('error' in existingProducts) {
         return { success: false, error: existingProducts.error };
       }
-      const maxExistingId = existingProducts.data.reduce((max, p: any) => {
+      const maxExistingId = existingProducts.data.reduce<number>((max, p: any) => {
         const id = Number(p?.idProduct ?? 0);
         return Number.isFinite(id) ? Math.max(max, id) : max;
       }, 0);

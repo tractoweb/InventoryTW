@@ -1,4 +1,4 @@
-import { amplifyClient } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 
 export async function listWarehouses() {
   const { data, errors } = await amplifyClient.models.Warehouse.list();

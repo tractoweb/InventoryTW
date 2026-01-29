@@ -28,11 +28,9 @@
   "data": {
     "url": "https://li4idcgdpva5rbytcdnca7cffm.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
-    "api_key": "da2-ouzereqkunhjnhpq2qdkwkk6di",
-    "default_authorization_type": "API_KEY",
+    "default_authorization_type": "AWS_IAM",
     "authorization_types": [
-      "AMAZON_COGNITO_USER_POOLS",
-      "AWS_IAM"
+      "AMAZON_COGNITO_USER_POOLS"
     ],
     "model_introspection": {
       "version": 1,
@@ -213,8 +211,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -398,8 +396,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -478,8 +476,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -558,8 +556,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -695,8 +693,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -812,8 +810,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1161,8 +1159,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1250,8 +1248,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1363,8 +1361,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1498,8 +1496,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1593,8 +1591,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1861,8 +1859,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -1991,8 +1989,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2203,8 +2201,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2341,8 +2339,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2450,8 +2448,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2538,8 +2536,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2634,8 +2632,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -2809,8 +2807,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3178,8 +3176,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3448,8 +3446,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3558,8 +3556,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3698,8 +3696,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3802,8 +3800,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -3915,8 +3913,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4083,8 +4081,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4236,8 +4234,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4382,8 +4380,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4555,8 +4553,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4673,8 +4671,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4746,8 +4744,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4819,8 +4817,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4906,8 +4904,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -4979,8 +4977,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5116,8 +5114,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5259,8 +5257,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5387,8 +5385,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5490,8 +5488,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5599,8 +5597,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",
@@ -5746,8 +5744,8 @@
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "allow": "private",
+                    "provider": "iam",
                     "operations": [
                       "create",
                       "update",

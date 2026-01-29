@@ -2,7 +2,8 @@
 
 import { unstable_cache } from 'next/cache';
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 
 export type CustomerSearchResult = {
@@ -77,8 +78,8 @@ export async function searchCustomersAction(
             isSupplier: c?.isSupplier ?? null,
             isCustomer: c?.isCustomer ?? null,
           }))
-          .filter((c) => Number.isFinite(c.idCustomer) && c.idCustomer > 0 && c.name.length > 0)
-          .sort((a, b) => a.name.localeCompare(b.name));
+          .filter((c: any) => Number.isFinite(c.idCustomer) && c.idCustomer > 0 && c.name.length > 0)
+          .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
         return { data: out.slice(0, safeLimit) } as const;
       },

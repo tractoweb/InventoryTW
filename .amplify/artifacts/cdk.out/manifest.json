@@ -22,7 +22,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0d5e645b220214594c4d6f98fd6292c8e5aa11ac9e81db98a3b1f32d0f1c98a3.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/32da009c5f802947c6c1abad9ea5da232c65178a04e8728cfbbb034665d0788d.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -279,12 +279,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "amplifyDataGraphQLAPITransformerSchemaFF50A789"
-          }
-        ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/GraphQLAPI/DefaultApiKey": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "amplifyDataGraphQLAPIDefaultApiKey1C8ED374"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/GraphQLAPI/NONE_DS": [
@@ -26029,6 +26023,54 @@
             "data": "amplifyDataConnectionStackNestedStackConnectionStackNestedStackResourceAB0F312B"
           }
         ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy01/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy01567A5654"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy02/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy02C25443ED"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy03/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy03A575F389"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy04/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy0446CF675C"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy05/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy055DDCA1D5"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy06/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy06D81AE1C4"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy07/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy0797654307"
+          }
+        ],
+        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy08/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "amplifyDataAuthRolePolicy0814B9E9B2"
+          }
+        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AmplifyCodegenAssets/AmplifyCodegenAssetsBucket/Resource": [
           {
             "type": "aws:cdk:logicalId",
@@ -26251,12 +26293,6 @@
             "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataAmplifyCodegenAssetsAmplifyCodegenAssetsDeploymentCustomResource1536MiB1EBAAD65DestinationBucketArn"
           }
         ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPIDefaultApiKeyBE472DBFApiKey": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPIDefaultApiKeyBE472DBFApiKey"
-          }
-        ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/data.NestedStack/data.NestedStackResource": [
           {
             "type": "aws:cdk:logicalId",
@@ -26291,12 +26327,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "amplifyApiModelSchemaS3Uri"
-          }
-        ],
-        "/amplify-nextn-Dallo-sandbox-a64a8f19d2/awsAppsyncApiKey": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "awsAppsyncApiKey"
           }
         ],
         "/amplify-nextn-Dallo-sandbox-a64a8f19d2/awsAppsyncAdditionalAuthenticationTypes": [

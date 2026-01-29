@@ -5,13 +5,13 @@
  */
 
 import {
-  amplifyClient,
   DOCUMENT_STOCK_DIRECTION,
   formatAmplifyError,
   isStockDirectionIn,
   isStockDirectionOut,
   normalizeStockDirection,
 } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { getBogotaYearMonth } from '@/lib/datetime';
 import { createKardexEntry } from './kardex-service';
 

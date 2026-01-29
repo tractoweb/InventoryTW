@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { listAllPages } from "@/services/amplify-list-all";

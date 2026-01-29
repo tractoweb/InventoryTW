@@ -7,7 +7,7 @@ import { ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { inventoryService } from "@/services/inventory-service";
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 
 const ChangeStockSchema = z.object({
   productId: z.coerce.number().int().min(1),

@@ -1,6 +1,7 @@
 "use server";
 
-import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { cached } from "@/lib/server-cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 

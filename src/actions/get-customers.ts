@@ -1,7 +1,8 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
-import { amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { listAllPages } from "@/services/amplify-list-all";
 

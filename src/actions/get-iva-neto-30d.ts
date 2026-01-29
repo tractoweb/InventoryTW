@@ -1,6 +1,7 @@
 "use server";
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError, normalizeStockDirection } from "@/lib/amplify-config";
+import { DOCUMENT_STOCK_DIRECTION, formatAmplifyError, normalizeStockDirection } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { BOGOTA_TIME_ZONE, ymdToBogotaMidnightUtc } from "@/lib/datetime";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { cached } from "@/lib/server-cache";

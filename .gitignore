@@ -15,6 +15,10 @@ package-lock.json
 /.next/
 /out/
 
+# Amplify Gen 2 build artifacts
+/.amplify/
+/.amplify-hosting/
+
 production
 /build
 
@@ -39,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# VS Code workspace files
+*.code-workspace

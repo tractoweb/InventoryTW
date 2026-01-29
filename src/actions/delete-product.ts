@@ -1,6 +1,6 @@
 "use server";
 import "server-only";
-import { amplifyClient } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { revalidateTag } from "next/cache";
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";

@@ -6,6 +6,14 @@ frontend:
         - corepack enable
         # Pin pnpm to a known version for reproducible builds
         - corepack prepare pnpm@9.15.4 --activate
+        # Deploy Amplify Gen2 backend (fullstack branching) when running in Amplify Hosting.
+        # This avoids depending on sandbox-only resources.
+        - |
+            if [ -n "$AWS_APP_ID" ] && [ -n "$AWS_BRANCH" ]; then
+              npx ampx pipeline-deploy --app-id "$AWS_APP_ID" --branch "$AWS_BRANCH"
+            else
+              echo "[ampx] skipping pipeline-deploy (missing AWS_APP_ID/AWS_BRANCH)"
+            fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
         # Keep the pnpm store inside the workspace so Amplify cache can persist it

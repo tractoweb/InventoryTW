@@ -3,7 +3,8 @@
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from '@/lib/amplify-config';
+import { DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { listAllPages } from '@/services/amplify-list-all';
 import { getCurrentSession } from '@/lib/session';

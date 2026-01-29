@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import styles from "./login-animated.module.css";
 import { RingParticlesBackground } from "./components/ring-particles-background";
+import { AmplifyConnectionIndicator } from "./components/amplify-connection-indicator";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -176,6 +177,8 @@ export default function LoginPage() {
         anchorRef={cardWrapRef}
         paused={exiting || navigating}
       />
+
+      <AmplifyConnectionIndicator className="fixed right-3 top-3 z-50" />
 
       {exiting || navigating ? (
         <div className={styles.loading} aria-live="polite">

@@ -5,7 +5,7 @@ import "server-only";
 import { z } from "zod";
 
 import type { StockInfo } from "@/lib/types";
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { listAllPages } from "@/services/amplify-list-all";
 import { cached } from "@/lib/server-cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";

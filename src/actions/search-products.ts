@@ -2,7 +2,8 @@
 
 import { unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { inventoryService } from '@/services/inventory-service';
 
 export type ProductSearchResult = {
@@ -25,7 +26,7 @@ async function getSupplierProductIds(supplierId: number, maxDocs: number, maxIte
 
   const docIds = (docs ?? [])
     .map((d: any) => Number(d?.documentId))
-    .filter((id) => Number.isFinite(id) && id > 0)
+    .filter((id: any) => Number.isFinite(id) && id > 0)
     .slice(0, maxDocs);
 
   for (const docId of docIds) {

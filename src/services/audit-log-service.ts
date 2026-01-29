@@ -3,7 +3,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { randomUUID } from "crypto";
 
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 
 export type AuditLogAction =
   | "CREATE"

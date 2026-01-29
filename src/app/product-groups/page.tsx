@@ -1,6 +1,5 @@
-"use client";
-import UploadProductGroup from "../product-groups/upload-product-group";
+import { JsonImportRunner } from "../json/_components/json-import-runner";
 
-export default function UploadProductGroupPage() {
-  return <UploadProductGroup />;
+export default function Page() {
+  return <JsonImportRunner kind="productgroups" title="Subir Grupos desde ProductGroup.json" />;
 }

@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 import { revalidateTag } from "next/cache";
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { ACCESS_LEVELS } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { ymdToBogotaMidnightUtc } from '@/lib/datetime';

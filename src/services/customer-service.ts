@@ -1,4 +1,4 @@
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { listAllPages } from "@/services/amplify-list-all";
 
 export async function listCustomers() {

@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { unstable_noStore as noStore } from "next/cache";
 
-import { ACCESS_LEVELS, amplifyClient, formatAmplifyError } from "@/lib/amplify-config";
+import { ACCESS_LEVELS, formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { requireSession } from "@/lib/session";
 
 const Schema = z.object({

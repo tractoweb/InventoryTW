@@ -1,6 +1,7 @@
 "use server";
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from "@/lib/amplify-config";
+import { DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 import { normalizeStockDirection } from "@/lib/amplify-config";
 import { listAllPages } from "@/services/amplify-list-all";
 import { ymdToBogotaMidnightUtc } from "@/lib/datetime";

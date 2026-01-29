@@ -4,7 +4,8 @@
  * Proporciona auditoría completa de entrada/salida/ajustes
  */
 
-import { amplifyClient, KARDEX_TYPES, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
+import { KARDEX_TYPES, formatAmplifyError } from '@/lib/amplify-config';
 
 export interface KardexEntry {
   productId: number;

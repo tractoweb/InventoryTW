@@ -17,7 +17,7 @@ const schema = a.schema({
     startingCashes: a.hasMany('StartingCash', 'userId'),
     posOrders: a.hasMany('PosOrder', 'userId'),
     sessionConfig: a.hasOne('SessionConfig', 'userId'), 
-  }).identifier(['userId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['userId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 2. EMPRESA Y MAESTROS
   Company: a.model({
@@ -39,19 +39,19 @@ const schema = a.schema({
     plotIdentification: a.string(),
     citySubdivisionName: a.string(),
     countrySubentity: a.string(),
-  }).identifier(['idCompany']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idCompany']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Country: a.model({
     idCountry: a.integer().required(),
     name: a.string().required(),
     code: a.string(),
-  }).identifier(['idCountry']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idCountry']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Currency: a.model({
     idCurrency: a.integer().required(),
     name: a.string().required(),
     code: a.string(),
-  }).identifier(['idCurrency']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idCurrency']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 3. ALMACENES Y PRODUCTOS
   Warehouse: a.model({
@@ -61,7 +61,7 @@ const schema = a.schema({
     documents: a.hasMany('Document', 'warehouseId'),
     documentTypes: a.hasMany('DocumentType', 'warehouseId'),
     kardexEntries: a.hasMany('Kardex', 'warehouseId'),
-  }).identifier(['idWarehouse']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idWarehouse']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   ProductGroup: a.model({
     idProductGroup: a.integer().required(),
@@ -71,7 +71,7 @@ const schema = a.schema({
     image: a.string(),
     rank: a.integer(),
     products: a.hasMany('Product', 'productGroupId'),
-  }).identifier(['idProductGroup']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idProductGroup']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Product: a.model({
     idProduct: a.integer().required(),
@@ -104,14 +104,14 @@ const schema = a.schema({
     taxes: a.hasMany('ProductTax', 'productId'),
     kardexEntries: a.hasMany('Kardex', 'productId'),
     kardexHistories: a.hasMany('KardexHistory', 'productId'),
-  }).identifier(['idProduct']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idProduct']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   
   Barcode: a.model({
     productId: a.integer().required(),
     value: a.string().required(),
     product: a.belongsTo('Product', 'productId'),
-  }).identifier(['productId', 'value']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['productId', 'value']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Stock: a.model({
     productId: a.integer().required(),
@@ -119,7 +119,7 @@ const schema = a.schema({
     quantity: a.float().required(),
     product: a.belongsTo('Product', 'productId'),
     warehouse: a.belongsTo('Warehouse', 'warehouseId'),
-  }).identifier(['productId', 'warehouseId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['productId', 'warehouseId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   StockControl: a.model({
     stockControlId: a.integer().required(),
@@ -133,14 +133,14 @@ const schema = a.schema({
   })
     .identifier(['stockControlId'])
     .secondaryIndexes((index) => [index('productId').name('byProductId')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated('identityPool')]),
 
   ProductComment: a.model({
     commentId: a.integer().required(),
     productId: a.integer().required(),
     comment: a.string().required(),
     product: a.belongsTo('Product', 'productId'),
-  }).identifier(['commentId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['commentId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 5. KARDEX
   Kardex: a.model({
@@ -172,7 +172,7 @@ const schema = a.schema({
       index('documentId').name('byDocumentId'),
       index('warehouseId').name('byWarehouseId'),
     ])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated('identityPool')]),
 
   KardexHistory: a.model({
     kardexHistoryId: a.integer().required(),
@@ -184,7 +184,7 @@ const schema = a.schema({
     modifiedDate: a.datetime().required(),
     reason: a.string(),
     product: a.belongsTo('Product', 'productId'),
-  }).identifier(['kardexHistoryId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['kardexHistoryId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 6. PROVEEDORES (modelo legado: Customer)
   // NOTE: En InventoryTW, este modelo se usa exclusivamente para proveedores.
@@ -207,7 +207,7 @@ const schema = a.schema({
     documents: a.hasMany('Document', 'customerId'),
     discounts: a.hasMany('CustomerDiscount', 'customerId'),
     loyaltyCards: a.hasMany('LoyaltyCard', 'customerId'),
-  }).identifier(['idCustomer']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idCustomer']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 6b. CLIENTES (ventas)
   Client: a.model({
@@ -221,7 +221,7 @@ const schema = a.schema({
     isEnabled: a.boolean().default(true),
     notes: a.string(),
     documents: a.hasMany('Document', 'clientId'),
-  }).identifier(['idClient']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idClient']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   CustomerDiscount: a.model({
     customerDiscountId: a.integer().required(),
@@ -230,13 +230,13 @@ const schema = a.schema({
     uid: a.integer(),
     value: a.float().default(0),
     customer: a.belongsTo('Customer', 'customerId'),
-  }).identifier(['customerDiscountId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['customerDiscountId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   LoyaltyCard: a.model({
     cardNumber: a.string().required(),
     customerId: a.integer().required(),
     customer: a.belongsTo('Customer', 'customerId'),
-  }).identifier(['cardNumber']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['cardNumber']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 7. DOCUMENTOS
   DocumentCategory: a.model({
@@ -244,7 +244,7 @@ const schema = a.schema({
     name: a.string().required(),
     languageKey: a.string(),
     documentTypes: a.hasMany('DocumentType', 'documentCategoryId'),
-  }).identifier(['idDocumentCategory']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idDocumentCategory']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   DocumentType: a.model({
     documentTypeId: a.integer().required(),
@@ -260,7 +260,7 @@ const schema = a.schema({
     warehouse: a.belongsTo('Warehouse', 'warehouseId'),
     category: a.belongsTo('DocumentCategory', 'documentCategoryId'),
     documents: a.hasMany('Document', 'documentTypeId'),
-  }).identifier(['documentTypeId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['documentTypeId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Document: a.model({
     documentId: a.integer().required(),
@@ -300,7 +300,7 @@ const schema = a.schema({
   })
     .identifier(['documentId'])
     .secondaryIndexes((index) => [index('idempotencyKey').name('byIdempotencyKey')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated('identityPool')]),
 
   DocumentItem: a.model({
     documentId: a.integer().required(),
@@ -328,7 +328,7 @@ const schema = a.schema({
     taxes: a.hasMany('DocumentItemTax', 'documentItemId'),
     kardexEntries: a.hasMany('Kardex', 'documentItemId'),
     documentItemId: a.integer().required() 
-  }).identifier(['documentItemId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['documentItemId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // VISTA: DocumentItemPriceView
   DocumentItemPriceView: a.model({
@@ -338,7 +338,7 @@ const schema = a.schema({
     // Relaciones
     documentItem: a.belongsTo('DocumentItem', 'documentItemId'),
     document: a.belongsTo('Document', 'documentId'),
-  }).identifier(['documentItemId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['documentItemId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 8. IMPUESTOS
   Tax: a.model({
@@ -351,14 +351,14 @@ const schema = a.schema({
     isEnabled: a.boolean().default(true),
     productTaxes: a.hasMany('ProductTax', 'taxId'),
     documentItemTaxes: a.hasMany('DocumentItemTax', 'taxId'),
-  }).identifier(['idTax']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['idTax']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   ProductTax: a.model({
     productId: a.integer().required(),
     taxId: a.integer().required(),
     product: a.belongsTo('Product', 'productId'),
     tax: a.belongsTo('Tax', 'taxId'),
-  }).identifier(['productId', 'taxId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['productId', 'taxId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   DocumentItemTax: a.model({
     documentItemId: a.integer().required(),
@@ -366,7 +366,7 @@ const schema = a.schema({
     amount: a.float().required(),
     documentItem: a.belongsTo('DocumentItem', 'documentItemId'),
     tax: a.belongsTo('Tax', 'taxId'),
-  }).identifier(['documentItemId', 'taxId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['documentItemId', 'taxId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 9. PAGOS Y POS
   PaymentType: a.model({
@@ -384,7 +384,7 @@ const schema = a.schema({
     shortcutKey: a.string(),
     markAsPaid: a.boolean().default(true),
     payments: a.hasMany('Payment', 'paymentTypeId'),
-  }).identifier(['paymentTypeId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['paymentTypeId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Payment: a.model({
     paymentId: a.integer().required(),
@@ -397,7 +397,7 @@ const schema = a.schema({
     document: a.belongsTo('Document', 'documentId'),
     paymentType: a.belongsTo('PaymentType', 'paymentTypeId'),
     user: a.belongsTo('User', 'userId'),
-  }).identifier(['paymentId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['paymentId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   PosOrder: a.model({
     posOrderId: a.integer().required(),
@@ -410,7 +410,7 @@ const schema = a.schema({
     serviceType: a.integer().default(0),
     user: a.belongsTo('User', 'userId'),
     items: a.hasMany('PosOrderItem', 'posOrderId'),
-  }).identifier(['posOrderId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['posOrderId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   PosOrderItem: a.model({
     posOrderId: a.integer().required(),
@@ -428,7 +428,7 @@ const schema = a.schema({
     bundle: a.string(),
     discountAppliedType: a.integer().default(0),
     posOrder: a.belongsTo('PosOrder', 'posOrderId'),
-  }).identifier(['posOrderId', 'productId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['posOrderId', 'productId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 10. OTROS
   StartingCash: a.model({
@@ -439,29 +439,29 @@ const schema = a.schema({
     startingCashType: a.integer().default(0),
     zReportNumber: a.integer(),
     user: a.belongsTo('User', 'userId'),
-  }).identifier(['startingCashId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['startingCashId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Counter: a.model({
     name: a.string().required(),
     value: a.integer().required(),
-  }).identifier(['name']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['name']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   ApplicationProperty: a.model({
     name: a.string().required(),
     value: a.string(),
-  }).identifier(['name']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['name']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   ZReport: a.model({
     number: a.integer().required(),
     fromDocumentId: a.integer().required(),
     toDocumentId: a.integer().required(),
     dateCreated: a.datetime().required(),
-  }).identifier(['number']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['number']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   Template: a.model({
     name: a.string().required(),
     value: a.string().required(),
-  }).identifier(['name']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['name']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   SessionConfig: a.model({
     userId: a.integer().required(),
@@ -475,7 +475,7 @@ const schema = a.schema({
     sessionToken: a.string(),
     // CORRECCIÓN: Relación inversa añadida
     user: a.belongsTo('User', 'userId'),
-  }).identifier(['userId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['userId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   ApplicationSettings: a.model({
     companyId: a.integer().required(),
@@ -490,7 +490,7 @@ const schema = a.schema({
     defaultWarehouseId: a.integer(),
     lastModifiedBy: a.integer(),
     lastModifiedDate: a.datetime(),
-  }).identifier(['companyId']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['companyId']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   AuditLog: a.model({
     logId: a.id().required(),
@@ -503,7 +503,7 @@ const schema = a.schema({
     timestamp: a.datetime().required(),
     ipAddress: a.string(),
     userAgent: a.string(),
-  }).authorization((allow) => [allow.publicApiKey()]),
+  }).authorization((allow) => [allow.authenticated('identityPool')]),
 
   DocumentNumber: a.model({
     documentTypeId: a.integer().required(),
@@ -512,7 +512,7 @@ const schema = a.schema({
     month: a.integer().required(),
     sequence: a.integer().required(),
     lastNumber: a.integer().required(),
-  }).identifier(['documentTypeId', 'warehouseId', 'year']).authorization((allow) => [allow.publicApiKey()]),
+  }).identifier(['documentTypeId', 'warehouseId', 'year']).authorization((allow) => [allow.authenticated('identityPool')]),
 
   // 11. IMPRESIÓN DE ETIQUETAS (SOLICITUDES PERSISTENTES)
   PrintLabelRequest: a.model({
@@ -523,7 +523,7 @@ const schema = a.schema({
   })
     .identifier(['requestId'])
     .secondaryIndexes((index) => [index('status').name('byStatus')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated('identityPool')]),
 
   PrintLabelRequestItem: a.model({
     requestItemId: a.id().required(),
@@ -539,7 +539,7 @@ const schema = a.schema({
   })
     .identifier(['requestItemId'])
     .secondaryIndexes((index) => [index('requestId').name('byRequestId')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated('identityPool')]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -547,6 +547,6 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'apiKey',
+    defaultAuthorizationMode: 'iam',
   },
 });

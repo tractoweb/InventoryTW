@@ -1,6 +1,6 @@
 'use server';
 
-import { amplifyClient } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 // Lista blanca de tablas permitidas para evitar consultas arbitrarias
 const ALLOWED_TABLES = [
     'applicationproperty',

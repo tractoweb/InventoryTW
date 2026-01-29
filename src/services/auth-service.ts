@@ -3,7 +3,8 @@
  * Gestiona login, validación de sesión y logout
  */
 
-import { amplifyClient, ACCESS_LEVELS, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
+import { ACCESS_LEVELS, formatAmplifyError } from '@/lib/amplify-config';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 
 export interface LoginRequest {

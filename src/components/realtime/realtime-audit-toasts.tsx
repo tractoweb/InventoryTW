@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 
-import { amplifyClient } from "@/lib/amplify-config";
+import { getRealtimeAuditLogsAction, type RealtimeAuditToastRow } from "@/actions/get-realtime-audit-logs";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "realtime:audit:lastSeen";
@@ -60,9 +60,6 @@ export function RealtimeAuditToasts() {
     if (pathname === "/login") return;
     if (typeof window === "undefined") return;
 
-    const auditModel: any = (amplifyClient.models as any)?.AuditLog;
-    if (!auditModel) return;
-
     // Avoid spamming toasts with historical data.
     // Start from the latest of: stored lastSeen OR now.
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -98,50 +95,26 @@ export function RealtimeAuditToasts() {
     };
 
     let interval: ReturnType<typeof setInterval> | null = null;
-    let subscription: { unsubscribe?: () => void } | null = null;
 
     const listLatest = async () => {
       try {
-        const res: any = await auditModel.list({
+        const res = await getRealtimeAuditLogsAction({
+          sinceIso: new Date(lastSeenMs).toISOString(),
           limit: 50,
-          filter: {
-            action: { in: TOAST_ACTIONS as unknown as string[] },
-          },
         });
-        handleRows(res?.data ?? []);
+        if (res?.error) return;
+        handleRows((res?.data ?? []) as RealtimeAuditToastRow[]);
       } catch {
         // ignore
       }
     };
 
-    // Prefer realtime updates when available; fallback to polling.
-    if (typeof auditModel.observeQuery === "function") {
-      try {
-        const observable: any = auditModel.observeQuery({
-          limit: 50,
-          filter: {
-            action: { in: TOAST_ACTIONS as unknown as string[] },
-          },
-        });
-
-        const sub = observable?.subscribe?.(({ items }: any) => {
-          handleRows(items ?? []);
-        });
-
-        if (sub?.unsubscribe) subscription = sub;
-      } catch {
-        // If observeQuery throws (misconfigured auth, etc), fallback to polling.
-        interval = setInterval(listLatest, 8000);
-        listLatest();
-      }
-    } else {
-      interval = setInterval(listLatest, 8000);
-      listLatest();
-    }
+    // Poll from server (no browser Amplify credentials needed).
+    interval = setInterval(listLatest, 8000);
+    listLatest();
 
     return () => {
       if (interval) clearInterval(interval);
-      subscription?.unsubscribe?.();
     };
   }, [pathname, toast]);
 

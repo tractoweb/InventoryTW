@@ -1,6 +1,6 @@
 "use server";
 import { z } from 'zod';
-import { amplifyClient } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { unstable_noStore as noStore } from "next/cache";

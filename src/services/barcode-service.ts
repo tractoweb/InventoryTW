@@ -1,4 +1,4 @@
-import { amplifyClient } from "@/lib/amplify-config";
+import { amplifyClient } from "@/lib/amplify-server";
 
 export async function listBarcodes() {
   return amplifyClient.models.Barcode.list();

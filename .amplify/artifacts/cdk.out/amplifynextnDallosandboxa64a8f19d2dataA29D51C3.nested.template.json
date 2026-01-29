@@ -1,5 +1,5 @@
 {
- "Description": "{\"createdOn\":\"Windows\",\"createdBy\":\"AmplifySandbox\",\"createdWith\":\"1.20.3\",\"stackType\":\"api-AppSync\",\"metadata\":{\"dataSources\":\"dynamodb\",\"authorizationModes\":\"amazon_cognito_identity_pools,amazon_cognito_user_pools,api_key,aws_iam\",\"customOperations\":\"\"}}",
+ "Description": "{\"createdOn\":\"Windows\",\"createdBy\":\"AmplifySandbox\",\"createdWith\":\"1.20.3\",\"stackType\":\"api-AppSync\",\"metadata\":{\"dataSources\":\"dynamodb\",\"authorizationModes\":\"amazon_cognito_identity_pools,amazon_cognito_user_pools,aws_iam\",\"customOperations\":\"\"}}",
  "Resources": {
   "amplifyDataGraphQLAPI42A6FA33": {
    "Type": "AWS::AppSync::GraphQLApi",
@@ -15,12 +15,9 @@
         "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthUserPoolE97C8D00Ref"
        }
       }
-     },
-     {
-      "AuthenticationType": "AWS_IAM"
      }
     ],
-    "AuthenticationType": "API_KEY",
+    "AuthenticationType": "AWS_IAM",
     "Name": "amplifyData",
     "Tags": [
      {
@@ -53,30 +50,13 @@
      ]
     },
     "DefinitionS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0860abb12c6b18bd9255ea3af7de50657909c0d1c1430eeb02984b3fb9260b1c.graphql"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a700bc2bbb1de9e9e7aa4118cd593c095ba6e557b3c6d7e6361cf7c8c9472377.graphql"
     }
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/GraphQLAPI/TransformerSchema"
-   }
-  },
-  "amplifyDataGraphQLAPIDefaultApiKey1C8ED374": {
-   "Type": "AWS::AppSync::ApiKey",
-   "Properties": {
-    "ApiId": {
-     "Fn::GetAtt": [
-      "amplifyDataGraphQLAPI42A6FA33",
-      "ApiId"
-     ]
-    },
-    "Expires": 1769660200
-   },
-   "UpdateReplacePolicy": "Delete",
-   "DeletionPolicy": "Delete",
-   "Metadata": {
-    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/GraphQLAPI/DefaultApiKey"
    }
   },
   "amplifyDataGraphQLAPINONEDS684BF699": {
@@ -229,7 +209,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/9065b1261782a2cb4189e4bc732ab2e464a7da73be3d0c3bf3571cbd4d659812.json"
+       "/12e12d07b644b53d80c4813ced459e7c6daeed0baa160541c25be219e24c5482.json"
       ]
      ]
     }
@@ -322,7 +302,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/2720d8c4b26c920dde703ece9ae32f4b9bb4150590cf2bb01110c04bc9fbb536.json"
+       "/d79ec300e142e5eaf0bd010da089a30c5fc5658f68a167f50e177d36fe8a7853.json"
       ]
      ]
     }
@@ -415,7 +395,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/3545a828a1b41f92c237cb382c1bc2862ea969f4ec4f15675009a377c6aad81e.json"
+       "/38c472d98c89ae80ff083654ec0d1dee58a3c7574b9c7cd1526d846d73ab495c.json"
       ]
      ]
     }
@@ -508,7 +488,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/a57f963d6fc76c5e744455384c59bffa99d31da478743103ba049aee4d03442e.json"
+       "/77e000d4fb21752a24bc94e434392476a041e0a0611360c9b6851385132303d4.json"
       ]
      ]
     }
@@ -601,7 +581,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/9bee0e7d1c43c423dcbfa689682ec03408a1e2ca2795e71a3c6f705d771caec3.json"
+       "/0ae6a10cf8f4c5c34f7a68bb96ac1a813e220b29b97185eeb8cc04e08daf5732.json"
       ]
      ]
     }
@@ -694,7 +674,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/a75d86780c7bab5fdeb51be3dd16891823fcf18e116ca6984e8107fafb64d00f.json"
+       "/f8bb40c45eeefffa18e1d806f23239536745f8ba2e18c92df139aad406e97a45.json"
       ]
      ]
     }
@@ -787,7 +767,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/6413b99774bdf53f758a018ac59f2bea03e73c2fc6b2ad3ed920492fae38391a.json"
+       "/a2e4385fedb1252dc482aa65d40947928956927107f5723476a971c5189fb9ed.json"
       ]
      ]
     }
@@ -880,7 +860,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/e64abb97be2dd441b0d34ddc61751b63e9c98978ea052ff6036275173c4d1328.json"
+       "/4212c430fc1333ae60ff8f31d04c6849c1f0ea9002a2740d9eb6cdcc7d1c360a.json"
       ]
      ]
     }
@@ -973,7 +953,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/c5733202087cf9c7f0bc6b6b4863813801b6ed15020f1601560c4affd7a851fc.json"
+       "/88712abc84e1bb21e9cd5d08d032bde3a47004e06f6ed9d68ba6c079f4d27424.json"
       ]
      ]
     }
@@ -1066,7 +1046,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/5d158427232015b198dbc15418c397961835002a0c5bffb8fc7834c1e0d83013.json"
+       "/1286ad98c6ef4bbedb21b9d83a4e7fe69d10bf87acae0067ded4327028b15e4c.json"
       ]
      ]
     }
@@ -1159,7 +1139,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/0b4899d3dd52e3aebb305f90991ab253d3a4bc7dad56e503fbf463f97bdb427f.json"
+       "/b23e3db519cfbe21596d8e941897ce88725d7743c9dd1563948682eee0433e60.json"
       ]
      ]
     }
@@ -1252,7 +1232,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/9fc423ce772d187aace1d7ec3e751145f5633023ef260d80bc95fe63cc43c1c3.json"
+       "/0c571258a946c99132f066c98b785980cc276f8dcbf8a8b214ae114add6763c9.json"
       ]
      ]
     }
@@ -1345,7 +1325,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/2643d081fa555cc89321e6d64233a096a610ee8517abb4ac7029d6a5712d0f61.json"
+       "/e8c61f1a119cb84f15e259157d495f3c0807ee43cbb02721677857ff82d22a16.json"
       ]
      ]
     }
@@ -1438,7 +1418,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/213488f09ce50cf4580ae7fc01d0b7e2710c0cf723122ddf98bf29b03c83f448.json"
+       "/8d01c57919c5a6551436bdce5b4d7bba1188cf8da87d5ca843c9f42bc1701049.json"
       ]
      ]
     }
@@ -1531,7 +1511,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/392fea50499d93af11301e9c445c4a23b6ec7682b3f239e8ee5cc3c9b1c7103e.json"
+       "/d70cdad58f245e5d50ee02d860ab09148f5c15e3671139a13685c47a8baf3953.json"
       ]
      ]
     }
@@ -1624,7 +1604,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/0dbd1ae0bc19f1ce23d00d50b77a83b968534f00d2710633fb1db2af3edf595e.json"
+       "/59ce9a473fcb0028d7a2066d21db0aae01612e987514c73e2a7753473daececd.json"
       ]
      ]
     }
@@ -1717,7 +1697,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/c3c5d37ac22a09d716d329c0b540162824a7846aaa7054a25b38123650d9e832.json"
+       "/4af83c5f8167a52ece63e1b9dabd9c153588f596c8f99c7a6c39e2b0eb07b128.json"
       ]
      ]
     }
@@ -1810,7 +1790,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/bf79cece88b4f1537a36823da62e3e6eec2ce299590776ce00d10d62dfc44946.json"
+       "/4bf2315ad7f314dab723f1072b7fdff51fded95f281d388e4ac2fef53b06b3dd.json"
       ]
      ]
     }
@@ -1903,7 +1883,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/f8f369975dde33a6ed0db7e07947d83a0dc28b8c9a6c284bb61ea19224025952.json"
+       "/1ca9b11b9cb396ae322f4e7972a4ef31fe37a88de90f6215aec320b3c80b6e55.json"
       ]
      ]
     }
@@ -1996,7 +1976,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/98c1c1570d4fe0910da2c9ab8f66c0de1a6d35543128bf598282df485da822d2.json"
+       "/fece0437aa52b9a641c109a23f3c65c5447710ec8be23a0c14796cd2d0b84684.json"
       ]
      ]
     }
@@ -2089,7 +2069,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/5693d4a3066446442135a28367e890f7ddfa8056955ca0bf11957eef5fb70ef9.json"
+       "/12ef385e5c75ff78ac7f9a02bd921f44f2eb14318d883bc3ad6e71053bf4966d.json"
       ]
      ]
     }
@@ -2182,7 +2162,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/61d0c43798f7dc6174e92dccde01244b227fcba7c6ae1d04de21ef8408dfec61.json"
+       "/dd57f0a5ec9c4195e4db225a98046ec618457fe02d3d4e779f93736f87de6930.json"
       ]
      ]
     }
@@ -2275,7 +2255,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/8f6316e17407c5df48af86e3c5ebb916dfca49199ab37bb708ba4ce96e24f8d7.json"
+       "/b9e4e085b183c694d1f1f56d5d6eef759e259a5a00efc28a2669987b9e0ead38.json"
       ]
      ]
     }
@@ -2368,7 +2348,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/3a2cecab3cb3eb41305f32b11f5468a9edb77b065ace8b6110bd32c3d350855c.json"
+       "/745b5f18bdf6a252aed5e5fab375b56872eed1461de1f307ef94c74da8bba522.json"
       ]
      ]
     }
@@ -2461,7 +2441,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/258cecf4606a18dd3a0e7e1fc97b840106838a1ae4ec8abcf974e115575c88b6.json"
+       "/f31e03ac46f08400c9e1404dfd9b3bc92c95ed78e367cf69e7e2fbed1bebca44.json"
       ]
      ]
     }
@@ -2554,7 +2534,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/a3144f620708c6d6f10cc5145478425ee875747f20187e76a9fdf67a1bead6c1.json"
+       "/4870d5cf9476efe2cfa7a93f2663e730b6d0159c7fc882df89863b00f0d27f9f.json"
       ]
      ]
     }
@@ -2647,7 +2627,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/5d3677a982217b87f9b7edf2e8612998298e46b5c1d803a59a672162b8e5f6dd.json"
+       "/4c467adea39c9b2676b13d982b50c8732d961b348bf2ddd11360adf39b4bfbb0.json"
       ]
      ]
     }
@@ -2740,7 +2720,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/0b834a78fa5a697130a2f7a919af36681f2997fc5c33a14b8c0242cbedf9a9a6.json"
+       "/84d9e9229dee8e4752d48dec78ae2bc0fa90fc54bd0d8eccf5756d578de9cdc5.json"
       ]
      ]
     }
@@ -2833,7 +2813,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/81e8bb256ab86905467eef6d44deee1d67c68b325b929363b915fd927cb5c15c.json"
+       "/d139443617a6248f8ff23805b0cafe591f2537f7bd9247dd8fc5c70f6662c2fb.json"
       ]
      ]
     }
@@ -2926,7 +2906,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/af305134082d5d4df683767e1fd2d8c898e2d79792a77e52167d97bf104c3a79.json"
+       "/1db1733bc0c3cc8d0b37724c3a8b66350d25b1c5fe484940742be5e0acec1382.json"
       ]
      ]
     }
@@ -3019,7 +2999,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/f6b111b5d6f4803a1d2baadb8a72413ce2392a69c85f94c5244d7915319854a3.json"
+       "/b370634cbdef3b035cc59084c5e66b03d7e9281a74e7c45ebbd099a040c69e1a.json"
       ]
      ]
     }
@@ -3112,7 +3092,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/d74baa20ba6023b1892a54dd49af1e8f8d667d9dcb281c9e884b7995262513db.json"
+       "/1ec717c7635eed3cd1acab0efc2b0c861da1f1e1f7b1e59bf49995bfa1e9e5a3.json"
       ]
      ]
     }
@@ -3205,7 +3185,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/ec3028428c22e789885ecd83db7607aa831d65ebb09a8714ddc6a230bcdfa912.json"
+       "/e9519d7fd019814932d2780aa764768eecdb5fb0154e2a0e1ec8a5b90fc48a15.json"
       ]
      ]
     }
@@ -3298,7 +3278,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/13f260ceceea62321697487002941716d5a468abd806a9b04a9647b2afe8160d.json"
+       "/2d12449c43d094694d3f15a72d73088c6858771def2d435126cbc95939305e85.json"
       ]
      ]
     }
@@ -3391,7 +3371,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/2ab2bcb986cfb05da32461a0e45a79bec997d8ca1b0db5e9ad7525e271f06c77.json"
+       "/b648d5309824c7fe183dacb837202698ad0f3de05287e61b74cd176f9972b675.json"
       ]
      ]
     }
@@ -3484,7 +3464,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/2b5907ecffc1f42e729219056d53d8f9e149445e2cac45dba51f094b5c447146.json"
+       "/d33207a9d883951c1a667d28529cbf48b0a4346f9d0b30eee762f3fca4929451.json"
       ]
      ]
     }
@@ -3577,7 +3557,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/8844d1f2e649faf6c55040f3673628698801a5c44c6c6891fca54b66de4ed7ed.json"
+       "/5a1a2bffc2a53e8599e9083cd6a01a880d246b474cf1d3dd89364812a31ef134.json"
       ]
      ]
     }
@@ -3670,7 +3650,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/9f41c99a96aee046a3c1ad5dd25503ea0be3c774211ff335014e55bf3332ffcb.json"
+       "/59811b5930f20d2849b616f2c690a71e04ba67c60453b6e75d8797ef2172822f.json"
       ]
      ]
     }
@@ -3763,7 +3743,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/1911ee61aa70250fcfe913dfa863f3ba9e0dee25e5f59bd1b54a8c94ebe2f975.json"
+       "/04f2ffd7b418f3947c7f47713f99ec17ae6f3f26b36c8053751270913eb595cc.json"
       ]
      ]
     }
@@ -3856,7 +3836,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/699557cbe0f53feae92b05edaa7b970e0f43f12db70aa41d97088e2c8e5ddf28.json"
+       "/4c5747cd371b6c877f6eb6d44aac549d71c8716c3e1b348d19794712d99ba0da.json"
       ]
      ]
     }
@@ -4288,7 +4268,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/d3617705a7f1eade93c83808b31be1863df6e7d162f0126853d8cc6177c53221.json"
+       "/777dd8bff0b0497eb4689efcc78f40e9cedd8145eb82acf7a93aafe797dc1eb2.json"
       ]
      ]
     }
@@ -4332,6 +4312,5975 @@
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/ConnectionStack.NestedStack/ConnectionStack.NestedStackResource",
     "aws:asset:path": "amplifynextnDallosandboxa64a8f19d2dataamplifyDataConnectionStack3ABE00A8.nested.template.json",
     "aws:asset:property": "TemplateURL"
+   }
+  },
+  "amplifyDataAuthRolePolicy01567A5654": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "User"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Company"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Country"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Currency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Warehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Product"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Barcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Stock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "StockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Kardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "KardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Customer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Client"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "CustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "LoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Document"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Tax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "PaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Payment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "PosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "PosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "StartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Counter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Template"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "SessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "AuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "DocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "PrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "PrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listUsers"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteUser"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelDocumentConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelPaymentConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelStartingCashConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelPosOrderConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCompany"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy01/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy02C25443ED": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCompanies"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCompany"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCountries"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCountry"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCurrencies"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCurrency"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listWarehouses"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteWarehouse"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelStockConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelDocumentTypeConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelKardexConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listProductGroups"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteProductGroup"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelProductConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listProducts"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateProduct"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy02/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy03A575F389": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteProduct"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelBarcodeConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelStockControlConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelDocumentItemConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelProductCommentConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelProductTaxConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelKardexHistoryConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listBarcodes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteBarcode"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listStocks"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteStock"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listStockControls"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listStockControlByProductId"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteStockControl"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listProductComments"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteProductComment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listKardexes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listKardexByProductId"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listKardexByDocumentId"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listKardexByWarehouseId"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy03/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy0446CF675C": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteKardex"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listKardexHistories"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteKardexHistory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCustomers"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCustomer"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelCustomerDiscountConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelLoyaltyCardConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listClients"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteClient"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCustomerDiscounts"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCustomerDiscount"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listLoyaltyCards"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteLoyaltyCard"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentCategories"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentCategory"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy04/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy055DDCA1D5": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentCategory"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentTypes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocuments"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentByIdempotencyKey"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocument"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelDocumentItemPriceViewConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentItems"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelDocumentItemTaxConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentItemPriceViews"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentItemPriceView"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listTaxes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteTax"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy05/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy06D81AE1C4": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listProductTaxes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteProductTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentItemTaxes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentItemTax"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPaymentTypes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePaymentType"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPayments"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePayment"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPosOrders"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePosOrder"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelPosOrderItemConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPosOrderItems"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePosOrderItem"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy06/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy0797654307": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePosOrderItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listStartingCashes"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteStartingCash"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listCounters"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteCounter"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listApplicationProperties"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteApplicationProperty"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listZReports"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteZReport"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listTemplates"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteTemplate"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listSessionConfigs"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateSessionConfig"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy07/Resource"
+   }
+  },
+  "amplifyDataAuthRolePolicy0814B9E9B2": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "appsync:GraphQL",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteSessionConfig"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteApplicationSettings"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listAuditLogs"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteAuditLog"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listDocumentNumbers"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updateDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deleteDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreateDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdateDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeleteDocumentNumber"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPrintLabelRequests"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPrintLabelRequestByStatus"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePrintLabelRequest"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "ModelPrintLabelRequestItemConnection"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "getPrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPrintLabelRequestItems"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "createPrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "updatePrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Mutation",
+           "fieldName": "deletePrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Query",
+           "fieldName": "listPrintLabelRequestItemByRequestId"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onCreatePrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onUpdatePrintLabelRequestItem"
+          }
+         ]
+        },
+        {
+         "Fn::Sub": [
+          "arn:${AWS::Partition}:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+          {
+           "apiId": {
+            "Fn::GetAtt": [
+             "amplifyDataGraphQLAPI42A6FA33",
+             "ApiId"
+            ]
+           },
+           "typeName": "Subscription",
+           "fieldName": "onDeletePrintLabelRequestItem"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Roles": [
+     {
+      "Ref": "referencetoamplifynextnDallosandboxa64a8f19d2authNestedStackauthNestedStackResource11D70F1AOutputsamplifynextnDallosandboxa64a8f19d2authamplifyAuthauthenticatedUserRole4648311DRef"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/amplifyData/AuthRolePolicy08/Resource"
    }
   },
   "amplifyDataAmplifyCodegenAssetsAmplifyCodegenAssetsBucket9CCB4ACA": {
@@ -4507,7 +10456,7 @@
      }
     ],
     "SourceObjectKeys": [
-     "c0fec55a3a2d3acfd142894a4299a60ce5143641ea4d10e5d898a6674394e9f2.zip"
+     "a2228ac55ecbe882aaec7711441d901baf60cba407f38145671ce95dd779b17c.zip"
     ],
     "SourceMarkers": [
      {}
@@ -5012,7 +10961,7 @@
      }
     ],
     "SourceObjectKeys": [
-     "e19c8a7a6d7d66a06357896858617769b76f61b19d4db68c436cba11a885af7e.zip"
+     "d4ed782e96e78e0e0e81dc4c11719523bc7f0bf5d56ecbc93de25a7edcd33b51.zip"
     ],
     "SourceMarkers": [
      {}
@@ -5108,7 +11057,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11Qy27CMBD8lt6NS0N/IAS1hyJEidRrtDibYPAj9TpEUZR/rxxDaHuax2pHs5vwZLXiyyfoaCHKy0LJIx92SB7L3IO4sAOSbZ1ABh0VAzQN9Ubw4d1Bc/pWaSPXQMiyykzO5zZt5C+VixNqCEbayA/s2c4a3ICHPIZmlXmokdGKD+tWXNCHyY1F2FslRf+wbzqK0CFsF0OJjbK9RuN5HG1mgwEReuJpgJEp0McS+JBVZgs9ui90JK1huTS1Qm/NW2uED85Msmo2RyZB8+Fg1XTEhI+KkY2MSPMh906aeg8ONHp00/wuxjHI+OmsJW/1/O+Qeuexa6FCzwI6EkrytKNMyak6m07KPdTS1H/y/4Xunb3KEl38l7El8jM9X5NX/pLw5dOZpFy41nipkR8i/gDQ8oOpIQIAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11R227CMAz9lr2HjJX9QCnaXhhiVNprZVK3BHLp4pSqqvrvU5pRxp7OJbZ17CQ8Wa348gk6WojyslDyyIcdkscy9yAu7IBkWyeQQUfFAE1DvRF8eHfQnL5V2sg1ELKsMpPzuU0b+Ufl4oQa2M4a3ICHPI7KKnNXI5Og+fABBmos91ZJ0YeKR+Ng1dQ34b0ospHRig/rVlzQB/eXRbgXP+goQvjQXQwlNsr2Go3n8WkzGwyI0BNPA4xMgT6WwIesMlvo0X2hI2kNy6WpFXpr3lojfHBmklWzOTIizYfcO2nqPTjQ6NFNu9zEOAYZz5+15K2ePyFc4MZjjkKFDAV0JJTkaUeZklMsNsXNPdTS1A/z/w3dO3uVJbp4C2NL5Gd6viav/CXhy6czSblwrfFSIz9E/AHp4PioNgIAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "amplify-nextn-Dallo-sandbox-a64a8f19d2/data/CDKMetadata/Default"
@@ -5455,14 +11404,6 @@
     "Fn::GetAtt": [
      "amplifyDataAmplifyCodegenAssetsAmplifyCodegenAssetsDeploymentCustomResource1536MiB21775929",
      "DestinationBucketArn"
-    ]
-   }
-  },
-  "amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPIDefaultApiKeyBE472DBFApiKey": {
-   "Value": {
-    "Fn::GetAtt": [
-     "amplifyDataGraphQLAPIDefaultApiKey1C8ED374",
-     "ApiKey"
     ]
    }
   }

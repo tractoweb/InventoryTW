@@ -1,6 +1,5 @@
-"use client";
-import UploadCountry from "./upload-country";
+import { JsonImportRunner } from "../_components/json-import-runner";
 
-export default function JsonPaisesPage() {
-  return <UploadCountry />;
+export default function Page() {
+  return <JsonImportRunner kind="paises" title="Subir Países desde Country.json" />;
 }

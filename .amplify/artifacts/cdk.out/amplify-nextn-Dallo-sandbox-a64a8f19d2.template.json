@@ -41,7 +41,6 @@
     "awsAppsyncAuthenticationType",
     "awsAppsyncRegion",
     "amplifyApiModelSchemaS3Uri",
-    "awsAppsyncApiKey",
     "awsAppsyncAdditionalAuthenticationTypes"
    ]
   }
@@ -154,7 +153,7 @@
    }
   },
   "awsAppsyncAuthenticationType": {
-   "Value": "API_KEY"
+   "Value": "AWS_IAM"
   },
   "awsAppsyncRegion": {
    "Value": {
@@ -198,16 +197,8 @@
     ]
    }
   },
-  "awsAppsyncApiKey": {
-   "Value": {
-    "Fn::GetAtt": [
-     "data7552DF31",
-     "Outputs.amplifynextnDallosandboxa64a8f19d2dataamplifyDataGraphQLAPIDefaultApiKeyBE472DBFApiKey"
-    ]
-   }
-  },
   "awsAppsyncAdditionalAuthenticationTypes": {
-   "Value": "AMAZON_COGNITO_USER_POOLS,AWS_IAM"
+   "Value": "AMAZON_COGNITO_USER_POOLS"
   }
  },
  "Resources": {
@@ -308,7 +299,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/432b4854d305ee767118b016bf5c54e9ce0a3e4683dd38e2ecfee4800c7f0807.json"
+       "/a5416fe188b04e1d94e6ba694d12598216f2a51c9b35c6c62313fb06486caeea.json"
       ]
      ]
     }

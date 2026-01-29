@@ -3,7 +3,8 @@
 
 import 'server-only';
 
-import { ACCESS_LEVELS, amplifyClient } from '@/lib/amplify-config';
+import { ACCESS_LEVELS } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-server';
 import { requireSession } from '@/lib/session';
 
 /**
