@@ -37,8 +37,10 @@ frontend:
         - |
             set -e
             if [ "${DEPLOY_BACKEND:-0}" = "1" ]; then
-              APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-}}"
-              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-}}"
+              APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-${AMPLIFY_APPID:-}}}"
+              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-${BRANCH_NAME:-${BRANCH:-}}}}"
+
+              echo "[amplify] env: AWS_APP_ID=${AWS_APP_ID:-} AWS_BRANCH=${AWS_BRANCH:-} AMPLIFY_APP_ID=${AMPLIFY_APP_ID:-} AMPLIFY_BRANCH=${AMPLIFY_BRANCH:-}"
 
               if [ -z "$APP_ID" ] || [ -z "$BRANCH" ]; then
                 echo "[amplify] DEPLOY_BACKEND=1 but missing AMPLIFY_APP_ID/AWS_APP_ID or AMPLIFY_BRANCH/AWS_BRANCH"
@@ -46,8 +48,8 @@ frontend:
               fi
 
               echo "[amplify] pipeline-deploy (app-id=$APP_ID, branch=$BRANCH)"
-              # Don't use `npx ampx` (ampx isn't a package). Use backend-cli which provides the `ampx` binary.
-              npx --yes @aws-amplify/backend-cli@1.8.1 pipeline-deploy \
+              # Use pnpm dlx for better reliability (corepack bootstrap above).
+              ./pnpm dlx @aws-amplify/backend-cli@1.8.1 pipeline-deploy \
                 --app-id "$APP_ID" \
                 --branch "$BRANCH" \
                 --outputs-out-dir "$PWD" \
