@@ -10,7 +10,8 @@ frontend:
         # Requires environment variables AWS_APP_ID and AWS_BRANCH to be set in Amplify.
         - |
             if [ -n "$AWS_APP_ID" ] && [ -n "$AWS_BRANCH" ]; then
-              npx ampx pipeline-deploy --app-id "$AWS_APP_ID" --branch "$AWS_BRANCH"
+              # `ampx` is a binary shipped by `@aws-amplify/cli`. In CI, run it via pnpm dlx.
+              pnpm dlx --yes @aws-amplify/cli pipeline-deploy --app-id "$AWS_APP_ID" --branch "$AWS_BRANCH"
             else
               echo "[ampx] skipping pipeline-deploy (missing AWS_APP_ID/AWS_BRANCH)"
             fi
