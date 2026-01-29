@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Amplify Gen2 generated artifacts (never commit)
+/.amplify/
+/.amplify-hosting/
+/amplify_outputs.json
+/amplify_outputs.*.json
+
+# VS Code workspace files
+*.code-workspace

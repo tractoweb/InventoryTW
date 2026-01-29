@@ -32,6 +32,34 @@ frontend:
             fi
 
             ./pnpm --version
+        # Optional: deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json for this branch.
+        # Enabled only when DEPLOY_BACKEND=1 is set on the Amplify Console branch.
+        - |
+            set -e
+            if [ "${DEPLOY_BACKEND:-0}" = "1" ]; then
+              APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-}}"
+              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-}}"
+
+              if [ -z "$APP_ID" ] || [ -z "$BRANCH" ]; then
+                echo "[amplify] DEPLOY_BACKEND=1 but missing AMPLIFY_APP_ID/AWS_APP_ID or AMPLIFY_BRANCH/AWS_BRANCH"
+                exit 1
+              fi
+
+              echo "[amplify] pipeline-deploy (app-id=$APP_ID, branch=$BRANCH)"
+              # Don't use `npx ampx` (ampx isn't a package). Use backend-cli which provides the `ampx` binary.
+              npx --yes @aws-amplify/backend-cli@1.8.1 pipeline-deploy \
+                --app-id "$APP_ID" \
+                --branch "$BRANCH" \
+                --outputs-out-dir "$PWD" \
+                --outputs-version 1
+
+              if [ ! -f "$PWD/amplify_outputs.json" ]; then
+                echo "[amplify] pipeline-deploy completed but amplify_outputs.json was not generated"
+                exit 1
+              fi
+            else
+              echo "[amplify] DEPLOY_BACKEND!=1; skipping pipeline-deploy"
+            fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
         # Keep the pnpm store inside the workspace so Amplify cache can persist it
