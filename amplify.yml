@@ -7,13 +7,14 @@ frontend:
         # Pin pnpm to a known version for reproducible builds
         - corepack prepare pnpm@9.15.4 --activate
         # Deploy Amplify Gen2 backend (fullstack branching) when running in Amplify Hosting.
-        # Requires environment variables AWS_APP_ID and AWS_BRANCH to be set in Amplify.
+        # Opt-in via DEPLOY_BACKEND=1 to keep stable branches from failing due to backend/IAM setup.
+        # Also requires AWS_APP_ID and AWS_BRANCH to be set in Amplify.
         - |
-            if [ -n "$AWS_APP_ID" ] && [ -n "$AWS_BRANCH" ]; then
+            if [ "$DEPLOY_BACKEND" = "1" ] && [ -n "$AWS_APP_ID" ] && [ -n "$AWS_BRANCH" ]; then
               # `ampx` is a binary shipped by `@aws-amplify/cli`. In CI, run it via pnpm dlx.
               pnpm dlx --yes @aws-amplify/cli pipeline-deploy --app-id "$AWS_APP_ID" --branch "$AWS_BRANCH"
             else
-              echo "[ampx] skipping pipeline-deploy (missing AWS_APP_ID/AWS_BRANCH)"
+              echo "[ampx] skipping pipeline-deploy (set DEPLOY_BACKEND=1 and AWS_APP_ID/AWS_BRANCH to enable)"
             fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
