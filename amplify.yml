@@ -38,12 +38,12 @@ frontend:
             set -e
             if [ "${DEPLOY_BACKEND:-0}" = "1" ]; then
               APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-${AMPLIFY_APPID:-}}}"
-              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-${BRANCH_NAME:-${BRANCH:-}}}}"
+              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-${BRANCH_NAME:-${BRANCH:-prod}}}}"
 
               echo "[amplify] env: AWS_APP_ID=${AWS_APP_ID:-} AWS_BRANCH=${AWS_BRANCH:-} AMPLIFY_APP_ID=${AMPLIFY_APP_ID:-} AMPLIFY_BRANCH=${AMPLIFY_BRANCH:-}"
 
               if [ -z "$APP_ID" ] || [ -z "$BRANCH" ]; then
-                echo "[amplify] DEPLOY_BACKEND=1 but missing AMPLIFY_APP_ID/AWS_APP_ID or AMPLIFY_BRANCH/AWS_BRANCH"
+                echo "[amplify] DEPLOY_BACKEND=1 but missing APP_ID/BRANCH. Set AMPLIFY_APP_ID (and optionally AMPLIFY_BRANCH)."
                 exit 1
               fi
 
