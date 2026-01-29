@@ -3,17 +3,43 @@ frontend:
   phases:
     preBuild:
       commands:
-        - corepack enable
-        # Pin pnpm to a known version for reproducible builds
-        - corepack prepare pnpm@9.15.4 --activate
+        # Bootstrap pnpm in a way that's resilient to npm registry outages.
+        # Corepack sometimes fails with HTTP 503 when downloading pnpm from registry.npmjs.org.
+        - |
+            set -e
+            PNPM_VERSION="9.15.4"
+
+            corepack enable || true
+
+            echo "[pnpm] trying corepack pnpm@${PNPM_VERSION}"
+            if corepack prepare "pnpm@${PNPM_VERSION}" --activate; then
+              echo "[pnpm] corepack ok"
+              cat > pnpm <<'EOF'
+            #!/usr/bin/env bash
+            exec pnpm "$@"
+            EOF
+              chmod +x pnpm
+            else
+              echo "[pnpm] corepack failed; downloading pnpm binary from GitHub releases"
+              ARCH="x64"
+              case "$(uname -m)" in
+                x86_64|amd64) ARCH="x64" ;;
+                aarch64|arm64) ARCH="arm64" ;;
+              esac
+              URL="https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linuxstatic-${ARCH}"
+              curl -fsSL "$URL" -o pnpm
+              chmod +x pnpm
+            fi
+
+            ./pnpm --version
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
         # Keep the pnpm store inside the workspace so Amplify cache can persist it
-        - pnpm config set store-dir .pnpm-store
-        - pnpm install --frozen-lockfile
+        - ./pnpm config set store-dir .pnpm-store
+        - ./pnpm install --frozen-lockfile
     build:
       commands:
-        - pnpm run build
+        - ./pnpm run build
         # Persist SMTP config into the deployed Next server bundle for runtime.
         - node scripts/write-runtime-email-config.cjs
   artifacts:
