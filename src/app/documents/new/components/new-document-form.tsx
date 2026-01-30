@@ -249,9 +249,10 @@ export function NewDocumentForm() {
     async function boot() {
       setLoading(true);
       try {
+        const SUPPLIER_PICKER_LIMIT = 2000;
         const [countriesRes, suppliersRes, wh, dt, pgRes, curRes] = await Promise.all([
           getCountries(),
-          searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true }),
+          searchCustomersAction('', SUPPLIER_PICKER_LIMIT, { onlyEnabled: true, onlySuppliers: true }),
           getWarehouses({ onlyEnabled: true }),
           getDocumentTypes(),
           getProductGroups(),
@@ -340,7 +341,7 @@ export function NewDocumentForm() {
 
       const q = supplierQuery.trim();
       setSupplierSearching(true);
-      const res = await searchCustomersAction(q, 50, { onlyEnabled: true, onlySuppliers: true });
+      const res = await searchCustomersAction(q, 200, { onlyEnabled: true, onlySuppliers: true });
       setSupplierResults(res.data ?? []);
       setSupplierSearching(false);
     }, 200);
@@ -466,7 +467,7 @@ export function NewDocumentForm() {
       });
       if (!res.success || !res.idCustomer) throw new Error(res.error || 'No se pudo crear el proveedor');
 
-      const suppliersRes = await searchCustomersAction('', 50, { onlyEnabled: true, onlySuppliers: true });
+      const suppliersRes = await searchCustomersAction('', 2000, { onlyEnabled: true, onlySuppliers: true });
       setSupplierResults(suppliersRes.data ?? []);
       setCustomers((suppliersRes.data ?? []).map((c) => ({ value: Number(c.idCustomer), label: String(c.name) })));
       setCustomerId(res.idCustomer);
