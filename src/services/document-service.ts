@@ -77,20 +77,20 @@ export async function generateDocumentNumber(
   try {
     const { year, month } = getBogotaYearMonth(new Date());
 
-    // Buscar o crear registro de número
-    const { data: existing } = await amplifyClient.models.DocumentNumber.list({
-      filter: {
-        documentTypeId: { eq: Number(documentTypeId) },
-        warehouseId: { eq: Number(warehouseId) },
-        year: { eq: year },
-        month: { eq: month },
-      },
+    // IMPORTANT:
+    // In the current Amplify schema, DocumentNumber identifier is:
+    //   (documentTypeId, warehouseId, year)
+    // Month is a regular field. Filtering by month and then creating a new row per month
+    // will FAIL (same identifier) when a new month starts.
+    const { data: existing } = await amplifyClient.models.DocumentNumber.get({
+      documentTypeId: Number(documentTypeId),
+      warehouseId: Number(warehouseId),
+      year,
     });
 
-    let counter = existing?.[0] as any;
+    let counter = existing as any;
 
     if (!counter) {
-      // Crear nuevo contador
       const result = await amplifyClient.models.DocumentNumber.create({
         documentTypeId: Number(documentTypeId),
         warehouseId: Number(warehouseId),
@@ -101,15 +101,17 @@ export async function generateDocumentNumber(
       });
       counter = result.data as any;
     } else {
-      // Incrementar secuencia
+      const nextSeq = (Number((counter as any).sequence) || 0) + 1;
+      const nextLast = (Number((counter as any).lastNumber) || 0) + 1;
       counter = (
         await amplifyClient.models.DocumentNumber.update({
           documentTypeId: Number(documentTypeId),
           warehouseId: Number(warehouseId),
           year,
+          // keep month updated for reporting/visibility, but do NOT treat it as part of the key
           month,
-          sequence: ((counter as any).sequence || 0) + 1,
-          lastNumber: ((counter as any).lastNumber || 0) + 1,
+          sequence: nextSeq,
+          lastNumber: nextLast,
         })
       ).data as any;
     }
@@ -149,13 +151,13 @@ export async function createDocument(
 }> {
   try {
     // Generar número de documento
-    const { success: genSuccess, number } = await generateDocumentNumber(
+    const gen = await generateDocumentNumber(
       Number(input.documentTypeId),
       Number(input.warehouseId)
     );
 
-    if (!genSuccess || !number) {
-      return { success: false, error: 'Failed to generate document number' };
+    if (!gen.success || !gen.number) {
+      return { success: false, error: gen.error ?? 'Failed to generate document number' };
     }
 
     // Obtener tipo de documento para conocer dirección de stock
@@ -203,7 +205,7 @@ export async function createDocument(
     }
     const docPayload: any = {
       documentId: input.documentId,
-      number: number,
+      number: gen.number,
       userId: Number(input.userId),
       customerId: input.customerId !== undefined ? Number(input.customerId) : undefined,
       clientId: input.clientId !== undefined ? Number(input.clientId) : undefined,
@@ -405,7 +407,7 @@ export async function createDocument(
     return {
       success: true,
       documentId: String((docResult.data as any)?.documentId ?? input.documentId),
-      documentNumber: number,
+      documentNumber: String((docResult.data as any)?.number ?? gen.number ?? ''),
     };
   } catch (error) {
     return {
