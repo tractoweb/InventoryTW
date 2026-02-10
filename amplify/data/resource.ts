@@ -548,5 +548,10 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'apiKey',
+    apiKeyAuthorizationMode: {
+      // Prevent outages caused by short-lived AppSync API keys (commonly ~7 days by default).
+      // This does NOT change tables or delete data; it only extends the API key validity.
+      expiresInDays: 365,
+    },
   },
 });
