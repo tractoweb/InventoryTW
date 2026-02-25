@@ -36,34 +36,27 @@ import type { Warehouse } from "@/actions/get-warehouses";
 import type { Tax } from "@/actions/get-taxes";
 import { useDebounce } from "@/hooks/use-debounce";
 import { checkReferenceExistence } from "@/actions/check-reference-existence";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 
-function parseMoneyIntOptional(input: unknown): number | undefined {
-  const raw = String(input ?? "").trim();
-  if (!raw) return undefined;
-  const digits = raw.replace(/[^0-9]/g, "");
-  if (!digits) return undefined;
-  const n = Number.parseInt(digits, 10);
-  if (!Number.isFinite(n)) return undefined;
-  return Math.max(0, n);
-}
-
-function formatMoneyInt(value: unknown): string {
-  const n = Math.trunc(Number(value ?? 0));
-  const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+function formatMoneyDecimal(value: unknown, maxFractionDigits = 5): string {
+  const n = Number(value ?? 0);
+  const safe = Number.isFinite(n) ? n : 0;
   try {
     return new Intl.NumberFormat("es-CO", {
-      maximumFractionDigits: 0,
+      maximumFractionDigits: maxFractionDigits,
       minimumFractionDigits: 0,
     }).format(safe);
   } catch {
-    return String(safe).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return String(safe);
   }
 }
 
-function roundMoneyInt(value: number): number {
+function roundMoney(value: number, maxFractionDigits = 5): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.round(value));
+  const safe = Math.max(0, value);
+  const factor = Math.pow(10, Math.max(0, Math.min(8, Math.trunc(maxFractionDigits))));
+  return Math.round(safe * factor) / factor;
 }
 
 const formSchema = z.object({
@@ -75,8 +68,8 @@ const formSchema = z.object({
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
   allowUndefinedPricing: z.boolean().default(false),
-  price: z.preprocess(parseMoneyIntOptional, z.number().int().min(0).optional()),
-  cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(0).optional()),
+  price: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
+  cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
   markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
   isTaxInclusivePrice: z.boolean().default(true),
   taxes: z.array(z.coerce.number()).optional(),
@@ -211,7 +204,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
     const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
     const basePlusMarkup = cost * (1 + safeMarkupRate);
     const newPrice = isTaxInclusive ? basePlusMarkup * (1 + taxRate) : basePlusMarkup;
-    return roundMoneyInt(newPrice);
+    return roundMoney(newPrice);
   }, []);
 
   const calculateCost = useCallback((price: number, markupRate: number, taxRate: number, isTaxInclusive: boolean) => {
@@ -219,7 +212,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
     const basePlusMarkup = isTaxInclusive ? price / (1 + taxRate) : price;
     const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
     const newCost = basePlusMarkup / (1 + safeMarkupRate);
-    return roundMoneyInt(newCost);
+    return roundMoney(newCost);
   }, []);
 
   useEffect(() => {
@@ -233,7 +226,7 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
     const currentPrice = wPrice === null || wPrice === undefined ? null : Number(wPrice);
 
     const nextValue = (v: number | null) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.5;
+    const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.00001;
 
     if (lastEdited === "price") {
       if (currentPrice === null || !Number.isFinite(currentPrice) || currentPrice <= 0) {
@@ -487,13 +480,12 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                         <FormLabel>Precio de Venta</FormLabel>
                         <FormControl>
                             <Input
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                        disabled={Boolean(wAllowUndefinedPricing)}
-                              value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                              inputMode="decimal"
+                              disabled={Boolean(wAllowUndefinedPricing)}
+                              value={field.value === null || field.value === undefined ? "" : formatMoneyDecimal(field.value)}
                               onChange={(e) => {
                                 setLastEdited("price");
-                                field.onChange(parseMoneyIntOptional(e.target.value));
+                                field.onChange(parseDecimalLooseOptional(e.target.value));
                               }}
                             />
                         </FormControl>
@@ -509,13 +501,12 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                         <FormLabel>Costo</FormLabel>
                         <FormControl>
                     <Input
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                    disabled={Boolean(wAllowUndefinedPricing)}
-                      value={field.value === null || field.value === undefined ? "" : formatMoneyInt(field.value)}
+                      inputMode="decimal"
+                      disabled={Boolean(wAllowUndefinedPricing)}
+                      value={field.value === null || field.value === undefined ? "" : formatMoneyDecimal(field.value)}
                       onChange={(e) => {
                         setLastEdited("cost");
-                        field.onChange(parseMoneyIntOptional(e.target.value));
+                        field.onChange(parseDecimalLooseOptional(e.target.value));
                       }}
                     />
                         </FormControl>

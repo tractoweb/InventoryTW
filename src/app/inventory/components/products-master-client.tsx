@@ -35,6 +35,8 @@ import { ScanLine } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
+import { createProductGroupAction } from "@/actions/create-product-group";
+import { getProductGroups } from "@/actions/get-product-groups";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -54,6 +56,12 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
   const { toast } = useToast();
 
   const productsCatalog = useProductsCatalog();
+
+  const [productGroupsState, setProductGroupsState] = React.useState<ProductGroup[]>(productGroups ?? []);
+
+  React.useEffect(() => {
+    setProductGroupsState(productGroups ?? []);
+  }, [productGroups]);
 
   const [selectedGroupId, setSelectedGroupId] = React.useState<number | null>(
     typeof initialGroupId === "number" && Number.isFinite(initialGroupId) ? initialGroupId : null
@@ -80,14 +88,18 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
   const [groupsOpen, setGroupsOpen] = React.useState(false);
   const [scanOpen, setScanOpen] = React.useState(false);
 
+  const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
+  const [createGroupName, setCreateGroupName] = React.useState("");
+  const [createGroupLoading, setCreateGroupLoading] = React.useState(false);
+
   const groupNameById = React.useMemo(() => {
     const map = new Map<number, string>();
-    for (const g of productGroups ?? []) {
+    for (const g of productGroupsState ?? []) {
       if (!Number.isFinite(Number(g.id))) continue;
       map.set(Number(g.id), String(g.name ?? ""));
     }
     return map;
-  }, [productGroups]);
+  }, [productGroupsState]);
 
   function normalizeLoose(value: unknown): string {
     return String(value ?? "")
@@ -129,7 +141,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
   }, [productsCatalog.status, productsCatalog.error, productsCatalog.products, groupNameById, refreshNonce]);
 
   const rootGroups = React.useMemo(() => {
-    const all = productGroups ?? [];
+    const all = productGroupsState ?? [];
     const childrenByParent = new Map<number | null, ProductGroup[]>();
 
     for (const g of all) {
@@ -148,7 +160,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       childrenByParent,
       roots: childrenByParent.get(null) ?? [],
     };
-  }, [productGroups]);
+  }, [productGroupsState]);
 
   const filteredRoots = React.useMemo(() => {
     const q = String(dLeftQuery ?? "").trim().toLowerCase();
@@ -281,7 +293,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
   const tableMeta = React.useMemo(
     () => ({
-      productGroups,
+      productGroups: productGroupsState,
       warehouses,
       taxes,
       handleDeleteProduct,
@@ -293,7 +305,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
         setDetailsOpen(true);
       },
     }),
-    [productGroups, warehouses, taxes, handleDeleteProduct, accessLevel, handleSendToLabels]
+    [productGroupsState, warehouses, taxes, handleDeleteProduct, accessLevel, handleSendToLabels]
   );
 
   function GroupNode({ group, depth }: { group: ProductGroup; depth: number }) {
@@ -405,6 +417,80 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => setGroupsOpen(true)}>
             Grupos
           </Button>
+
+          <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                Nuevo grupo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Crear grupo</DialogTitle>
+                <DialogDescription>Ingresa el nombre del nuevo grupo de productos.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3">
+                <Input
+                  placeholder="Nombre del grupo"
+                  value={createGroupName}
+                  onChange={(e) => setCreateGroupName(e.target.value)}
+                  disabled={createGroupLoading}
+                  autoFocus
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCreateGroupOpen(false);
+                      setCreateGroupName("");
+                    }}
+                    disabled={createGroupLoading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      const name = String(createGroupName ?? "").trim();
+                      if (!name) {
+                        toast({ variant: "destructive", title: "Nombre requerido", description: "Ingresa un nombre para el grupo." });
+                        return;
+                      }
+
+                      setCreateGroupLoading(true);
+                      try {
+                        const res = await createProductGroupAction({ name });
+                        if (!res.success) {
+                          toast({ variant: "destructive", title: "Error al crear", description: res.error ?? "No se pudo crear el grupo." });
+                          return;
+                        }
+
+                        const refreshed = await getProductGroups();
+                        if (refreshed.data) {
+                          setProductGroupsState(refreshed.data);
+                        }
+
+                        toast({ title: "Grupo creado", description: `Se creó el grupo: ${name}` });
+                        setCreateGroupOpen(false);
+                        setCreateGroupName("");
+                      } catch (e: any) {
+                        toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo crear el grupo." });
+                      } finally {
+                        setCreateGroupLoading(false);
+                      }
+                    }}
+                    disabled={createGroupLoading}
+                  >
+                    {createGroupLoading ? "Creando…" : "Crear"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Input
             placeholder="Buscar productos (nombre, código o barcode)…"
             value={query}
@@ -443,7 +529,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
           {selectedGroupId ? (
             <Button variant="outline" onClick={() => setSelectedGroupId(null)} disabled={loading}>
-              Quitar filtro: {productGroups.find((g) => g.id === selectedGroupId)?.name ?? `#${selectedGroupId}`}
+              Quitar filtro: {productGroupsState.find((g) => g.id === selectedGroupId)?.name ?? `#${selectedGroupId}`}
             </Button>
           ) : null}
         </div>
@@ -459,7 +545,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
             </DialogHeader>
               <AddProductForm
                 setOpen={setAddModalOpen}
-                productGroups={productGroups || []}
+                productGroups={productGroupsState || []}
                 warehouses={warehouses}
                 taxes={taxes}
                 currentUserName={currentUserName}
@@ -506,7 +592,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
                 <TabsContent value="edit">
                   <EditProductForm
                     productId={detailsProductId}
-                    productGroups={productGroups}
+                    productGroups={productGroupsState}
                     taxes={taxes}
                     warehouses={warehouses}
                     currentUserName={currentUserName}

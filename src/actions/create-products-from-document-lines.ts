@@ -6,6 +6,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { listAllPages } from '@/services/amplify-list-all';
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 const CreateProductsFromDocumentLinesSchema = z.object({
   lines: z
@@ -20,8 +21,8 @@ const CreateProductsFromDocumentLinesSchema = z.object({
         isService: z.boolean().optional(),
         isEnabled: z.boolean().optional(),
         isTaxInclusivePrice: z.boolean().optional(),
-        cost: z.coerce.number().min(0),
-        price: z.coerce.number().min(0),
+        cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
+        price: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
         markup: z.coerce.number().min(0).optional(),
       })
     )

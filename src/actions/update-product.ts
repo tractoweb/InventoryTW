@@ -10,14 +10,15 @@ import { listAllPages } from "@/services/amplify-list-all";
 import { allocateCounterRange, ensureCounterAtLeast } from "@/lib/allocate-counter-range";
 import { writeAuditLog } from "@/services/audit-log-service";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 const UpdateProductSchema = z.object({
   id: z.number(),
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
   description: z.string().optional(),
   allowUndefinedPricing: z.boolean().optional(),
-  price: z.coerce.number().int().min(0, "El precio no puede ser negativo."),
-  cost: z.coerce.number().int().min(0, "El costo no puede ser negativo."),
+  price: z.preprocess(parseDecimalLooseOptional, z.number().min(0, "El precio no puede ser negativo.")),
+  cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0, "El costo no puede ser negativo.")),
   markup: z.coerce.number().min(0).optional(),
   isTaxInclusivePrice: z.boolean().optional(),
   measurementunit: z.string().optional(),

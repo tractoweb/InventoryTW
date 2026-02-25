@@ -11,12 +11,13 @@ import { listAllPages } from '@/services/amplify-list-all';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 const CreateProductSchema = z.object({
   name: z.string().min(1),
   code: z.string().optional(),
-  cost: z.coerce.number().min(0).optional(),
-  price: z.coerce.number().min(0).optional(),
+  cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
+  price: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
   productGroupId: z.coerce.number().optional(),
   currencyId: z.coerce.number().optional(),
   measurementUnit: z.string().optional(),

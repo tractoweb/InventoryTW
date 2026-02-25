@@ -55,6 +55,7 @@ import { getProductDetails } from "@/actions/get-product-details";
 import { deleteDocumentAction } from "@/actions/delete-document";
 import { updateDocumentMetadataAction } from "@/actions/update-document-metadata";
 import { updateDocumentItemsAction } from "@/actions/update-document-items";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 import { searchProductsAction, type ProductSearchResult } from "@/actions/search-products";
 import { voidDocumentAction } from "@/actions/void-document";
 import { updateDocumentPaidStatusAction } from "@/actions/update-document-paid-status";
@@ -1261,14 +1262,15 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                   <div className="space-y-1">
                                     <Label className="text-xs">Cantidad</Label>
                                     <Input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={String(it.quantity)}
                                       disabled={editSaving || it.remove}
                                       onChange={(e) => {
-                                        const next = Number(e.target.value);
+                                        const next = parseDecimalLooseOptional(e.target.value);
+                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : 0;
                                         setEditItems((prev) =>
-                                          prev.map((p) => (p.key === it.key ? { ...p, quantity: Number.isFinite(next) ? next : 0 } : p))
+                                          prev.map((p) => (p.key === it.key ? { ...p, quantity: safeNext } : p))
                                         );
                                       }}
                                       className="w-28"
@@ -1278,14 +1280,15 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                   <div className="space-y-1">
                                     <Label className="text-xs">Precio</Label>
                                     <Input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={String(it.price)}
                                       disabled={editSaving || it.remove}
                                       onChange={(e) => {
-                                        const next = Number(e.target.value);
+                                        const next = parseDecimalLooseOptional(e.target.value);
+                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : 0;
                                         setEditItems((prev) =>
-                                          prev.map((p) => (p.key === it.key ? { ...p, price: Number.isFinite(next) ? next : 0 } : p))
+                                          prev.map((p) => (p.key === it.key ? { ...p, price: safeNext } : p))
                                         );
                                       }}
                                       className="w-28"

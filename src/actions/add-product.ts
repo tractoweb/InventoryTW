@@ -14,6 +14,7 @@ import { allocateCounterRange, ensureCounterAtLeast } from "@/lib/allocate-count
 import { listAllPages } from "@/services/amplify-list-all";
 import { inventoryService } from "@/services/inventory-service";
 import { writeAuditLog } from "@/services/audit-log-service";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 const AddProductSchema = z.object({
   name: z.string().min(2, "El nombre del producto es obligatorio."),
   code: z.string().optional(),
@@ -23,8 +24,8 @@ const AddProductSchema = z.object({
   isEnabled: z.boolean().default(true),
   isUsingDefaultQuantity: z.boolean().default(true),
   allowUndefinedPricing: z.boolean().default(false),
-  price: z.coerce.number().int().min(0).optional(),
-  cost: z.coerce.number().int().min(0).optional(),
+  price: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
+  cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
   markup: z.coerce.number().min(0, "El margen no puede ser negativo.").default(40),
   isTaxInclusivePrice: z.boolean().default(true),
   taxes: z.array(z.coerce.number()).optional(),

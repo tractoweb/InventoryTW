@@ -42,6 +42,7 @@ import {
 import type { Warehouse } from "@/actions/get-warehouses";
 import type { ProductGroup } from "@/actions/get-product-groups";
 import type { Tax } from "@/actions/get-taxes";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 type EditProductFormProps = {
   productId: number | null;
@@ -52,32 +53,24 @@ type EditProductFormProps = {
   onClose: () => void;
 };
 
-function parseMoneyIntOptional(input: unknown): number | undefined {
-    const raw = String(input ?? "").trim();
-    if (!raw) return undefined;
-    const digits = raw.replace(/[^0-9]/g, "");
-    if (!digits) return undefined;
-    const n = Number.parseInt(digits, 10);
-    if (!Number.isFinite(n)) return undefined;
-    return Math.max(0, n);
-}
-
-function formatMoneyInt(value: unknown): string {
-    const n = Math.trunc(Number(value ?? 0));
-    const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+function formatMoneyDecimal(value: unknown, maxFractionDigits = 5): string {
+    const n = Number(value ?? 0);
+    const safe = Number.isFinite(n) ? n : 0;
     try {
         return new Intl.NumberFormat("es-CO", {
-            maximumFractionDigits: 0,
+            maximumFractionDigits: maxFractionDigits,
             minimumFractionDigits: 0,
         }).format(safe);
     } catch {
-        return String(safe).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return String(safe);
     }
 }
 
-function roundMoneyInt(value: number): number {
+function roundMoney(value: number, maxFractionDigits = 5): number {
     if (!Number.isFinite(value)) return 0;
-    return Math.max(0, Math.round(value));
+    const safe = Math.max(0, value);
+    const factor = Math.pow(10, Math.max(0, Math.min(8, Math.trunc(maxFractionDigits))));
+    return Math.round(safe * factor) / factor;
 }
 
 function parseNumberOptional(input: unknown): number | undefined {
@@ -94,8 +87,8 @@ const formSchema = z.object({
   code: z.string().optional(),
   description: z.string().optional(),
         allowUndefinedPricing: z.boolean().default(false),
-    price: z.preprocess(parseMoneyIntOptional, z.number().int().min(0, "El precio no puede ser negativo.").optional()),
-    cost: z.preprocess(parseMoneyIntOptional, z.number().int().min(0, "El costo no puede ser negativo.").optional()),
+    price: z.preprocess(parseDecimalLooseOptional, z.number().min(0, "El precio no puede ser negativo.").optional()),
+    cost: z.preprocess(parseDecimalLooseOptional, z.number().min(0, "El costo no puede ser negativo.").optional()),
         markup: z.preprocess(parseNumberOptional, z.number().min(0, "El margen no puede ser negativo.").optional()),
     isTaxInclusivePrice: z.boolean().default(true),
   measurementunit: z.string().min(1, "La posición es obligatoria."),
@@ -194,7 +187,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
             setPriceText("");
             return;
         }
-        setPriceText(formatMoneyInt(wPrice));
+        setPriceText(formatMoneyDecimal(wPrice));
     }, [wPrice, wAllowUndefinedPricing]);
 
     useEffect(() => {
@@ -218,7 +211,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
             setCostText("");
             return;
         }
-        setCostText(formatMoneyInt(wCost));
+        setCostText(formatMoneyDecimal(wCost));
     }, [wCost, wAllowUndefinedPricing]);
 
     useEffect(() => {
@@ -262,7 +255,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
         const basePlusMarkup = cost * (1 + safeMarkupRate);
         const newPrice = isTaxInclusive ? basePlusMarkup * (1 + taxRate) : basePlusMarkup;
-        return roundMoneyInt(newPrice);
+        return roundMoney(newPrice);
     }, []);
 
     const calculateCost = useCallback((price: number, markupRate: number, taxRate: number, isTaxInclusive: boolean) => {
@@ -270,7 +263,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         const basePlusMarkup = isTaxInclusive ? price / (1 + taxRate) : price;
         const safeMarkupRate = Number.isFinite(markupRate) ? Math.max(0, markupRate) : 0;
         const newCost = basePlusMarkup / (1 + safeMarkupRate);
-        return roundMoneyInt(newCost);
+        return roundMoney(newCost);
     }, []);
 
     useEffect(() => {
@@ -287,7 +280,7 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
         const currentPrice = wPrice === null || wPrice === undefined ? null : Number(wPrice);
 
         const nextValue = (v: number | null) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-        const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.5;
+        const nearlyEqual = (a: number | null, b: number | null) => Math.abs(nextValue(a) - nextValue(b)) < 0.00001;
 
         if (lastEdited === "price") {
             if (currentPrice === null || !Number.isFinite(currentPrice)) return;
@@ -395,8 +388,8 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                 });
 
                 // Sync input text to loaded values (formatted by default).
-                setPriceText(resetPrice === null || resetPrice === undefined ? "" : formatMoneyInt(resetPrice));
-                setCostText(resetCost === null || resetCost === undefined ? "" : formatMoneyInt(resetCost));
+                setPriceText(resetPrice === null || resetPrice === undefined ? "" : formatMoneyDecimal(resetPrice));
+                setCostText(resetCost === null || resetCost === undefined ? "" : formatMoneyDecimal(resetCost));
                 setMarkupText(resetMarkup === null || resetMarkup === undefined ? "" : String(resetMarkup));
             })
             .finally(() => setIsLoading(false));
@@ -805,13 +798,12 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                 <FormLabel>Precio</FormLabel>
                                 <FormControl>
                                     <Input
-                                                                            inputMode="numeric"
-                                                                            pattern="[0-9]*"
+                                                                            inputMode="decimal"
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
                                                                             value={priceText}
                                                                             onFocus={() => {
                                                                                 priceFocusedRef.current = true;
-                                                                                const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
+                                                                                const current = field.value === null || field.value === undefined ? "" : String(field.value).replace(".", ",");
                                                                                 setPriceText(current);
                                                                             }}
                                                                             onBlur={() => {
@@ -819,20 +811,15 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                                 field.onBlur();
                                                                                 const v = form.getValues("price" as any) as any;
                                                                                 if (v === null || v === undefined || String(v).trim() === "") setPriceText("");
-                                                                                else setPriceText(formatMoneyInt(v));
+                                                                                else setPriceText(formatMoneyDecimal(v));
                                                                             }}
-                                                                                                                                                        onChange={(e) => {
-                                                                                                                                                            setLastEdited("price");
-                                                                                                                                                            const raw = e.target.value;
-                                                                                                                                                            const digits = String(raw ?? "").replace(/[^0-9]/g, "");
-                                                                                                                                                            setPriceText(digits);
-                                                                                                                                                            if (digits.trim() === "") {
-                                                                                                                                                                field.onChange(undefined);
-                                                                                                                                                                return;
-                                                                                                                                                            }
-                                                                                                                                                            const n = Number.parseInt(digits, 10);
-                                                                                                                                                            field.onChange(Number.isFinite(n) ? Math.max(0, n) : undefined);
-                                                                                                                                                        }}
+                                                                            onChange={(e) => {
+                                                                                setLastEdited("price");
+                                                                                const raw = String(e.target.value ?? "");
+                                                                                setPriceText(raw);
+                                                                                const n = parseDecimalLooseOptional(raw);
+                                                                                field.onChange(n === undefined ? undefined : Math.max(0, n));
+                                                                            }}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -847,13 +834,12 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                 <FormLabel>Costo</FormLabel>
                                 <FormControl>
                                     <Input
-                                                                            inputMode="numeric"
-                                                                            pattern="[0-9]*"
+                                                                            inputMode="decimal"
                                                                             disabled={Boolean(wAllowUndefinedPricing)}
                                                                             value={costText}
                                                                             onFocus={() => {
                                                                                 costFocusedRef.current = true;
-                                                                                const current = field.value === null || field.value === undefined ? "" : String(Math.trunc(Number(field.value)));
+                                                                                const current = field.value === null || field.value === undefined ? "" : String(field.value).replace(".", ",");
                                                                                 setCostText(current);
                                                                             }}
                                                                             onBlur={() => {
@@ -861,20 +847,15 @@ export function EditProductForm({ productId, productGroups, taxes, warehouses, c
                                                                                 field.onBlur();
                                                                                 const v = form.getValues("cost" as any) as any;
                                                                                 if (v === null || v === undefined || String(v).trim() === "") setCostText("");
-                                                                                else setCostText(formatMoneyInt(v));
+                                                                                else setCostText(formatMoneyDecimal(v));
                                                                             }}
-                                                                                                                                                        onChange={(e) => {
-                                                                                                                                                            setLastEdited("cost");
-                                                                                                                                                            const raw = e.target.value;
-                                                                                                                                                            const digits = String(raw ?? "").replace(/[^0-9]/g, "");
-                                                                                                                                                            setCostText(digits);
-                                                                                                                                                            if (digits.trim() === "") {
-                                                                                                                                                                field.onChange(undefined);
-                                                                                                                                                                return;
-                                                                                                                                                            }
-                                                                                                                                                            const n = Number.parseInt(digits, 10);
-                                                                                                                                                            field.onChange(Number.isFinite(n) ? Math.max(0, n) : undefined);
-                                                                                                                                                        }}
+                                                                            onChange={(e) => {
+                                                                                setLastEdited("cost");
+                                                                                const raw = String(e.target.value ?? "");
+                                                                                setCostText(raw);
+                                                                                const n = parseDecimalLooseOptional(raw);
+                                                                                field.onChange(n === undefined ? undefined : Math.max(0, n));
+                                                                            }}
                                     />
                                 </FormControl>
                                 <FormMessage />

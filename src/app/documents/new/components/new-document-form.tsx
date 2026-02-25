@@ -61,6 +61,7 @@ import { searchCustomersAction, type CustomerSearchResult } from '@/actions/sear
 import { getProductGroups, type ProductGroup } from '@/actions/get-product-groups';
 import { getCurrencies, type CurrencyListItem } from '@/actions/get-currencies';
 import { createProductsFromDocumentLinesAction } from '@/actions/create-products-from-document-lines';
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 import {
   isStockDirectionIn,
@@ -909,9 +910,18 @@ export function NewDocumentForm() {
           <div className="grid gap-2">
             <Label>IVA (%)</Label>
             <Input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={ivaPercentage}
-              onChange={(e) => setIvaPercentage(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  setIvaPercentage('');
+                  return;
+                }
+                const n = parseDecimalLooseOptional(raw);
+                setIvaPercentage(n === undefined ? 0 : n);
+              }}
             />
             <div className="flex items-center gap-2">
               <Checkbox checked={ivaIncludedInCost} onCheckedChange={(v) => setIvaIncludedInCost(Boolean(v))} />
@@ -922,9 +932,18 @@ export function NewDocumentForm() {
           <div className="grid gap-2">
             <Label>Margen global (%)</Label>
             <Input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={globalMargin}
-              onChange={(e) => setGlobalMargin(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  setGlobalMargin('');
+                  return;
+                }
+                const n = parseDecimalLooseOptional(raw);
+                setGlobalMargin(n === undefined ? 0 : n);
+              }}
             />
             <div className="text-xs text-muted-foreground">Se usa como valor inicial por item.</div>
           </div>
@@ -958,9 +977,13 @@ export function NewDocumentForm() {
               <div className="md:col-span-2">
                 <Label>Costo</Label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={String(f.cost)}
-                  onChange={(e) => updateFreightRate(f.id, { cost: Number(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const n = parseDecimalLooseOptional(e.target.value);
+                    updateFreightRate(f.id, { cost: Number.isFinite(n) ? (n as number) : 0 });
+                  }}
                 />
               </div>
               <div className="md:col-span-1 flex items-end">
@@ -1037,29 +1060,41 @@ export function NewDocumentForm() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
                             value={String(it.quantity)}
-                            onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) || 0 })}
+                            onChange={(e) => {
+                              const n = parseDecimalLooseOptional(e.target.value);
+                              updateItem(idx, { quantity: Number.isFinite(n) ? (n as number) : 0 });
+                            }}
                           />
                         </TableCell>
                         <TableCell className="text-right">
                           <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             min={0}
                             className="w-32 text-right"
                             value={String(it.totalCost)}
-                            onChange={(e) => updateItem(idx, { totalCost: Number(e.target.value) || 0 })}
+                            onChange={(e) => {
+                              const n = parseDecimalLooseOptional(e.target.value);
+                              updateItem(idx, { totalCost: Number.isFinite(n) ? (n as number) : 0 });
+                            }}
                           />
                         </TableCell>
                         <TableCell className="text-right">
                           <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
                             value={String(it.discountPercentage)}
-                            onChange={(e) => updateItem(idx, { discountPercentage: Number(e.target.value) || 0 })}
+                            onChange={(e) => {
+                              const n = parseDecimalLooseOptional(e.target.value);
+                              updateItem(idx, { discountPercentage: Number.isFinite(n) ? (n as number) : 0 });
+                            }}
                             disabled={!discountsEnabled}
                           />
                         </TableCell>
@@ -1085,11 +1120,15 @@ export function NewDocumentForm() {
                         <TableCell className="text-right">{formatMoney(li?.unitFinalCost ?? 0)}</TableCell>
                         <TableCell className="text-right">
                           <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
                             value={String(it.marginPercentage)}
-                            onChange={(e) => updateItem(idx, { marginPercentage: Number(e.target.value) || 0 })}
+                            onChange={(e) => {
+                              const n = parseDecimalLooseOptional(e.target.value);
+                              updateItem(idx, { marginPercentage: Number.isFinite(n) ? (n as number) : 0 });
+                            }}
                           />
                         </TableCell>
                         <TableCell className="text-right">{formatMoney(li?.unitSalePrice ?? 0)}</TableCell>

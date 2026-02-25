@@ -13,6 +13,7 @@ import { listAllPages } from '@/services/amplify-list-all';
 import { writeAuditLog } from '@/services/audit-log-service';
 import { createDocument } from '@/services/document-service';
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 async function seedCounterFromExistingMax(counterName: string, entity: 'Document' | 'DocumentItem') {
   const all =
@@ -63,9 +64,9 @@ async function allocateFreeDocumentItemIds(count: number): Promise<number[]> {
 
 const DocumentItemInputSchema = z.object({
   productId: z.coerce.number().min(1),
-  quantity: z.coerce.number().positive(),
-  price: z.coerce.number().min(0),
-  productCost: z.coerce.number().min(0).optional(),
+  quantity: z.preprocess(parseDecimalLooseOptional, z.number().positive()),
+  price: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
+  productCost: z.preprocess(parseDecimalLooseOptional, z.number().min(0).optional()),
 });
 
 const CreateDocumentInputSchema = z.object({

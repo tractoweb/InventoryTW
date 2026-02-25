@@ -8,6 +8,7 @@ import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-count
 import { listAllPages } from '@/services/amplify-list-all';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
+import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 const UpdateDocumentItemsSchema = z.object({
   documentId: z.coerce.number().min(1),
@@ -16,8 +17,8 @@ const UpdateDocumentItemsSchema = z.object({
       z.object({
         documentItemId: z.coerce.number().min(1).optional(),
         productId: z.coerce.number().min(1).optional(),
-        quantity: z.coerce.number().min(0),
-        price: z.coerce.number().min(0),
+        quantity: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
+        price: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
         remove: z.coerce.boolean().optional(),
       })
     )
