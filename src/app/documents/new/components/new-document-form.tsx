@@ -77,6 +77,15 @@ import {
 
 type SelectOption = { value: number; label: string };
 
+function toUserDecimalText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (value === '') return '';
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return '';
+  // Use comma for decimals to match es-CO input habits.
+  return String(n).replace('.', ',');
+}
+
 function stockDirectionLabelEs(stockDirection: unknown): string {
   if (isStockDirectionIn(stockDirection)) return 'Entrada (compra)';
   if (isStockDirectionOut(stockDirection)) return 'Salida (venta)';
@@ -183,10 +192,35 @@ export function NewDocumentForm() {
   const [discountsEnabled, setDiscountsEnabled] = React.useState(true);
   const [globalMargin, setGlobalMargin] = React.useState<number | ''>(40);
 
+  const [ivaPercentageText, setIvaPercentageText] = React.useState<string>(toUserDecimalText(ivaPercentage));
+  const ivaFocusedRef = React.useRef(false);
+
+  const [globalMarginText, setGlobalMarginText] = React.useState<string>(toUserDecimalText(globalMargin));
+  const globalMarginFocusedRef = React.useRef(false);
+
   const [useMultipleFreights, setUseMultipleFreights] = React.useState(false);
   const [freightRates, setFreightRates] = React.useState<LiquidationFreightRate[]>([
     { id: '1', name: 'Flete 1', cost: 0 },
   ]);
+
+  const [editingFreightId, setEditingFreightId] = React.useState<string | null>(null);
+  const [editingFreightCostText, setEditingFreightCostText] = React.useState<string>('');
+
+  const [editingItemCell, setEditingItemCell] = React.useState<{
+    lineId: string;
+    field: 'quantity' | 'totalCost' | 'discountPercentage' | 'marginPercentage';
+  } | null>(null);
+  const [editingItemText, setEditingItemText] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (ivaFocusedRef.current) return;
+    setIvaPercentageText(toUserDecimalText(ivaPercentage));
+  }, [ivaPercentage]);
+
+  React.useEffect(() => {
+    if (globalMarginFocusedRef.current) return;
+    setGlobalMarginText(toUserDecimalText(globalMargin));
+  }, [globalMargin]);
 
   // Create supplier/product dialogs
   const [createSupplierOpen, setCreateSupplierOpen] = React.useState(false);
@@ -912,15 +946,25 @@ export function NewDocumentForm() {
             <Input
               type="text"
               inputMode="decimal"
-              value={ivaPercentage}
+              value={ivaPercentageText}
+              onFocus={() => {
+                ivaFocusedRef.current = true;
+                setIvaPercentageText(toUserDecimalText(ivaPercentage));
+              }}
+              onBlur={() => {
+                ivaFocusedRef.current = false;
+                setIvaPercentageText(toUserDecimalText(ivaPercentage));
+              }}
               onChange={(e) => {
                 const raw = e.target.value;
                 if (raw === '') {
                   setIvaPercentage('');
+                  setIvaPercentageText('');
                   return;
                 }
                 const n = parseDecimalLooseOptional(raw);
-                setIvaPercentage(n === undefined ? 0 : n);
+                setIvaPercentageText(raw);
+                if (typeof n === 'number' && Number.isFinite(n)) setIvaPercentage(Math.max(0, n));
               }}
             />
             <div className="flex items-center gap-2">
@@ -934,15 +978,25 @@ export function NewDocumentForm() {
             <Input
               type="text"
               inputMode="decimal"
-              value={globalMargin}
+              value={globalMarginText}
+              onFocus={() => {
+                globalMarginFocusedRef.current = true;
+                setGlobalMarginText(toUserDecimalText(globalMargin));
+              }}
+              onBlur={() => {
+                globalMarginFocusedRef.current = false;
+                setGlobalMarginText(toUserDecimalText(globalMargin));
+              }}
               onChange={(e) => {
                 const raw = e.target.value;
                 if (raw === '') {
                   setGlobalMargin('');
+                  setGlobalMarginText('');
                   return;
                 }
                 const n = parseDecimalLooseOptional(raw);
-                setGlobalMargin(n === undefined ? 0 : n);
+                setGlobalMarginText(raw);
+                if (typeof n === 'number' && Number.isFinite(n)) setGlobalMargin(Math.max(0, n));
               }}
             />
             <div className="text-xs text-muted-foreground">Se usa como valor inicial por item.</div>
@@ -979,10 +1033,26 @@ export function NewDocumentForm() {
                 <Input
                   type="text"
                   inputMode="decimal"
-                  value={String(f.cost)}
+                  value={editingFreightId === f.id ? editingFreightCostText : toUserDecimalText(f.cost)}
+                  onFocus={() => {
+                    setEditingFreightId(f.id);
+                    setEditingFreightCostText(toUserDecimalText(f.cost));
+                  }}
+                  onBlur={() => {
+                    setEditingFreightId((prev) => (prev === f.id ? null : prev));
+                    setEditingFreightCostText('');
+                  }}
                   onChange={(e) => {
-                    const n = parseDecimalLooseOptional(e.target.value);
-                    updateFreightRate(f.id, { cost: Number.isFinite(n) ? (n as number) : 0 });
+                    const raw = String(e.target.value ?? '');
+                    setEditingFreightCostText(raw);
+
+                    if (raw.trim() === '') {
+                      updateFreightRate(f.id, { cost: 0 });
+                      return;
+                    }
+
+                    const n = parseDecimalLooseOptional(raw);
+                    if (typeof n === 'number' && Number.isFinite(n)) updateFreightRate(f.id, { cost: Math.max(0, n) });
                   }}
                 />
               </div>
@@ -1064,10 +1134,31 @@ export function NewDocumentForm() {
                             inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
-                            value={String(it.quantity)}
+                            value={
+                              editingItemCell?.lineId === it.lineId && editingItemCell.field === 'quantity'
+                                ? editingItemText
+                                : toUserDecimalText(it.quantity)
+                            }
+                            onFocus={() => {
+                              setEditingItemCell({ lineId: it.lineId, field: 'quantity' });
+                              setEditingItemText(toUserDecimalText(it.quantity));
+                            }}
+                            onBlur={() => {
+                              setEditingItemCell((prev) => {
+                                if (prev?.lineId === it.lineId && prev.field === 'quantity') return null;
+                                return prev;
+                              });
+                              setEditingItemText('');
+                            }}
                             onChange={(e) => {
-                              const n = parseDecimalLooseOptional(e.target.value);
-                              updateItem(idx, { quantity: Number.isFinite(n) ? (n as number) : 0 });
+                              const raw = String(e.target.value ?? '');
+                              setEditingItemText(raw);
+                              if (raw.trim() === '') {
+                                updateItem(idx, { quantity: 0 });
+                                return;
+                              }
+                              const n = parseDecimalLooseOptional(raw);
+                              if (typeof n === 'number' && Number.isFinite(n)) updateItem(idx, { quantity: Math.max(0, n) });
                             }}
                           />
                         </TableCell>
@@ -1077,10 +1168,31 @@ export function NewDocumentForm() {
                             inputMode="decimal"
                             min={0}
                             className="w-32 text-right"
-                            value={String(it.totalCost)}
+                            value={
+                              editingItemCell?.lineId === it.lineId && editingItemCell.field === 'totalCost'
+                                ? editingItemText
+                                : toUserDecimalText(it.totalCost)
+                            }
+                            onFocus={() => {
+                              setEditingItemCell({ lineId: it.lineId, field: 'totalCost' });
+                              setEditingItemText(toUserDecimalText(it.totalCost));
+                            }}
+                            onBlur={() => {
+                              setEditingItemCell((prev) => {
+                                if (prev?.lineId === it.lineId && prev.field === 'totalCost') return null;
+                                return prev;
+                              });
+                              setEditingItemText('');
+                            }}
                             onChange={(e) => {
-                              const n = parseDecimalLooseOptional(e.target.value);
-                              updateItem(idx, { totalCost: Number.isFinite(n) ? (n as number) : 0 });
+                              const raw = String(e.target.value ?? '');
+                              setEditingItemText(raw);
+                              if (raw.trim() === '') {
+                                updateItem(idx, { totalCost: 0 });
+                                return;
+                              }
+                              const n = parseDecimalLooseOptional(raw);
+                              if (typeof n === 'number' && Number.isFinite(n)) updateItem(idx, { totalCost: Math.max(0, n) });
                             }}
                           />
                         </TableCell>
@@ -1090,10 +1202,31 @@ export function NewDocumentForm() {
                             inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
-                            value={String(it.discountPercentage)}
+                            value={
+                              editingItemCell?.lineId === it.lineId && editingItemCell.field === 'discountPercentage'
+                                ? editingItemText
+                                : toUserDecimalText(it.discountPercentage)
+                            }
+                            onFocus={() => {
+                              setEditingItemCell({ lineId: it.lineId, field: 'discountPercentage' });
+                              setEditingItemText(toUserDecimalText(it.discountPercentage));
+                            }}
+                            onBlur={() => {
+                              setEditingItemCell((prev) => {
+                                if (prev?.lineId === it.lineId && prev.field === 'discountPercentage') return null;
+                                return prev;
+                              });
+                              setEditingItemText('');
+                            }}
                             onChange={(e) => {
-                              const n = parseDecimalLooseOptional(e.target.value);
-                              updateItem(idx, { discountPercentage: Number.isFinite(n) ? (n as number) : 0 });
+                              const raw = String(e.target.value ?? '');
+                              setEditingItemText(raw);
+                              if (raw.trim() === '') {
+                                updateItem(idx, { discountPercentage: 0 });
+                                return;
+                              }
+                              const n = parseDecimalLooseOptional(raw);
+                              if (typeof n === 'number' && Number.isFinite(n)) updateItem(idx, { discountPercentage: Math.max(0, n) });
                             }}
                             disabled={!discountsEnabled}
                           />
@@ -1124,10 +1257,31 @@ export function NewDocumentForm() {
                             inputMode="decimal"
                             min={0}
                             className="w-24 text-right"
-                            value={String(it.marginPercentage)}
+                            value={
+                              editingItemCell?.lineId === it.lineId && editingItemCell.field === 'marginPercentage'
+                                ? editingItemText
+                                : toUserDecimalText(it.marginPercentage)
+                            }
+                            onFocus={() => {
+                              setEditingItemCell({ lineId: it.lineId, field: 'marginPercentage' });
+                              setEditingItemText(toUserDecimalText(it.marginPercentage));
+                            }}
+                            onBlur={() => {
+                              setEditingItemCell((prev) => {
+                                if (prev?.lineId === it.lineId && prev.field === 'marginPercentage') return null;
+                                return prev;
+                              });
+                              setEditingItemText('');
+                            }}
                             onChange={(e) => {
-                              const n = parseDecimalLooseOptional(e.target.value);
-                              updateItem(idx, { marginPercentage: Number.isFinite(n) ? (n as number) : 0 });
+                              const raw = String(e.target.value ?? '');
+                              setEditingItemText(raw);
+                              if (raw.trim() === '') {
+                                updateItem(idx, { marginPercentage: 0 });
+                                return;
+                              }
+                              const n = parseDecimalLooseOptional(raw);
+                              if (typeof n === 'number' && Number.isFinite(n)) updateItem(idx, { marginPercentage: Math.max(0, n) });
                             }}
                           />
                         </TableCell>

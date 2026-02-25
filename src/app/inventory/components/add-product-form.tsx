@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -151,12 +151,47 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
   // Track what the user last edited to avoid cost<->price feedback loops.
   const [lastEdited, setLastEdited] = useState<"cost" | "price">("cost");
 
+  const [priceText, setPriceText] = useState<string>("");
+  const [costText, setCostText] = useState<string>("");
+  const priceFocusedRef = useRef(false);
+  const costFocusedRef = useRef(false);
+
   const wCost = useWatch({ control: form.control, name: "cost" });
   const wPrice = useWatch({ control: form.control, name: "price" });
   const wMarkup = useWatch({ control: form.control, name: "markup" });
   const wTaxes = useWatch({ control: form.control, name: "taxes" });
   const wIsTaxInclusivePrice = useWatch({ control: form.control, name: "isTaxInclusivePrice" });
   const wAllowUndefinedPricing = useWatch({ control: form.control, name: "allowUndefinedPricing" });
+
+  // Keep displayed text in sync with form values when those values are changed programmatically
+  // (e.g., auto recalculation). Do not override while the user is typing (focused).
+  useEffect(() => {
+    if (priceFocusedRef.current) return;
+    if (wAllowUndefinedPricing) {
+      setPriceText("0");
+      return;
+    }
+
+    if (wPrice === null || wPrice === undefined || String(wPrice).trim() === "") {
+      setPriceText("");
+      return;
+    }
+    setPriceText(formatMoneyDecimal(wPrice));
+  }, [wPrice, wAllowUndefinedPricing]);
+
+  useEffect(() => {
+    if (costFocusedRef.current) return;
+    if (wAllowUndefinedPricing) {
+      setCostText("0");
+      return;
+    }
+
+    if (wCost === null || wCost === undefined || String(wCost).trim() === "") {
+      setCostText("");
+      return;
+    }
+    setCostText(formatMoneyDecimal(wCost));
+  }, [wCost, wAllowUndefinedPricing]);
 
   const codeValue = form.watch("code");
   const debouncedCode = useDebounce(codeValue, 500);
@@ -482,10 +517,25 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                             <Input
                               inputMode="decimal"
                               disabled={Boolean(wAllowUndefinedPricing)}
-                              value={field.value === null || field.value === undefined ? "" : formatMoneyDecimal(field.value)}
+                              value={priceText}
+                              onFocus={() => {
+                                priceFocusedRef.current = true;
+                                const current = field.value === null || field.value === undefined ? "" : String(field.value).replace(".", ",");
+                                setPriceText(current);
+                              }}
+                              onBlur={() => {
+                                priceFocusedRef.current = false;
+                                field.onBlur();
+                                const v = field.value;
+                                if (v === null || v === undefined || String(v).trim() === "") setPriceText("");
+                                else setPriceText(formatMoneyDecimal(v));
+                              }}
                               onChange={(e) => {
                                 setLastEdited("price");
-                                field.onChange(parseDecimalLooseOptional(e.target.value));
+                                const raw = String(e.target.value ?? "");
+                                setPriceText(raw);
+                                const n = parseDecimalLooseOptional(raw);
+                                field.onChange(n === undefined ? undefined : Math.max(0, n));
                               }}
                             />
                         </FormControl>
@@ -503,10 +553,25 @@ export function AddProductForm({ setOpen, productGroups, warehouses, taxes, curr
                     <Input
                       inputMode="decimal"
                       disabled={Boolean(wAllowUndefinedPricing)}
-                      value={field.value === null || field.value === undefined ? "" : formatMoneyDecimal(field.value)}
+                      value={costText}
+                      onFocus={() => {
+                        costFocusedRef.current = true;
+                        const current = field.value === null || field.value === undefined ? "" : String(field.value).replace(".", ",");
+                        setCostText(current);
+                      }}
+                      onBlur={() => {
+                        costFocusedRef.current = false;
+                        field.onBlur();
+                        const v = field.value;
+                        if (v === null || v === undefined || String(v).trim() === "") setCostText("");
+                        else setCostText(formatMoneyDecimal(v));
+                      }}
                       onChange={(e) => {
                         setLastEdited("cost");
-                        field.onChange(parseDecimalLooseOptional(e.target.value));
+                        const raw = String(e.target.value ?? "");
+                        setCostText(raw);
+                        const n = parseDecimalLooseOptional(raw);
+                        field.onChange(n === undefined ? undefined : Math.max(0, n));
                       }}
                     />
                         </FormControl>

@@ -65,6 +65,12 @@ import { getDocumentTypes, type DocumentTypeListItem } from "@/actions/get-docum
 import { useDocumentsCatalog } from "@/components/catalog/documents-catalog-provider";
 import type { DocumentsCatalogRow } from "@/actions/list-documents-for-browser-all";
 
+function toUserDecimalText(value: unknown): string {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return "";
+  return String(n).replace(".", ",");
+}
+
 type Option = { value: string; label: string };
 
 type SortField = "number" | "date" | "total" | "supplier";
@@ -226,6 +232,9 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
       remove: boolean;
     }>
   >([]);
+
+  const [editDecimalCell, setEditDecimalCell] = useState<{ key: string; field: "quantity" | "price" } | null>(null);
+  const [editDecimalText, setEditDecimalText] = useState<string>("");
 
   const [editAddProductOpen, setEditAddProductOpen] = useState(false);
   const [editAddProductQuery, setEditAddProductQuery] = useState("");
@@ -1264,13 +1273,37 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                     <Input
                                       type="text"
                                       inputMode="decimal"
-                                      value={String(it.quantity)}
+                                      value={
+                                        editDecimalCell?.key === it.key && editDecimalCell.field === "quantity"
+                                          ? editDecimalText
+                                          : toUserDecimalText(it.quantity)
+                                      }
                                       disabled={editSaving || it.remove}
+                                      onFocus={() => {
+                                        setEditDecimalCell({ key: it.key, field: "quantity" });
+                                        setEditDecimalText(toUserDecimalText(it.quantity));
+                                      }}
+                                      onBlur={() => {
+                                        setEditDecimalCell((prev) => {
+                                          if (prev?.key === it.key && prev.field === "quantity") return null;
+                                          return prev;
+                                        });
+                                        setEditDecimalText("");
+                                      }}
                                       onChange={(e) => {
-                                        const next = parseDecimalLooseOptional(e.target.value);
-                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : 0;
+                                        const raw = String(e.target.value ?? "");
+                                        setEditDecimalText(raw);
+
+                                        if (raw.trim() === "") {
+                                          setEditItems((prev) => prev.map((p) => (p.key === it.key ? { ...p, quantity: 0 } : p)));
+                                          return;
+                                        }
+
+                                        const next = parseDecimalLooseOptional(raw);
+                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : null;
+                                        if (safeNext === null) return;
                                         setEditItems((prev) =>
-                                          prev.map((p) => (p.key === it.key ? { ...p, quantity: safeNext } : p))
+                                          prev.map((p) => (p.key === it.key ? { ...p, quantity: Math.max(0, safeNext) } : p))
                                         );
                                       }}
                                       className="w-28"
@@ -1282,13 +1315,37 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                     <Input
                                       type="text"
                                       inputMode="decimal"
-                                      value={String(it.price)}
+                                      value={
+                                        editDecimalCell?.key === it.key && editDecimalCell.field === "price"
+                                          ? editDecimalText
+                                          : toUserDecimalText(it.price)
+                                      }
                                       disabled={editSaving || it.remove}
+                                      onFocus={() => {
+                                        setEditDecimalCell({ key: it.key, field: "price" });
+                                        setEditDecimalText(toUserDecimalText(it.price));
+                                      }}
+                                      onBlur={() => {
+                                        setEditDecimalCell((prev) => {
+                                          if (prev?.key === it.key && prev.field === "price") return null;
+                                          return prev;
+                                        });
+                                        setEditDecimalText("");
+                                      }}
                                       onChange={(e) => {
-                                        const next = parseDecimalLooseOptional(e.target.value);
-                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : 0;
+                                        const raw = String(e.target.value ?? "");
+                                        setEditDecimalText(raw);
+
+                                        if (raw.trim() === "") {
+                                          setEditItems((prev) => prev.map((p) => (p.key === it.key ? { ...p, price: 0 } : p)));
+                                          return;
+                                        }
+
+                                        const next = parseDecimalLooseOptional(raw);
+                                        const safeNext = typeof next === "number" && Number.isFinite(next) ? next : null;
+                                        if (safeNext === null) return;
                                         setEditItems((prev) =>
-                                          prev.map((p) => (p.key === it.key ? { ...p, price: safeNext } : p))
+                                          prev.map((p) => (p.key === it.key ? { ...p, price: Math.max(0, safeNext) } : p))
                                         );
                                       }}
                                       className="w-28"
