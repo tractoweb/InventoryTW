@@ -114,6 +114,7 @@ type DraftItem = {
   freightId: string;
   purchaseReference: string;
   warehouseReference: string;
+  updateProductPrice: boolean;
 };
 
 function formatMoney(amount: number) {
@@ -417,6 +418,7 @@ export function NewDocumentForm() {
         freightId: freightRates[0]?.id ?? '1',
         purchaseReference: p.code ? String(p.code) : '',
         warehouseReference: '',
+        updateProductPrice: false,
       },
     ]);
     setProductDialogOpen(false);
@@ -441,6 +443,7 @@ export function NewDocumentForm() {
         freightId: freightRates[0]?.id ?? '1',
         purchaseReference: p.code ? String(p.code) : '',
         warehouseReference: '',
+        updateProductPrice: false,
       },
     ]);
 
@@ -693,6 +696,7 @@ export function NewDocumentForm() {
           discountPercentage: it.discountPercentage,
           marginPercentage: it.marginPercentage,
           freightId: it.freightId,
+          updateProductPrice: Boolean(it.updateProductPrice),
         })),
         totals: liquidation.totals,
       };
@@ -1087,8 +1091,26 @@ export function NewDocumentForm() {
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin items todavía.</p>
           ) : (
-            <div className="w-full overflow-auto rounded-md border">
-              <Table>
+            <>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={
+                    items.every((it) => Boolean(it.updateProductPrice))
+                      ? true
+                      : items.some((it) => Boolean(it.updateProductPrice))
+                        ? "indeterminate"
+                        : false
+                  }
+                  onCheckedChange={(checked) => {
+                    const next = checked === true;
+                    setItems((prev) => prev.map((it) => ({ ...it, updateProductPrice: next })));
+                  }}
+                />
+                <Label className="text-sm">¿Actualizar precio del producto desde documento? (todos)</Label>
+              </div>
+
+              <div className="w-full overflow-auto rounded-md border">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[260px]">Nombre</TableHead>
@@ -1106,6 +1128,7 @@ export function NewDocumentForm() {
                     <TableHead className="min-w-[120px] text-right">Margen %</TableHead>
                     <TableHead className="min-w-[140px] text-right">Venta Unit.</TableHead>
                     <TableHead className="min-w-[140px] text-right">Total Final</TableHead>
+                    <TableHead className="min-w-[160px]">Actualizar precio</TableHead>
                     <TableHead className="w-[90px]" />
                   </TableRow>
                 </TableHeader>
@@ -1287,6 +1310,14 @@ export function NewDocumentForm() {
                         </TableCell>
                         <TableCell className="text-right">{formatMoney(li?.unitSalePrice ?? 0)}</TableCell>
                         <TableCell className="text-right">{formatMoney(li?.totalFinalCost ?? 0)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={Boolean(it.updateProductPrice)}
+                              onCheckedChange={(checked) => updateItem(idx, { updateProductPrice: checked === true })}
+                            />
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => removeItem(idx)}>
                             Quitar
@@ -1296,8 +1327,9 @@ export function NewDocumentForm() {
                     );
                   })}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
 
           <div className="flex items-center justify-end gap-6 pt-2">

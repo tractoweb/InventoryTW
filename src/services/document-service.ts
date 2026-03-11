@@ -12,6 +12,7 @@ import {
   isStockDirectionOut,
   normalizeStockDirection,
 } from '@/lib/amplify-config';
+import { computeLiquidation, type LiquidationConfig, type LiquidationLineInput } from '@/lib/liquidation';
 import { getBogotaYearMonth } from '@/lib/datetime';
 import { createKardexEntry } from './kardex-service';
 
@@ -445,6 +446,15 @@ export async function finalizeDocument(
 
     const docData = doc.data as any;
 
+    // Parse internalNote (best-effort). We use this for optional price-update flags.
+    let internalObj: any = null;
+    try {
+      const rawInternal = typeof docData?.internalNote === 'string' ? String(docData.internalNote) : '';
+      if (rawInternal.trim().startsWith('{')) internalObj = JSON.parse(rawInternal);
+    } catch {
+      internalObj = null;
+    }
+
     // Ensure stockDate reflects the actual posting moment.
     // This prevents ambiguous ordering (many docs at 00:00) and makes Kardex/Stock timelines consistent.
     const postingDateIso = new Date().toISOString();
@@ -752,6 +762,100 @@ export async function finalizeDocument(
         userId: Number(userId),
         note: `From document ${docData.number}`,
       });
+    }
+
+    // Optional: update Product.price based on flags captured in internalNote.
+    // - Purchases (ENTRADA): use liquidation snapshot's computed unitSalePrice
+    // - Sales (SALIDA): use the document item's unit price
+    try {
+      const nextPriceByProductId = new Map<number, number>();
+
+      if (isStockDirectionOut(stockDirection)) {
+        const flagsRaw = internalObj?.priceUpdate?.documentItemFlags;
+        const flags = new Map<number, boolean>();
+        if (flagsRaw && typeof flagsRaw === 'object') {
+          for (const [k, v] of Object.entries(flagsRaw)) {
+            const id = Number(k);
+            if (Number.isFinite(id) && id > 0) flags.set(id, Boolean(v));
+          }
+        }
+
+        for (const item of allItems) {
+          const documentItemId = Number((item as any)?.documentItemId);
+          if (!(documentItemId > 0)) continue;
+          if (!flags.get(documentItemId)) continue;
+          const pid = Number((item as any)?.productId);
+          const p = Number((item as any)?.price ?? 0) || 0;
+          if (Number.isFinite(pid) && pid > 0 && Number.isFinite(p) && p > 0) {
+            nextPriceByProductId.set(pid, p);
+          }
+        }
+      }
+
+      if (isStockDirectionIn(stockDirection)) {
+        const snapshot = internalObj?.liquidation;
+        if (snapshot?.config && Array.isArray(snapshot?.lineInputs)) {
+          const cfg: LiquidationConfig = {
+            ivaPercentage: Number(snapshot.config.ivaPercentage ?? 0) || 0,
+            ivaIncludedInCost: Boolean(snapshot.config.ivaIncludedInCost ?? false),
+            discountsEnabled: Boolean(snapshot.config.discountsEnabled ?? true),
+            useMultipleFreights: Boolean(snapshot.config.useMultipleFreights ?? false),
+            freightRates: Array.isArray(snapshot.config.freightRates)
+              ? snapshot.config.freightRates.map((r: any) => ({
+                  id: String(r?.id ?? ''),
+                  name: String(r?.name ?? r?.id ?? ''),
+                  cost: Number(r?.cost ?? 0) || 0,
+                }))
+              : [],
+          };
+
+          const updateByLineId = new Map<string, boolean>();
+          for (const li of snapshot.lineInputs as any[]) {
+            const id = String(li?.id ?? '');
+            if (!id) continue;
+            updateByLineId.set(id, Boolean((li as any)?.updateProductPrice));
+          }
+
+          const lineInputs: LiquidationLineInput[] = (snapshot.lineInputs as any[]).map((li: any, idx: number) => ({
+            id: String(li?.id ?? idx + 1),
+            productId: li?.productId !== undefined && li?.productId !== null ? Number(li.productId) : undefined,
+            name: li?.name ? String(li.name) : undefined,
+            purchaseReference: li?.purchaseReference ? String(li.purchaseReference) : undefined,
+            warehouseReference: li?.warehouseReference ? String(li.warehouseReference) : undefined,
+            quantity: Number(li?.quantity ?? 0) || 0,
+            totalCost: Number(li?.totalCost ?? 0) || 0,
+            discountPercentage: Number(li?.discountPercentage ?? 0) || 0,
+            marginPercentage: Number(li?.marginPercentage ?? 0) || 0,
+            freightId: String(li?.freightId ?? '1'),
+          }));
+
+          const computed = computeLiquidation(cfg, lineInputs);
+
+          for (const out of computed.lines) {
+            const lineId = String((out as any)?.id ?? '');
+            if (!lineId) continue;
+            if (!updateByLineId.get(lineId)) continue;
+            const pid = Number((out as any)?.productId ?? 0);
+            const p = Number((out as any)?.unitSalePrice ?? 0) || 0;
+            if (Number.isFinite(pid) && pid > 0 && Number.isFinite(p) && p > 0) {
+              nextPriceByProductId.set(pid, p);
+            }
+          }
+        }
+      }
+
+      if (nextPriceByProductId.size > 0) {
+        await Promise.all(
+          Array.from(nextPriceByProductId.entries()).map(([idProduct, price]) =>
+            amplifyClient.models.Product.update({
+              idProduct: Number(idProduct),
+              price: Number(price),
+            } as any).catch(() => null)
+          )
+        );
+      }
+    } catch {
+      // ignore (best-effort)
     }
 
     // Marcar documento como finalizado

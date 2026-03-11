@@ -155,6 +155,7 @@ export async function getProductDetails(productId: string): Promise<{
     unitFreight: number;
     unitFinalCost: number;
     unitSalePrice: number;
+    updateProductPrice: boolean;
   }>;
   pricingSummary?: {
     latest?: {
@@ -163,6 +164,7 @@ export async function getProductDetails(productId: string): Promise<{
       date?: string | null;
       unitFinalCost: number;
       unitSalePrice: number;
+      updateProductPrice: boolean;
     };
     productPriceMatchesLatestDocument?: boolean;
   };
@@ -357,6 +359,7 @@ export async function getProductDetails(productId: string): Promise<{
       unitFreight: number;
       unitFinalCost: number;
       unitSalePrice: number;
+      updateProductPrice: boolean;
     }> = [];
 
     for (const doc of relatedDocuments) {
@@ -373,6 +376,13 @@ export async function getProductDetails(productId: string): Promise<{
       }
 
       if (!liquidationSnapshot?.config || !Array.isArray(liquidationSnapshot?.lineInputs)) continue;
+
+      const updateByLineId = new Map<string, boolean>();
+      for (const li of liquidationSnapshot.lineInputs as any[]) {
+        const id = String(li?.id ?? '');
+        if (!id) continue;
+        updateByLineId.set(id, Boolean((li as any)?.updateProductPrice));
+      }
 
       const cfg: LiquidationConfig = {
         ivaPercentage: Number(liquidationSnapshot.config.ivaPercentage ?? 0) || 0,
@@ -429,6 +439,7 @@ export async function getProductDetails(productId: string): Promise<{
           unitFreight: Number(out.unitFreight ?? 0) || 0,
           unitFinalCost: Number(out.unitFinalCost ?? 0) || 0,
           unitSalePrice: Number(out.unitSalePrice ?? 0) || 0,
+          updateProductPrice: updateByLineId.get(String(out.id)) ?? false,
         });
       }
     }
@@ -599,6 +610,7 @@ export async function getProductDetails(productId: string): Promise<{
               date: latestPricing.date ?? null,
               unitFinalCost: latestPricing.unitFinalCost,
               unitSalePrice: latestPricing.unitSalePrice,
+              updateProductPrice: Boolean(latestPricing.updateProductPrice),
             }
           : undefined,
         productPriceMatchesLatestDocument: typeof priceMatchesLatest === 'boolean' ? priceMatchesLatest : undefined,

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -69,6 +70,18 @@ function toUserDecimalText(value: unknown): string {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return "";
   return String(n).replace(".", ",");
+}
+
+function safeJsonParseInternalNote(value: unknown): any | null {
+  if (typeof value !== "string") return null;
+  const s = value.trim();
+  if (!s) return null;
+  if (!s.startsWith("{")) return null;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
 }
 
 type Option = { value: string; label: string };
@@ -229,6 +242,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
       productCode: string | null;
       quantity: number;
       price: number;
+      updateProductPrice: boolean;
       remove: boolean;
     }>
   >([]);
@@ -332,6 +346,17 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
   function openEditDialog() {
     if (!details || !selectedDocumentId) return;
     if (selectedIsFinalized) return;
+
+    const internalObj = safeJsonParseInternalNote((details as any)?.internalnote);
+    const flagObj = internalObj?.priceUpdate?.documentItemFlags ?? {};
+    const updatePriceByItemId = new Map<number, boolean>();
+    if (flagObj && typeof flagObj === 'object') {
+      for (const [k, v] of Object.entries(flagObj)) {
+        const id = Number(k);
+        if (Number.isFinite(id) && id > 0) updatePriceByItemId.set(id, Boolean(v));
+      }
+    }
+
     setEditError(null);
     setEditThirdPartyName(String(details.customername ?? ""));
     setEditNote(String(details.note ?? ""));
@@ -345,6 +370,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
             productId: Number(it?.productid ?? 0) || undefined,
             quantity: Number(it?.quantity ?? 0) || 0,
             price: Number(it?.price ?? 0) || 0,
+            updateProductPrice: updatePriceByItemId.get(Number(it?.id)) ?? false,
             remove: false,
           }))
         : []
@@ -381,6 +407,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
               : undefined,
           quantity: Math.max(0, Number(it.quantity) || 0),
           price: Math.max(0, Number(it.price) || 0),
+          updateProductPrice: Boolean(it.updateProductPrice),
           remove: Boolean(it.remove),
         }))
         .filter((p) => Boolean(p.documentItemId) || Boolean(p.productId));
@@ -1170,7 +1197,28 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-medium">Productos</div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm font-medium">Productos</div>
+                          {editItems.length ? (
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={
+                                  editItems.every((it) => Boolean(it.updateProductPrice))
+                                    ? true
+                                    : editItems.some((it) => Boolean(it.updateProductPrice))
+                                      ? "indeterminate"
+                                      : false
+                                }
+                                disabled={editSaving}
+                                onCheckedChange={(checked) => {
+                                  const next = checked === true;
+                                  setEditItems((prev) => prev.map((it) => ({ ...it, updateProductPrice: next })));
+                                }}
+                              />
+                              <Label className="text-xs text-muted-foreground">Actualizar precio (todos)</Label>
+                            </div>
+                          ) : null}
+                        </div>
 
                         <Dialog open={editAddProductOpen} onOpenChange={setEditAddProductOpen}>
                           <Button
@@ -1226,6 +1274,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                                 productCode: p.code !== undefined && p.code !== null ? String(p.code) : null,
                                                 quantity: 1,
                                                 price: Number(p.price ?? 0) || 0,
+                                                updateProductPrice: prev.length > 0 && prev.every((x) => Boolean(x.updateProductPrice)),
                                                 remove: false,
                                               },
                                             ]);
@@ -1357,6 +1406,18 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                                     <div className="h-10 rounded-md border px-3 flex items-center text-sm">
                                       {formatMoney(lineTotal)}
                                     </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 h-10 px-2">
+                                    <Checkbox
+                                      checked={Boolean(it.updateProductPrice)}
+                                      disabled={editSaving || it.remove}
+                                      onCheckedChange={(checked) => {
+                                        const next = checked === true;
+                                        setEditItems((prev) => prev.map((p) => (p.key === it.key ? { ...p, updateProductPrice: next } : p)));
+                                      }}
+                                    />
+                                    <Label className="text-xs">Act. precio</Label>
                                   </div>
 
                                   <Button

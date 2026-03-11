@@ -19,6 +19,7 @@ const UpdateDocumentItemsSchema = z.object({
         productId: z.coerce.number().min(1).optional(),
         quantity: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
         price: z.preprocess(parseDecimalLooseOptional, z.number().min(0)),
+        updateProductPrice: z.coerce.boolean().optional(),
         remove: z.coerce.boolean().optional(),
       })
     )
@@ -86,6 +87,7 @@ export async function updateDocumentItemsAction(
       productId: i.productId !== undefined ? Number(i.productId) : undefined,
       quantity: Number(i.quantity ?? 0) || 0,
       price: Number(i.price ?? 0) || 0,
+      updateProductPrice: Boolean(i.updateProductPrice),
       remove: Boolean(i.remove),
     }));
 
@@ -402,6 +404,76 @@ export async function updateDocumentItemsAction(
       existingById.set(documentItemId, {
         ...itemPayload,
       });
+    }
+
+    // Persist per-item price update flags inside Document.internalNote (JSON merge).
+    try {
+      const rawInternal = typeof (doc as any)?.internalNote === 'string' ? String((doc as any).internalNote) : '';
+      let internalObj: any = null;
+      if (rawInternal.trim().startsWith('{')) {
+        try {
+          internalObj = JSON.parse(rawInternal);
+        } catch {
+          internalObj = null;
+        }
+      }
+      if (!internalObj || typeof internalObj !== 'object') {
+        internalObj = rawInternal ? { legacyInternalNote: rawInternal } : {};
+      }
+
+      const existingFlagsRaw = internalObj?.priceUpdate?.documentItemFlags;
+      const nextFlags: Record<string, boolean> = {};
+      if (existingFlagsRaw && typeof existingFlagsRaw === 'object') {
+        for (const [k, v] of Object.entries(existingFlagsRaw)) {
+          const id = Number(k);
+          if (Number.isFinite(id) && id > 0 && Boolean(v)) nextFlags[String(id)] = true;
+        }
+      }
+
+      // Remove deleted items from flags.
+      for (const r of toDelete) {
+        if (r.documentItemId !== undefined) delete nextFlags[String(Number(r.documentItemId))];
+      }
+
+      // Apply updates for existing items included in request.
+      for (const r of requested) {
+        if (r.documentItemId === undefined) continue;
+        const id = Number(r.documentItemId);
+        if (!(id > 0)) continue;
+        if (r.remove || !(r.quantity > 0)) {
+          delete nextFlags[String(id)];
+          continue;
+        }
+        if (r.updateProductPrice) nextFlags[String(id)] = true;
+        else delete nextFlags[String(id)];
+      }
+
+      // Apply flags for newly created items.
+      for (let idx = 0; idx < newItems.length; idx++) {
+        const r = newItems[idx];
+        const id = Number(newIds[idx]);
+        if (!(id > 0)) continue;
+        if (r.updateProductPrice) nextFlags[String(id)] = true;
+        else delete nextFlags[String(id)];
+      }
+
+      const hasAny = Object.keys(nextFlags).length > 0;
+      if (hasAny) {
+        internalObj.priceUpdate = {
+          version: 1,
+          documentItemFlags: nextFlags,
+        };
+      } else if (internalObj?.priceUpdate) {
+        delete internalObj.priceUpdate;
+      }
+
+      await amplifyClient.models.Document.update({
+        documentId: Number(documentId),
+        internalNote: JSON.stringify(internalObj),
+      } as any);
+      (doc as any).internalNote = JSON.stringify(internalObj);
+    } catch {
+      // ignore (best-effort)
     }
 
     // Recompute document total from remaining items (same as createDocument).

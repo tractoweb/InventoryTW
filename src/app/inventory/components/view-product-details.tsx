@@ -307,6 +307,9 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                                         {details.pricingSummary && typeof details.pricingSummary.productPriceMatchesLatestDocument === 'boolean' ? (
                                             <p className="text-sm text-muted-foreground">
                                                 Precio actual {details.pricingSummary.productPriceMatchesLatestDocument ? 'coincide' : 'no coincide'} con el último precio estimado por documento.
+                                                {details.pricingSummary.productPriceMatchesLatestDocument && details.pricingSummary.latest?.updateProductPrice
+                                                    ? ' (Marcado para actualizar el precio del producto desde ese documento.)'
+                                                    : ''}
                                             </p>
                                         ) : null}
 
