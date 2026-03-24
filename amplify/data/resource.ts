@@ -540,6 +540,20 @@ const schema = a.schema({
     .identifier(['requestItemId'])
     .secondaryIndexes((index) => [index('requestId').name('byRequestId')])
     .authorization((allow) => [allow.publicApiKey()]),
+
+  // 12. IA (RUTA NATIVA AMPLIFY)
+  inventoryAssistant: a
+    .generation({
+      aiModel: a.ai.model('Claude 3.5 Haiku'),
+      systemPrompt:
+        'Eres un asistente de inventario para una empresa de repuestos agrícolas. Responde en español, de forma breve, exacta y accionable. Si faltan datos, dilo explícitamente y sugiere cómo obtenerlos en el sistema.',
+    })
+    .arguments({
+      input: a.string().required(),
+      context: a.string(),
+    })
+    .returns(a.string())
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

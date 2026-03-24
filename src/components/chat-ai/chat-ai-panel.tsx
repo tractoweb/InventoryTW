@@ -63,6 +63,7 @@ function useStreamingChat() {
 
       const ctrl = new AbortController();
       abortRef.current = ctrl;
+      const timeout = setTimeout(() => ctrl.abort(), 25000);
 
       // Build messages array for API (history + new user message, exclude trailing empty assistant)
       const apiMessages = [...messages, userMsg].map((m) => ({
@@ -115,7 +116,15 @@ function useStreamingChat() {
           );
         }
       } catch (err: any) {
-        if (err?.name !== "AbortError") {
+        if (err?.name === "AbortError") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === asstId && m.content === ""
+                ? { ...m, content: "❌ La respuesta tardó demasiado. Intenta una consulta más puntual." }
+                : m
+            )
+          );
+        } else {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === asstId && m.content === ""
@@ -125,6 +134,7 @@ function useStreamingChat() {
           );
         }
       } finally {
+        clearTimeout(timeout);
         setIsLoading(false);
         abortRef.current = null;
       }
@@ -398,6 +408,24 @@ export function ChatAIPanel() {
         {/* ── Messages area ────────────────────────────────────────────────── */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
+            <details className="mb-3 rounded-xl border bg-muted/40 p-3">
+              <summary className="cursor-pointer text-xs font-semibold">Informacion del Asistente IA</summary>
+              <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">Puedes consultar:</span> stock, precios, datos de productos,
+                  movimientos de kardex, resumen de inventario y preguntas tecnicas generales de repuestos.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Por ahora no hace:</span> crear/editar documentos, cambiar
+                  stock automaticamente, ni ejecutar acciones administrativas.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Reglas:</span> valida datos criticos en los modulos del sistema,
+                  usa preguntas concretas (producto + bodega + contexto), y evita compartir credenciales o datos sensibles.
+                </p>
+              </div>
+            </details>
+
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-10 gap-4">
                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">

@@ -40,7 +40,7 @@ const pageTitles: { [key: string]: string } = {
 export function AppHeader({ session }: { session?: any }) {
   const pathname = usePathname() ?? "/";
   const isLogin = pathname === "/login";
-    const { toggle: toggleAI, isOpen: aiOpen } = useChatAI();
+  const { toggle: toggleAI, isOpen: aiOpen, showHint, dismissHint } = useChatAI();
   const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const userId = Number(session?.userId ?? 0) || 0;
@@ -179,16 +179,43 @@ export function AppHeader({ session }: { session?: any }) {
         </Popover>
 
         <ThemeToggle />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleAI}
-          title={aiOpen ? "Cerrar asistente IA" : "Abrir asistente IA"}
-          className={aiOpen ? "text-primary" : undefined}
-        >
-          <Bot className="h-5 w-5" />
-          <span className="sr-only">Asistente IA</span>
-        </Button>
+
+        <div className="relative">
+          {showHint && !aiOpen ? (
+            <button
+              type="button"
+              onClick={() => {
+                dismissHint();
+                toggleAI();
+              }}
+              className="absolute right-0 top-[120%] z-20 w-64 rounded-xl border bg-background p-3 text-left shadow-lg"
+              title="Abrir asistente IA"
+            >
+              <p className="text-xs font-semibold text-primary">Nuevo: Asistente IA disponible</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Consulta stock, productos, historial y soporte técnico desde aquí.
+              </p>
+              <p className="mt-2 text-[11px] text-primary underline">Haz clic para abrir</p>
+            </button>
+          ) : null}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleAI}
+            title={aiOpen ? "Cerrar asistente IA" : "Abrir asistente IA"}
+            className={aiOpen ? "text-primary" : "relative"}
+          >
+            {!aiOpen ? (
+              <span className="absolute inset-1 rounded-full border border-primary/50 animate-pulse" aria-hidden="true" />
+            ) : null}
+            {!aiOpen ? (
+              <span className="absolute inset-0 rounded-full border border-primary/30 animate-ping" aria-hidden="true" />
+            ) : null}
+            <Bot className="h-5 w-5" />
+            <span className="sr-only">Asistente IA</span>
+          </Button>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
