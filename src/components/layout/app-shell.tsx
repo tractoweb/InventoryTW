@@ -15,6 +15,7 @@ import { AppSidebar } from "@/components/layout/sidebar";
 import { AppHeader } from "@/components/layout/header";
 import { AnimatedPage } from "@/components/ui-preferences/animated-page";
 import { AnimeTopLoader } from "@/components/ui-preferences/top-loader";
+import { ChatAIPanel } from "@/components/chat-ai/chat-ai-panel";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -139,6 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </SidebarInset>
+      <ChatAIPanel />
     </SidebarProvider>
   );
 }

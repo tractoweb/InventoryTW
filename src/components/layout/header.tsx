@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { Bot } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import { es } from 'date-fns/locale';
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/icons";
 import { listNotificationsAction, type NotificationItem } from "@/actions/list-notifications";
+import { useChatAI } from "@/components/chat-ai/chat-ai-provider";
 
 
 const pageTitles: { [key: string]: string } = {
@@ -38,6 +40,7 @@ const pageTitles: { [key: string]: string } = {
 export function AppHeader({ session }: { session?: any }) {
   const pathname = usePathname() ?? "/";
   const isLogin = pathname === "/login";
+    const { toggle: toggleAI, isOpen: aiOpen } = useChatAI();
   const pageTitle = pageTitles[pathname] || pathname.split("/").pop()?.replace("-", " ") || "Dashboard";
 
   const userId = Number(session?.userId ?? 0) || 0;
@@ -176,6 +179,16 @@ export function AppHeader({ session }: { session?: any }) {
         </Popover>
 
         <ThemeToggle />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleAI}
+          title={aiOpen ? "Cerrar asistente IA" : "Abrir asistente IA"}
+          className={aiOpen ? "text-primary" : undefined}
+        >
+          <Bot className="h-5 w-5" />
+          <span className="sr-only">Asistente IA</span>
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

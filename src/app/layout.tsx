@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppShell from '@/components/layout/app-shell';
+import { ChatAIProvider } from '@/components/chat-ai/chat-ai-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProductsCatalogProvider } from '@/components/catalog/products-catalog-provider';
 import { DocumentsCatalogProvider } from '@/components/catalog/documents-catalog-provider';
@@ -36,7 +37,9 @@ export default function RootLayout({
           <UiPreferencesProvider>
             <ProductsCatalogProvider>
               <DocumentsCatalogProvider>
-                <AppShell>{children}</AppShell>
+                <ChatAIProvider>
+                  <AppShell>{children}</AppShell>
+                </ChatAIProvider>
               </DocumentsCatalogProvider>
             </ProductsCatalogProvider>
           </UiPreferencesProvider>
