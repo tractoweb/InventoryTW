@@ -32,28 +32,31 @@ frontend:
             fi
 
             ./pnpm --version
-        # Optional: deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json for this branch.
-        # Enabled only when DEPLOY_BACKEND=1 is set on the Amplify Console branch.
         # Keep the pnpm store inside the workspace so Amplify cache can persist it
         - ./pnpm config set store-dir .pnpm-store
         - ./pnpm install --frozen-lockfile
-        # Optional: deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json for this branch.
-        # Enabled only when DEPLOY_BACKEND=1 is set on the Amplify Console branch.
+        # Deploy/refresh Amplify Gen2 backend + generate amplify_outputs.json.
+        # Runs automatically in Amplify CI (AWS_APP_ID is injected by the platform).
+        # Can also be forced locally with DEPLOY_BACKEND=1.
         - |
             set -e
-            if [ "${DEPLOY_BACKEND:-0}" = "1" ]; then
+            AUTO_DEPLOY=""
+            if [ -n "${AWS_APP_ID:-}" ]; then
+              AUTO_DEPLOY="1"
+            fi
+
+            if [ "${DEPLOY_BACKEND:-0}" = "1" ] || [ "${AUTO_DEPLOY:-0}" = "1" ]; then
               APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-${AMPLIFY_APPID:-}}}"
               BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-${BRANCH_NAME:-${BRANCH:-prod}}}}"
 
               echo "[amplify] env: AWS_APP_ID=${AWS_APP_ID:-} AWS_BRANCH=${AWS_BRANCH:-} AMPLIFY_APP_ID=${AMPLIFY_APP_ID:-} AMPLIFY_BRANCH=${AMPLIFY_BRANCH:-}"
 
               if [ -z "$APP_ID" ] || [ -z "$BRANCH" ]; then
-                echo "[amplify] DEPLOY_BACKEND=1 but missing APP_ID/BRANCH. Set AMPLIFY_APP_ID (and optionally AMPLIFY_BRANCH)."
+                echo "[amplify] Missing APP_ID/BRANCH. Set AMPLIFY_APP_ID (and optionally AMPLIFY_BRANCH)."
                 exit 1
               fi
 
               echo "[amplify] pipeline-deploy (app-id=$APP_ID, branch=$BRANCH)"
-              # Use the repo-installed backend-cli (pnpm exec) so it shares the project's dependency tree.
               ./pnpm exec ampx pipeline-deploy \
                 --app-id "$APP_ID" \
                 --branch "$BRANCH" \
@@ -65,7 +68,7 @@ frontend:
                 exit 1
               fi
             else
-              echo "[amplify] DEPLOY_BACKEND!=1; skipping pipeline-deploy"
+              echo "[amplify] Not in Amplify CI and DEPLOY_BACKEND!=1; skipping pipeline-deploy"
             fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"

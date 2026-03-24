@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bot, Camera, FileText, Code2, Sparkles, PlayCircle, Upload, Wand2, AlertTriangle, Loader2, ScanLine } from "lucide-react";
+import { Bot, Camera, FileText, Sparkles, PlayCircle, Upload, Wand2, AlertTriangle, Loader2, ScanLine } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ type Props = {
   accessLevel: number;
 };
 
-type WorkbenchMode = "query" | "document" | "image" | "development";
+type WorkbenchMode = "query" | "document" | "image";
 
 type ImageMeta = {
   width: number;
@@ -121,11 +121,6 @@ export function AILabClient({ currentUserName, accessLevel }: Props) {
   const [imagePrompt, setImagePrompt] = React.useState("Analiza posibles fallas visibles y recomendaciones");
   const [imageResult, setImageResult] = React.useState("");
   const [imageLoading, setImageLoading] = React.useState(false);
-
-  const [devPrompt, setDevPrompt] = React.useState("Revisa este codigo y dame mejoras de rendimiento y seguridad");
-  const [devCode, setDevCode] = React.useState("");
-  const [devResult, setDevResult] = React.useState("");
-  const [devLoading, setDevLoading] = React.useState(false);
 
   const [cameraOpen, setCameraOpen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -352,22 +347,6 @@ export function AILabClient({ currentUserName, accessLevel }: Props) {
     }
   }
 
-  async function runDevAnalysis() {
-    if (!devCode.trim()) return;
-    setDevLoading(true);
-    try {
-      const result = await callWorkbench(
-        "development",
-        devPrompt,
-        `Codigo:\n${devCode.slice(0, 18000)}`
-      );
-      setDevResult(result);
-    } catch (e: any) {
-      setDevResult(`Error: ${e?.message ?? "No fue posible analizar el codigo."}`);
-    } finally {
-      setDevLoading(false);
-    }
-  }
 
   return (
     <div className="relative min-w-0 overflow-hidden">
@@ -384,11 +363,11 @@ export function AILabClient({ currentUserName, accessLevel }: Props) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="bg-cyan-600 text-white">Nuevo modulo</Badge>
           <Badge variant="outline">IA</Badge>
-          <Badge variant="outline">Analisis + Desarrollo</Badge>
+          <Badge variant="outline">Analisis</Badge>
         </div>
         <h1 className="mt-3 text-3xl font-bold tracking-tight">AI Lab</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Entorno integral para consultas, lectura documental, analisis de imagen/foto y asistencia de desarrollo.
+          Entorno integral para consultas, lectura documental y analisis de imagen/foto.
           Usuario activo: <strong>{currentUserName}</strong>.
         </p>
       </div>
@@ -407,7 +386,6 @@ export function AILabClient({ currentUserName, accessLevel }: Props) {
           <TabsTrigger value="query"><Bot className="mr-2 h-4 w-4" />Consultas</TabsTrigger>
           <TabsTrigger value="documents"><FileText className="mr-2 h-4 w-4" />Documentos</TabsTrigger>
           <TabsTrigger value="images"><Camera className="mr-2 h-4 w-4" />Imagenes/Fotos</TabsTrigger>
-          <TabsTrigger value="development"><Code2 className="mr-2 h-4 w-4" />Desarrollo</TabsTrigger>
         </TabsList>
 
         <div ref={cardsRef} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -536,31 +514,6 @@ export function AILabClient({ currentUserName, accessLevel }: Props) {
                   {imageLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                   Analizar imagen
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="development" className="col-span-1 lg:col-span-2" data-ai-card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl"><Code2 className="h-5 w-5 text-cyan-600" />Asistente de Desarrollo</CardTitle>
-                <CardDescription>Analiza codigo, propone refactors, mejoras de rendimiento, seguridad y plan de implementacion.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Input value={devPrompt} onChange={(e) => setDevPrompt(e.target.value)} placeholder="Objetivo del analisis de desarrollo" />
-                <Textarea
-                  rows={10}
-                  value={devCode}
-                  onChange={(e) => setDevCode(e.target.value)}
-                  placeholder="Pega aqui el codigo a analizar..."
-                />
-                <Button onClick={runDevAnalysis} disabled={devLoading || !devCode.trim()}>
-                  {devLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Code2 className="mr-2 h-4 w-4" />}
-                  Ejecutar analisis dev
-                </Button>
-                <ScrollArea className="h-[280px] rounded-md border bg-muted/30 p-3">
-                  <pre className="whitespace-pre-wrap text-sm">{devResult || "Resultados de analisis de desarrollo."}</pre>
-                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
