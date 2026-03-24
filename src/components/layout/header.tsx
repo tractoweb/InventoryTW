@@ -33,6 +33,7 @@ const pageTitles: { [key: string]: string } = {
   '/': 'Panel de Control',
   '/inventory': 'Inventario',
   '/stock': 'Stock',
+  '/ai-lab': 'AI Lab',
   '/financing-calculator': 'Calculadora de Financiación',
 };
 

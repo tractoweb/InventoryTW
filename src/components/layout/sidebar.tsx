@@ -28,6 +28,7 @@ import {
   History,
   FileText,
   Calculator,
+  Sparkles,
   Settings,
   ChevronDown,
 } from "lucide-react";
@@ -69,6 +70,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { href: "/documents", label: "Documentos", icon: Receipt },
       { href: "/pos/salidas", label: "POS · Salidas", icon: ArrowUpRight },
+      { href: "/pos/registro-ventas", label: "Registro de vendidos", icon: History },
       { href: "/clients", label: "Clientes", icon: Users },
       { href: "/suppliers", label: "Proveedores", icon: Users },
     ],
@@ -99,7 +101,7 @@ const menuGroups: MenuGroup[] = [
     label: "Herramientas",
     icon: FileText,
     items: [
-      { href: "/json", label: "Importar JSON", icon: FileText },
+      { href: "/ai-lab", label: "AI Lab", icon: Sparkles },
       { href: "/print-labels/products", label: "Imprimir Etiquetas", icon: FileText },
       { href: "/financing-calculator", label: "Calculadora", icon: Calculator },
     ],

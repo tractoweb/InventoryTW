@@ -24,18 +24,47 @@ function buildContext(messages: Array<{ role: 'user' | 'assistant'; content: str
   return [`Usuario actual: ${userLabel}`, ...lines].join('\n');
 }
 
-function extractGenerationText(raw: any): string {
-  if (typeof raw === 'string') return raw;
-  if (typeof raw?.data === 'string') return raw.data;
-  if (typeof raw?.text === 'string') return raw.text;
-  if (typeof raw?.output === 'string') return raw.output;
-  if (typeof raw?.data?.text === 'string') return raw.data.text;
+function extractGenerationText(raw: any): { text: string; debugCode?: string } {
+  // Direct string response
+  if (typeof raw === 'string') return { text: raw };
+  
+  // raw.data as string
+  if (typeof raw?.data === 'string') return { text: raw.data };
+  
+  // raw.text (common in AI SDK responses)
+  if (typeof raw?.text === 'string') return { text: raw.text };
+  
+  // raw.output
+  if (typeof raw?.output === 'string') return { text: raw.output };
+  
+  // raw.data.text (nested structure)
+  if (typeof raw?.data?.text === 'string') return { text: raw.data.text };
+  
+  // Amplify native generation response: { data: { inventoryAssistant: "text" } }
+  // or any other route name in data object
+  if (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
+    const values = Object.values(raw.data as Record<string, any>);
+    for (const val of values) {
+      if (typeof val === 'string' && val.trim()) {
+        return { text: val, debugCode: 'amplify_native_route' };
+      }
+    }
+  }
+  
+  // raw.data as array
   if (Array.isArray(raw?.data) && raw.data.length > 0) {
     const first = raw.data[0];
-    if (typeof first === 'string') return first;
-    if (typeof first?.text === 'string') return first.text;
+    if (typeof first === 'string') return { text: first };
+    if (typeof first?.text === 'string') return { text: first.text };
   }
-  return '';
+  
+  // Log response structure for debugging (non-production-friendly)
+  if (process.env.NODE_ENV !== 'production') {
+    const responseKeys = typeof raw === 'object' ? Object.keys(raw || {}).join(',') : typeof raw;
+    console.error('[AI Chat] Response structure not recognized:', { type: typeof raw, keys: responseKeys, raw });
+  }
+  
+  return { text: '', debugCode: 'response_format_unknown' };
 }
 
 export async function POST(request: NextRequest) {
@@ -86,6 +115,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[AI Chat] Calling inventoryAssistant generation with input length:', last.content.length);
+    }
+
     const timeoutMs = 22000;
     const result = await Promise.race([
       generationFn({
@@ -95,10 +128,18 @@ export async function POST(request: NextRequest) {
       new Promise((_, reject) => setTimeout(() => reject(new Error('ai_timeout')), timeoutMs)),
     ]);
 
-    const text = extractGenerationText(result);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[AI Chat] Generation response type:', typeof result, 'keys:', typeof result === 'object' ? Object.keys(result || {}) : 'N/A');
+    }
+
+    const { text, debugCode } = extractGenerationText(result);
     if (!text.trim()) {
+      const errorPayload: any = { error: 'La IA no devolvió contenido. Intenta reformular la pregunta.' };
+      if (process.env.NODE_ENV !== 'production' && debugCode) {
+        errorPayload.debugCode = debugCode;
+      }
       return new Response(
-        JSON.stringify({ error: 'La IA no devolvió contenido. Intenta reformular la pregunta.' }),
+        JSON.stringify(errorPayload),
         {
           status: 502,
           headers: { 'Content-Type': 'application/json' },
@@ -114,6 +155,10 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     const msg = String(err?.message ?? 'Error desconocido');
     const isTimeout = msg.includes('ai_timeout');
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[AI Chat] Generation error:', { message: msg, isTimeout });
+    }
 
     return new Response(
       JSON.stringify({

@@ -16,6 +16,7 @@ export type DocumentsCatalogRow = {
   total: number;
   paidStatus: number;
   isClockedOut: boolean;
+  internalNote?: string | null;
   customerId?: number | null;
   clientId?: number | null;
   clientNameSnapshot?: string | null;
@@ -155,6 +156,7 @@ export async function listDocumentsForBrowserAll(): Promise<{ data: DocumentsCat
           total: Number(d?.total ?? 0),
           paidStatus: Number(d?.paidStatus ?? 0),
           isClockedOut: Boolean(d?.isClockedOut ?? false),
+          internalNote: d?.internalNote ? String(d.internalNote) : null,
           customerId: customerId && Number.isFinite(customerId) ? customerId : null,
           clientId: clientId && Number.isFinite(clientId) ? clientId : null,
           clientNameSnapshot,
