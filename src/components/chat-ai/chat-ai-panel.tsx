@@ -516,7 +516,7 @@ export function ChatAIPanel() {
             )}
           </form>
           <p className="text-center text-[10px] text-muted-foreground mt-2">
-            Powered by Amazon Bedrock · Claude 3.5
+            Powered by Amazon Bedrock · Amazon Nova Lite
           </p>
         </div>
       </div>

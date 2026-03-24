@@ -544,7 +544,8 @@ const schema = a.schema({
   // 12. IA (RUTA NATIVA AMPLIFY)
   inventoryAssistant: a
     .generation({
-      aiModel: a.ai.model('Claude 3.5 Haiku'),
+      // Use a broadly available Bedrock model to reduce resolver/runtime failures in AppSync.
+      aiModel: a.ai.model('Amazon Nova Lite'),
       systemPrompt:
         'Eres un asistente de inventario para una empresa de repuestos agrícolas. Responde en español, de forma breve, exacta y accionable. Si faltan datos, dilo explícitamente y sugiere cómo obtenerlos en el sistema.',
     })
