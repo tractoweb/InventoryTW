@@ -26,6 +26,13 @@ function buildContext(messages: Array<{ role: 'user' | 'assistant'; content: str
 
 function classifyGenerationError(message: string): { errorType: string; detail: string } {
   const m = message.toLowerCase();
+  if (m.includes('mapping template')) {
+    return {
+      errorType: 'APPSYNC_MAPPING_TEMPLATE_ERROR',
+      detail:
+        'AppSync rechazo la ejecucion en el resolver de IA. Revisa permisos Bedrock del rol de AppSync y compatibilidad del modelo configurado.',
+    };
+  }
   if (m.includes('accessdenied') || m.includes('not authorized') || m.includes('unauthorized')) {
     return {
       errorType: 'BEDROCK_ACCESS_DENIED',
@@ -47,6 +54,45 @@ function classifyGenerationError(message: string): { errorType: string; detail: 
   return {
     errorType: 'AMPLIFY_GENERATION_ERROR',
     detail: message,
+  };
+}
+
+function extractNestedErrorInfo(err: any): { message: string; providerType?: string; providerDetail?: string } {
+  const first = Array.isArray(err?.errors) && err.errors.length > 0 ? err.errors[0] : undefined;
+
+  const messageCandidates = [
+    err?.message,
+    first?.message,
+    first?.errorInfo?.message,
+    first?.extensions?.message,
+    first?.extensions?.errorInfo?.message,
+    first?.originalError?.message,
+  ]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+
+  const providerTypeCandidates = [
+    first?.errorType,
+    first?.extensions?.errorType,
+    first?.extensions?.code,
+    err?.name,
+  ]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+
+  const providerDetailCandidates = [
+    first?.errorInfo?.detail,
+    first?.extensions?.errorInfo?.detail,
+    first?.extensions?.exception?.message,
+    first?.extensions?.cause?.message,
+  ]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+
+  return {
+    message: messageCandidates[0] ?? 'Error desconocido',
+    providerType: providerTypeCandidates[0],
+    providerDetail: providerDetailCandidates[0],
   };
 }
 
@@ -216,7 +262,8 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (err: any) {
-    const msg = String(err?.message ?? 'Error desconocido');
+    const extracted = extractNestedErrorInfo(err);
+    const msg = extracted.message;
     const isTimeout = msg.includes('ai_timeout');
     const classified = classifyGenerationError(msg);
 
@@ -231,6 +278,8 @@ export async function POST(request: NextRequest) {
           : `Error en IA Amplify: ${msg}`,
         errorType: isTimeout ? 'TIMEOUT' : classified.errorType,
         detail: isTimeout ? 'El modelo no respondio dentro de 22 segundos.' : classified.detail,
+        providerType: extracted.providerType,
+        providerDetail: extracted.providerDetail,
       }),
       {
         status: isTimeout ? 504 : 500,

@@ -86,7 +86,9 @@ function useStreamingChat() {
             const error = typeof errBody?.error === "string" ? errBody.error : errMsg;
             const errorType = typeof errBody?.errorType === "string" ? ` [${errBody.errorType}]` : "";
             const detail = typeof errBody?.detail === "string" ? ` ${errBody.detail}` : "";
-            errMsg = `${error}${errorType}${detail}`;
+            const providerType = typeof errBody?.providerType === "string" ? ` providerType=${errBody.providerType}` : "";
+            const providerDetail = typeof errBody?.providerDetail === "string" ? ` providerDetail=${errBody.providerDetail}` : "";
+            errMsg = `${error}${errorType}${detail}${providerType}${providerDetail}`.trim();
           } catch {}
           setMessages((prev) =>
             prev.map((m) =>
