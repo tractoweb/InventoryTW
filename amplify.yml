@@ -41,22 +41,22 @@ frontend:
         - |
             set -e
             AUTO_DEPLOY=""
-            if [ -n "${AWS_APP_ID:-}" ]; then
+            # Amplify CI injects AWS_APP_ID (Gen2) or AMPLIFY_APP_ID (Gen1/hybrid)
+            if [ -n "${AWS_APP_ID:-}" ] || [ -n "${AMPLIFY_APP_ID:-}" ]; then
               AUTO_DEPLOY="1"
             fi
 
             if [ "${DEPLOY_BACKEND:-0}" = "1" ] || [ "${AUTO_DEPLOY:-0}" = "1" ]; then
-              APP_ID="${AMPLIFY_APP_ID:-${AWS_APP_ID:-${AMPLIFY_APPID:-}}}"
-              BRANCH="${AMPLIFY_BRANCH:-${AWS_BRANCH:-${BRANCH_NAME:-${BRANCH:-prod}}}}"
+              APP_ID="${AWS_APP_ID:-${AMPLIFY_APP_ID:-${AMPLIFY_APPID:-}}}"
+              BRANCH="${AWS_BRANCH:-${AMPLIFY_BRANCH:-${BRANCH_NAME:-${BRANCH:-prod}}}}"
 
-              echo "[amplify] env: AWS_APP_ID=${AWS_APP_ID:-} AWS_BRANCH=${AWS_BRANCH:-} AMPLIFY_APP_ID=${AMPLIFY_APP_ID:-} AMPLIFY_BRANCH=${AMPLIFY_BRANCH:-}"
+              echo "[amplify] Deploying Gen2 backend: app-id=$APP_ID branch=$BRANCH"
 
               if [ -z "$APP_ID" ] || [ -z "$BRANCH" ]; then
-                echo "[amplify] Missing APP_ID/BRANCH. Set AMPLIFY_APP_ID (and optionally AMPLIFY_BRANCH)."
+                echo "[amplify] ERROR: Could not resolve APP_ID or BRANCH"
                 exit 1
               fi
 
-              echo "[amplify] pipeline-deploy (app-id=$APP_ID, branch=$BRANCH)"
               ./pnpm exec ampx pipeline-deploy \
                 --app-id "$APP_ID" \
                 --branch "$BRANCH" \
@@ -64,11 +64,13 @@ frontend:
                 --outputs-version 1
 
               if [ ! -f "$PWD/amplify_outputs.json" ]; then
-                echo "[amplify] pipeline-deploy completed but amplify_outputs.json was not generated"
+                echo "[amplify] ERROR: amplify_outputs.json was not generated after pipeline-deploy"
                 exit 1
               fi
+
+              echo "[amplify] Backend deployed successfully"
             else
-              echo "[amplify] Not in Amplify CI and DEPLOY_BACKEND!=1; skipping pipeline-deploy"
+              echo "[amplify] Skipping pipeline-deploy (not in Amplify CI and DEPLOY_BACKEND!=1)"
             fi
         # Optional: show whether SMTP is configured (don't fail the build)
         - node -e "const ok=!!(process.env.SMTP_HOST&&process.env.SMTP_FROM); console.log('[smtp] configured:', ok);"
