@@ -83,7 +83,10 @@ function useStreamingChat() {
           let errMsg = "Error del servidor.";
           try {
             const errBody = await response.json();
-            errMsg = errBody.error ?? errMsg;
+            const error = typeof errBody?.error === "string" ? errBody.error : errMsg;
+            const errorType = typeof errBody?.errorType === "string" ? ` [${errBody.errorType}]` : "";
+            const detail = typeof errBody?.detail === "string" ? ` ${errBody.detail}` : "";
+            errMsg = `${error}${errorType}${detail}`;
           } catch {}
           setMessages((prev) =>
             prev.map((m) =>

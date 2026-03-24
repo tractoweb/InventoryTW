@@ -32,9 +32,43 @@ function modeInstruction(mode: AiMode): string {
   }
 }
 
-function extractGenerationText(raw: any): { text: string; debugCode?: string } {
+function classifyGenerationError(message: string): { errorType: string; detail: string } {
+  const m = message.toLowerCase();
+  if (m.includes('accessdenied') || m.includes('not authorized') || m.includes('unauthorized')) {
+    return {
+      errorType: 'BEDROCK_ACCESS_DENIED',
+      detail: 'El rol del backend no tiene permisos para invocar el modelo en Bedrock.',
+    };
+  }
+  if (m.includes('throttl') || m.includes('rate exceeded') || m.includes('too many requests')) {
+    return {
+      errorType: 'BEDROCK_THROTTLED',
+      detail: 'Bedrock esta limitando solicitudes por capacidad o cuota.',
+    };
+  }
+  if (m.includes('model') && (m.includes('not found') || m.includes('not available') || m.includes('invalid model'))) {
+    return {
+      errorType: 'MODEL_NOT_AVAILABLE',
+      detail: 'El modelo configurado no esta disponible para esta cuenta o region.',
+    };
+  }
+  return {
+    errorType: 'AMPLIFY_GENERATION_ERROR',
+    detail: message,
+  };
+}
+
+function extractGenerationText(raw: any): { text: string; debugCode?: string; errorType?: string; detail?: string } {
   // Direct string response
   if (typeof raw === 'string') return { text: raw };
+
+  // GraphQL/Amplify errors array
+  if (Array.isArray(raw?.errors) && raw.errors.length > 0) {
+    const first = raw.errors[0];
+    const message = String(first?.message ?? first ?? 'Error desconocido en generacion IA');
+    const classified = classifyGenerationError(message);
+    return { text: '', debugCode: 'graphql_errors_array', ...classified };
+  }
   
   // raw.data as string
   if (typeof raw?.data === 'string') return { text: raw.data };
@@ -51,11 +85,34 @@ function extractGenerationText(raw: any): { text: string; debugCode?: string } {
   // Amplify native generation response: { data: { inventoryAssistant: "text" } }
   // or any other route name in data object
   if (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
-    const values = Object.values(raw.data as Record<string, any>);
-    for (const val of values) {
+    const entries = Object.entries(raw.data as Record<string, any>);
+    for (const [routeName, val] of entries) {
       if (typeof val === 'string' && val.trim()) {
-        return { text: val, debugCode: 'amplify_native_route' };
+        return { text: val, debugCode: `amplify_native_route:${routeName}` };
       }
+      if (val && typeof val === 'object') {
+        if (typeof (val as any).text === 'string' && (val as any).text.trim()) {
+          return { text: (val as any).text, debugCode: `amplify_route_object_text:${routeName}` };
+        }
+        if (Array.isArray((val as any).content)) {
+          const textParts = (val as any).content
+            .map((c: any) => (typeof c?.text === 'string' ? c.text : ''))
+            .filter((t: string) => t.trim());
+          if (textParts.length > 0) {
+            return { text: textParts.join('\n'), debugCode: `amplify_route_object_content:${routeName}` };
+          }
+        }
+      }
+    }
+  }
+
+  // raw.content array (some model adapters)
+  if (Array.isArray(raw?.content)) {
+    const textParts = raw.content
+      .map((c: any) => (typeof c?.text === 'string' ? c.text : ''))
+      .filter((t: string) => t.trim());
+    if (textParts.length > 0) {
+      return { text: textParts.join('\n'), debugCode: 'content_array_text' };
     }
   }
   
@@ -72,7 +129,7 @@ function extractGenerationText(raw: any): { text: string; debugCode?: string } {
     console.error('[AI Workbench] Response structure not recognized:', { type: typeof raw, keys: responseKeys, raw });
   }
   
-  return { text: '', debugCode: 'response_format_unknown' };
+  return { text: '', debugCode: 'response_format_unknown', errorType: 'UNKNOWN_RESPONSE_FORMAT', detail: 'La respuesta IA llego sin texto utilizable.' };
 }
 
 export async function POST(request: NextRequest) {
@@ -155,10 +212,16 @@ export async function POST(request: NextRequest) {
       console.log('[AI Workbench] Mode:', mode, 'Response type:', typeof result, 'Keys:', typeof result === 'object' ? Object.keys(result || {}) : 'N/A');
     }
 
-    const { text, debugCode } = extractGenerationText(result);
+    const { text, debugCode, errorType, detail } = extractGenerationText(result);
     const trimmedText = text.trim();
     if (!trimmedText) {
-      const errorPayload: any = { error: 'La IA no devolvio contenido.' };
+      const errorPayload: any = {
+        error: 'La IA no devolvio contenido utilizable.',
+        errorType: errorType ?? 'EMPTY_RESPONSE',
+      };
+      if (detail) {
+        errorPayload.detail = detail;
+      }
       if (process.env.NODE_ENV !== 'production' && debugCode) {
         errorPayload.debugCode = debugCode;
       }
@@ -175,6 +238,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     const msg = String(err?.message ?? 'Error desconocido');
     const isTimeout = msg.includes('ai_timeout');
+    const classified = classifyGenerationError(msg);
 
     if (process.env.NODE_ENV !== 'production') {
       console.error('[AI Workbench] Generation error:', { message: msg, isTimeout, mode });
@@ -185,6 +249,8 @@ export async function POST(request: NextRequest) {
         error: isTimeout
           ? 'La IA tardo demasiado en responder. Intenta con un contexto mas corto.'
           : `Error en IA Amplify: ${msg}`,
+        errorType: isTimeout ? 'TIMEOUT' : classified.errorType,
+        detail: isTimeout ? 'El modelo no respondio dentro de 24 segundos.' : classified.detail,
       }),
       {
         status: isTimeout ? 504 : 500,
