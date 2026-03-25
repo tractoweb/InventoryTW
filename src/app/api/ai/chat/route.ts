@@ -8,19 +8,18 @@ type ChatMessage = {
   content: string;
 };
 
-type GeminiApiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
+type OpenAIChatCompletionsResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string;
     };
-    finishReason?: string;
+    finish_reason?: string;
   }>;
   error?: {
-    code?: number;
+    code?: number | string;
     message?: string;
     status?: string;
+    type?: string;
   };
 };
 
@@ -79,47 +78,62 @@ function buildSystemInstruction(): string {
 
 function toGeminiContents(messages: ChatMessage[]) {
   return messages.map((message) => ({
-    role: message.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: message.content }],
+    role: message.role,
+    content: message.content,
   }));
 }
 
 async function generateResponse(messages: ChatMessage[]): Promise<string> {
-  const apiKey =
-    readEnvWithSecretsFallback('GEMINI_API_KEY') ??
-    readEnvWithSecretsFallback('GOOGLE_API_KEY');
-  const model = readEnvWithSecretsFallback('GEMINI_MODEL') ?? 'gemini-2.5-flash';
-  const temperature = Number(readEnvWithSecretsFallback('GEMINI_TEMPERATURE') ?? '0.3');
-  const maxOutputTokens = Number(readEnvWithSecretsFallback('GEMINI_MAX_TOKENS') ?? '1024');
+  const apiKey = readEnvWithSecretsFallback('OPENAI_API_KEY');
+  const baseUrl =
+    readEnvWithSecretsFallback('OPENAI_BASE_URL') ??
+    'https://bedrock-mantle.us-east-2.api.aws/v1';
+  const model =
+    readEnvWithSecretsFallback('OPENAI_MODEL') ??
+    readEnvWithSecretsFallback('AI_MODEL_PRIMARY') ??
+    readEnvWithSecretsFallback('AI_MODEL') ??
+    'openai.gpt-oss-120b';
+  const temperature = Number(readEnvWithSecretsFallback('OPENAI_TEMPERATURE') ?? '0.3');
+  const maxOutputTokens = Number(readEnvWithSecretsFallback('OPENAI_MAX_TOKENS') ?? '1024');
 
   if (!apiKey) {
     const secrets = readSecretsBlob();
     const hasSecretsBlob = Boolean(process.env.secrets);
     const envPresence = {
-      GEMINI_API_KEY: Boolean(readEnv('GEMINI_API_KEY')),
-      GOOGLE_API_KEY: Boolean(readEnv('GOOGLE_API_KEY')),
-      GEMINI_MODEL: Boolean(readEnv('GEMINI_MODEL')),
+      OPENAI_API_KEY: Boolean(readEnv('OPENAI_API_KEY')),
+      OPENAI_BASE_URL: Boolean(readEnv('OPENAI_BASE_URL')),
+      OPENAI_MODEL: Boolean(readEnv('OPENAI_MODEL')),
+      AI_MODEL_PRIMARY: Boolean(readEnv('AI_MODEL_PRIMARY')),
+      AI_MODEL: Boolean(readEnv('AI_MODEL')),
       secretsBlob: hasSecretsBlob,
-      secretsGEMINI_API_KEY: Boolean(secrets && typeof secrets.GEMINI_API_KEY === 'string' && String(secrets.GEMINI_API_KEY).trim().length > 0),
-      secretsGOOGLE_API_KEY: Boolean(secrets && typeof secrets.GOOGLE_API_KEY === 'string' && String(secrets.GOOGLE_API_KEY).trim().length > 0),
+      secretsOPENAI_API_KEY: Boolean(secrets && typeof secrets.OPENAI_API_KEY === 'string' && String(secrets.OPENAI_API_KEY).trim().length > 0),
+      secretsOPENAI_BASE_URL: Boolean(secrets && typeof secrets.OPENAI_BASE_URL === 'string' && String(secrets.OPENAI_BASE_URL).trim().length > 0),
       AWS_BRANCH: Boolean(readEnv('AWS_BRANCH')),
       NODE_ENV: readEnv('NODE_ENV') ?? 'unknown',
     };
-    throw new Error(`GEMINI_API_KEY no está configurada (${JSON.stringify(envPresence)})`);
+    throw new Error(`OPENAI_API_KEY no está configurada (${JSON.stringify(envPresence)})`);
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  const url = `${normalizedBaseUrl}/chat/completions`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: buildSystemInstruction() }],
-      },
-      contents: toGeminiContents(messages),
+      model,
+      messages: [
+        { role: 'system', content: buildSystemInstruction() },
+        ...toGeminiContents(messages),
+      ],
+      temperature: Number.isFinite(temperature) ? temperature : 0.3,
+      max_tokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
+      stream: false,
+      // Keep compatibility if provider also accepts Responses API fields.
+      max_output_tokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
       generationConfig: {
         temperature: Number.isFinite(temperature) ? temperature : 0.3,
         maxOutputTokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
@@ -128,21 +142,21 @@ async function generateResponse(messages: ChatMessage[]): Promise<string> {
     cache: 'no-store',
   });
 
-  const payload = (await response.json()) as GeminiApiResponse;
+  const payload = (await response.json()) as OpenAIChatCompletionsResponse;
 
   if (!response.ok) {
-    const message = payload?.error?.message || 'Error llamando a Gemini';
-    const status = payload?.error?.status || 'GEMINI_API_ERROR';
+    const message = payload?.error?.message || 'Error llamando a OpenAI-compatible API';
+    const status =
+      payload?.error?.status ||
+      payload?.error?.type ||
+      String(payload?.error?.code || 'OPENAI_COMPAT_API_ERROR');
     throw new Error(`${message} [${status}]`);
   }
 
-  const text = payload?.candidates?.[0]?.content?.parts
-    ?.map((part) => String(part?.text ?? ''))
-    .join('')
-    .trim();
+  const text = String(payload?.choices?.[0]?.message?.content ?? '').trim();
 
   if (!text) {
-    throw new Error('Gemini respondió vacío');
+    throw new Error('OpenAI-compatible API respondió vacío');
   }
 
   return text;
