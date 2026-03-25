@@ -8,6 +8,29 @@ type ChatMessage = {
   content: string;
 };
 
+type GeminiApiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+    finishReason?: string;
+  }>;
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+  };
+};
+
+function readEnv(name: string): string | undefined {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null) return undefined;
+  const trimmed = String(raw).trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 function sanitizeMessages(raw: unknown): ChatMessage[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -20,51 +43,72 @@ function sanitizeMessages(raw: unknown): ChatMessage[] {
     }));
 }
 
-/**
- * Simple pattern-based response system
- * Provides basic conversational responses without requiring LLM/Bedrock
- */
-function generateResponse(_userMessage: string): string {
-  const lower = _userMessage.toLowerCase().trim();
+function buildSystemInstruction(): string {
+  return [
+    'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
+    'Responde en espanol claro y concreto.',
+    'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
+    'Si no sabes algo del estado real de la base de datos o no tienes acceso a una consulta exacta, dilo explicitamente.',
+    'No inventes datos, stock, precios, ni resultados de documentos.',
+    'Prioriza respuestas utiles, cortas y accionables.',
+  ].join(' ');
+}
 
-  // Greetings
-  if (/^(hola|hi|hey|buenos|buenas|saludos)/.test(lower)) {
-    return 'Hola! Soy el asistente de TRACTO AGRÍCOLA. ¿En qué puedo ayudarte hoy?';
+function toGeminiContents(messages: ChatMessage[]) {
+  return messages.map((message) => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: message.content }],
+  }));
+}
+
+async function generateResponse(messages: ChatMessage[]): Promise<string> {
+  const apiKey = readEnv('GEMINI_API_KEY');
+  const model = readEnv('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+  const temperature = Number(readEnv('GEMINI_TEMPERATURE') ?? '0.3');
+  const maxOutputTokens = Number(readEnv('GEMINI_MAX_TOKENS') ?? '1024');
+
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY no está configurada');
   }
 
-  // Farewell
-  if (/(adiós|hasta luego|chao|bye|gracias)/i.test(lower)) {
-    return '¡Hasta luego! Si tienes más preguntas, estaré por aquí.';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: buildSystemInstruction() }],
+      },
+      contents: toGeminiContents(messages),
+      generationConfig: {
+        temperature: Number.isFinite(temperature) ? temperature : 0.3,
+        maxOutputTokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
+      },
+    }),
+    cache: 'no-store',
+  });
+
+  const payload = (await response.json()) as GeminiApiResponse;
+
+  if (!response.ok) {
+    const message = payload?.error?.message || 'Error llamando a Gemini';
+    const status = payload?.error?.status || 'GEMINI_API_ERROR';
+    throw new Error(`${message} [${status}]`);
   }
 
-  // Help request
-  if (/(ayuda|help|que puedes|que haces|como funciona)/i.test(lower)) {
-    return `Soy el asistente de TRACTO AGRÍCOLA. Puedo ayudarte con:
-• Consultas sobre productos y repuestos
-• Información de inventario
-• Detalles de documentos y transacciones
-• Orientación general sobre el sistema
+  const text = payload?.candidates?.[0]?.content?.parts
+    ?.map((part) => String(part?.text ?? ''))
+    .join('')
+    .trim();
 
-¿Qué necesitas saber?`;
+  if (!text) {
+    throw new Error('Gemini respondió vacío');
   }
 
-  // Inventory/stock question
-  if (/(stock|inventario|cantidad|bodega|almacén|disponibilidad)/i.test(lower)) {
-    return 'Para consultas de inventario, usa la sección de Inventario en el sistema. Ahí verás el stock actualizado por bodega y producto.';
-  }
-
-  // Document question
-  if (/(documento|compra|venta|factura|ingreso|salida|movimiento|transacción)/i.test(lower)) {
-    return 'Los documentos registran todas las transacciones. Puedes crearlos, consultarlos y finalizarlos en la sección de Documentos. ¿Necesitas ayuda con algo específico?';
-  }
-
-  // Product/parts search
-  if (/(producto|repuesto|parte|código|búsca)/i.test(lower)) {
-    return 'Para buscar productos, usa el catálogo en Inventario. Puedes buscar por código, nombre o grupo de productos.';
-  }
-
-  // Default response
-  return 'Entiendo. Actualmente funciono con respuestas predefinidas. ¿Puedes intentar con preguntas sobre inventario, documentos o productos?';
+  return text;
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +139,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = generateResponse(userMessage);
+    const response = await generateResponse(messages);
 
     // Stream response in chunks (simulating streaming)
     const encoder = new TextEncoder();
