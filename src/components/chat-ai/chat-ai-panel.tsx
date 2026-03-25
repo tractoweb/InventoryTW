@@ -88,7 +88,24 @@ function useStreamingChat() {
             const detail = typeof errBody?.detail === "string" ? ` ${errBody.detail}` : "";
             const providerType = typeof errBody?.providerType === "string" ? ` providerType=${errBody.providerType}` : "";
             const providerDetail = typeof errBody?.providerDetail === "string" ? ` providerDetail=${errBody.providerDetail}` : "";
-            errMsg = `${error}${errorType}${detail}${providerType}${providerDetail}`.trim();
+
+            const credentialSource =
+              typeof errBody?.credentialSource === "string"
+                ? `\ncredentialSource=${errBody.credentialSource}`
+                : "";
+
+            const envPresenceObj =
+              errBody && typeof errBody === "object" && errBody.envPresence && typeof errBody.envPresence === "object"
+                ? (errBody.envPresence as Record<string, unknown>)
+                : null;
+
+            const envPresence = envPresenceObj
+              ? `\nenvPresence=${Object.entries(envPresenceObj)
+                  .map(([k, v]) => `${k}:${Boolean(v) ? "1" : "0"}`)
+                  .join(",")}`
+              : "";
+
+            errMsg = `${error}${errorType}${detail}${providerType}${providerDetail}${credentialSource}${envPresence}`.trim();
           } catch {}
           setMessages((prev) =>
             prev.map((m) =>
@@ -215,7 +232,7 @@ function MarkdownMessage({ content }: { content: string }) {
   const blocks = content.split(/\n{2,}/);
 
   return (
-    <div className="space-y-1.5 text-sm leading-relaxed">
+    <div className="space-y-1.5 text-sm leading-relaxed break-words [overflow-wrap:anywhere]">
       {blocks.map((block, bi) => {
         const trimmed = block.trim();
         if (!trimmed) return null;
@@ -278,7 +295,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
       <div
         className={cn(
-          "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm",
+          "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm break-words [overflow-wrap:anywhere]",
           isUser
             ? "rounded-tr-sm bg-primary text-primary-foreground"
             : "rounded-tl-sm bg-muted text-foreground"
