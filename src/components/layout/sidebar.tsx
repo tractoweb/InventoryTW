@@ -28,7 +28,6 @@ import {
   History,
   FileText,
   Calculator,
-  Sparkles,
   Settings,
   ChevronDown,
 } from "lucide-react";
@@ -101,7 +100,6 @@ const menuGroups: MenuGroup[] = [
     label: "Herramientas",
     icon: FileText,
     items: [
-      { href: "/ai-lab", label: "AI Lab", icon: Sparkles },
       { href: "/print-labels/products", label: "Imprimir Etiquetas", icon: FileText },
       { href: "/financing-calculator", label: "Calculadora", icon: Calculator },
     ],

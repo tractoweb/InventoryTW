@@ -308,11 +308,11 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 // ─── Quick chip suggestions ────────────────────────────────────────────────
 
 const QUICK_CHIPS = [
-  "¿Cuánto stock tenemos de filtros de aceite?",
-  "Valor total del inventario",
-  "Productos con bajo stock o agotados",
-  "Buscar repuestos John Deere",
-  "El tractor pierde presión hidráulica, ¿qué revisar?",
+  "Buscar repuesto bomba hidraulica John Deere 5075E",
+  "Diferencia entre filtro de combustible primario y secundario",
+  "Que revisar si el tractor pierde fuerza en subida",
+  "Catalogo de partes para sistema de frenos tractor agricola",
+  "Como identificar numero OEM de un rodamiento",
 ];
 
 // ─── Main panel component ──────────────────────────────────────────────────
@@ -378,7 +378,7 @@ export function ChatAIPanel() {
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-none">Asistente IA</p>
+              <p className="text-sm font-semibold leading-none">Asistente Web</p>
               <p className="text-xs text-muted-foreground mt-0.5">TRACTO AGRÍCOLA</p>
             </div>
             {isLoading && (
@@ -414,19 +414,19 @@ export function ChatAIPanel() {
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             <details className="mb-3 rounded-xl border bg-muted/40 p-3">
-              <summary className="cursor-pointer text-xs font-semibold">Informacion del Asistente IA</summary>
+              <summary className="cursor-pointer text-xs font-semibold">Informacion del Asistente Web</summary>
               <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                 <p>
-                  <span className="font-medium text-foreground">Puedes consultar:</span> stock, precios, datos de productos,
-                  movimientos de kardex, resumen de inventario y preguntas tecnicas generales de repuestos.
+                  <span className="font-medium text-foreground">Puedes consultar:</span> informacion publica en la web sobre repuestos,
+                  fallas frecuentes, guias tecnicas y referencias para busqueda de partes.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Por ahora no hace:</span> crear/editar documentos, cambiar
-                  stock automaticamente, ni ejecutar acciones administrativas.
+                  <span className="font-medium text-foreground">Por ahora no hace:</span> consultas directas a inventario interno,
+                  AppSync o base de datos, ni acciones de escritura.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Reglas:</span> valida datos criticos en los modulos del sistema,
-                  usa preguntas concretas (producto + bodega + contexto), y evita compartir credenciales o datos sensibles.
+                  <span className="font-medium text-foreground">Reglas:</span> usa preguntas concretas (marca, modelo, sistema, sintoma),
+                  y valida compatibilidad final con catalogo OEM antes de comprar.
                 </p>
               </div>
             </details>
@@ -437,9 +437,9 @@ export function ChatAIPanel() {
                   <Bot className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">¿En qué te puedo ayudar?</p>
+                  <p className="font-medium text-sm">Consulta web de repuestos</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
-                    Puedo consultar stock, precios, historial de movimientos y más.
+                    Te ayudo a encontrar referencias y guias tecnicas en la web.
                   </p>
                 </div>
                 <div className="w-full flex flex-col gap-2 mt-2">
@@ -480,7 +480,7 @@ export function ChatAIPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Pregunta sobre el inventario…"
+              placeholder="Pregunta sobre repuestos, fallas o numeros OEM..."
               disabled={isLoading}
               className={cn(
                 "flex-1 min-w-0 h-9 rounded-lg border bg-muted/40 px-3 text-sm",
@@ -516,7 +516,7 @@ export function ChatAIPanel() {
             )}
           </form>
           <p className="text-center text-[10px] text-muted-foreground mt-2">
-            Powered by Amazon Bedrock · Amazon Nova Lite
+            Fase 1: consultas web sobre repuestos
           </p>
         </div>
       </div>

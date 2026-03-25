@@ -1,6 +1,5 @@
 import { type NextRequest } from 'next/server';
 
-import { amplifyClient } from '@/lib/amplify-config';
 import { getCurrentSession } from '@/lib/session';
 
 export const runtime = 'nodejs';
@@ -18,156 +17,160 @@ function sanitizeMessages(raw: unknown): Array<{ role: 'user' | 'assistant'; con
     }));
 }
 
-function buildContext(messages: Array<{ role: 'user' | 'assistant'; content: string }>, userLabel: string): string {
-  const recent = messages.slice(-8);
-  const lines = recent.map((m) => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`);
-  return [`Usuario actual: ${userLabel}`, ...lines].join('\n');
+type SearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+  source: 'duckduckgo' | 'wikipedia';
+};
+
+function normalizeQuestion(input: string): string {
+  return input
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 220);
 }
 
-function classifyGenerationError(message: string): { errorType: string; detail: string } {
-  const m = message.toLowerCase();
-  if (m.includes('mapping template')) {
-    return {
-      errorType: 'APPSYNC_MAPPING_TEMPLATE_ERROR',
-      detail:
-        'AppSync rechazo la ejecucion en el resolver de IA. Revisa permisos Bedrock del rol de AppSync y compatibilidad del modelo configurado.',
-    };
+async function fetchDuckDuckGo(query: string): Promise<SearchResult[]> {
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=0`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) return [];
+  const data = (await response.json()) as any;
+  const out: SearchResult[] = [];
+
+  const abstractText = typeof data?.AbstractText === 'string' ? data.AbstractText.trim() : '';
+  const abstractUrl = typeof data?.AbstractURL === 'string' ? data.AbstractURL.trim() : '';
+  const heading = typeof data?.Heading === 'string' ? data.Heading.trim() : '';
+  if (abstractText && abstractUrl) {
+    out.push({
+      title: heading || 'Resultado destacado',
+      url: abstractUrl,
+      snippet: abstractText,
+      source: 'duckduckgo',
+    });
   }
-  if (m.includes('accessdenied') || m.includes('not authorized') || m.includes('unauthorized')) {
-    return {
-      errorType: 'BEDROCK_ACCESS_DENIED',
-      detail: 'El rol del backend no tiene permisos para invocar el modelo en Bedrock.',
-    };
-  }
-  if (m.includes('throttl') || m.includes('rate exceeded') || m.includes('too many requests')) {
-    return {
-      errorType: 'BEDROCK_THROTTLED',
-      detail: 'Bedrock esta limitando solicitudes por capacidad o cuota.',
-    };
-  }
-  if (m.includes('model') && (m.includes('not found') || m.includes('not available') || m.includes('invalid model'))) {
-    return {
-      errorType: 'MODEL_NOT_AVAILABLE',
-      detail: 'El modelo configurado no esta disponible para esta cuenta o region.',
-    };
-  }
-  return {
-    errorType: 'AMPLIFY_GENERATION_ERROR',
-    detail: message,
-  };
-}
 
-function extractNestedErrorInfo(err: any): { message: string; providerType?: string; providerDetail?: string } {
-  const first = Array.isArray(err?.errors) && err.errors.length > 0 ? err.errors[0] : undefined;
+  const related = Array.isArray(data?.RelatedTopics) ? data.RelatedTopics : [];
+  for (const item of related.slice(0, 12)) {
+    const topics = Array.isArray(item?.Topics) ? item.Topics : [item];
+    for (const topic of topics) {
+      if (out.length >= 6) break;
+      const text = typeof topic?.Text === 'string' ? topic.Text.trim() : '';
+      const firstUrl = typeof topic?.FirstURL === 'string' ? topic.FirstURL.trim() : '';
+      if (!text || !firstUrl) continue;
 
-  const messageCandidates = [
-    err?.message,
-    first?.message,
-    first?.errorInfo?.message,
-    first?.extensions?.message,
-    first?.extensions?.errorInfo?.message,
-    first?.originalError?.message,
-  ]
-    .map((v) => (typeof v === 'string' ? v.trim() : ''))
-    .filter(Boolean);
-
-  const providerTypeCandidates = [
-    first?.errorType,
-    first?.extensions?.errorType,
-    first?.extensions?.code,
-    err?.name,
-  ]
-    .map((v) => (typeof v === 'string' ? v.trim() : ''))
-    .filter(Boolean);
-
-  const providerDetailCandidates = [
-    first?.errorInfo?.detail,
-    first?.extensions?.errorInfo?.detail,
-    first?.extensions?.exception?.message,
-    first?.extensions?.cause?.message,
-  ]
-    .map((v) => (typeof v === 'string' ? v.trim() : ''))
-    .filter(Boolean);
-
-  return {
-    message: messageCandidates[0] ?? 'Error desconocido',
-    providerType: providerTypeCandidates[0],
-    providerDetail: providerDetailCandidates[0],
-  };
-}
-
-function extractGenerationText(raw: any): { text: string; debugCode?: string; errorType?: string; detail?: string } {
-  // Direct string response
-  if (typeof raw === 'string') return { text: raw };
-
-  // GraphQL/Amplify errors array
-  if (Array.isArray(raw?.errors) && raw.errors.length > 0) {
-    const first = raw.errors[0];
-    const message = String(first?.message ?? first ?? 'Error desconocido en generacion IA');
-    const classified = classifyGenerationError(message);
-    return { text: '', debugCode: 'graphql_errors_array', ...classified };
-  }
-  
-  // raw.data as string
-  if (typeof raw?.data === 'string') return { text: raw.data };
-  
-  // raw.text (common in AI SDK responses)
-  if (typeof raw?.text === 'string') return { text: raw.text };
-  
-  // raw.output
-  if (typeof raw?.output === 'string') return { text: raw.output };
-  
-  // raw.data.text (nested structure)
-  if (typeof raw?.data?.text === 'string') return { text: raw.data.text };
-  
-  // Amplify native generation response: { data: { inventoryAssistant: "text" } }
-  // or any other route name in data object
-  if (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
-    const entries = Object.entries(raw.data as Record<string, any>);
-    for (const [routeName, val] of entries) {
-      if (typeof val === 'string' && val.trim()) {
-        return { text: val, debugCode: `amplify_native_route:${routeName}` };
-      }
-      if (val && typeof val === 'object') {
-        if (typeof (val as any).text === 'string' && (val as any).text.trim()) {
-          return { text: (val as any).text, debugCode: `amplify_route_object_text:${routeName}` };
-        }
-        if (Array.isArray((val as any).content)) {
-          const textParts = (val as any).content
-            .map((c: any) => (typeof c?.text === 'string' ? c.text : ''))
-            .filter((t: string) => t.trim());
-          if (textParts.length > 0) {
-            return { text: textParts.join('\n'), debugCode: `amplify_route_object_content:${routeName}` };
-          }
-        }
-      }
+      const title = text.split(' - ')[0]?.trim() || 'Referencia web';
+      out.push({
+        title,
+        url: firstUrl,
+        snippet: text,
+        source: 'duckduckgo',
+      });
     }
+    if (out.length >= 6) break;
   }
 
-  // raw.content array (some model adapters)
-  if (Array.isArray(raw?.content)) {
-    const textParts = raw.content
-      .map((c: any) => (typeof c?.text === 'string' ? c.text : ''))
-      .filter((t: string) => t.trim());
-    if (textParts.length > 0) {
-      return { text: textParts.join('\n'), debugCode: 'content_array_text' };
-    }
+  return out;
+}
+
+async function fetchWikipedia(query: string): Promise<SearchResult[]> {
+  const url = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+    query
+  )}&format=json&srlimit=5&utf8=1`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) return [];
+  const data = (await response.json()) as any;
+  const results = Array.isArray(data?.query?.search) ? data.query.search : [];
+  return results.slice(0, 5).map((entry: any) => {
+    const title = String(entry?.title ?? '').trim() || 'Articulo';
+    const rawSnippet = String(entry?.snippet ?? '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return {
+      title,
+      url: `https://es.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`,
+      snippet: rawSnippet,
+      source: 'wikipedia' as const,
+    };
+  });
+}
+
+function dedupeResults(results: SearchResult[]): SearchResult[] {
+  const seen = new Set<string>();
+  const out: SearchResult[] = [];
+  for (const result of results) {
+    const key = result.url.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(result);
   }
-  
-  // raw.data as array
-  if (Array.isArray(raw?.data) && raw.data.length > 0) {
-    const first = raw.data[0];
-    if (typeof first === 'string') return { text: first };
-    if (typeof first?.text === 'string') return { text: first.text };
+  return out;
+}
+
+function fallbackLinks(question: string): string {
+  const encoded = encodeURIComponent(question);
+  return [
+    `- [Busqueda general de repuestos en la web](https://duckduckgo.com/?q=${encoded})`,
+    `- [Busqueda tecnica: "catalogo de partes" + consulta](https://duckduckgo.com/?q=${encodeURIComponent(
+      `${question} catalogo de partes`
+    )})`,
+    `- [Busqueda por OEM o numero de parte](https://duckduckgo.com/?q=${encodeURIComponent(
+      `${question} OEM part number`
+    )})`,
+  ].join('\n');
+}
+
+function buildReply(question: string, results: SearchResult[], userLabel: string): string {
+  const intro = [
+    `## Asistente Web de Repuestos`,
+    `Consulta: **${question}**`,
+    '',
+    `Hola ${userLabel}, encontre referencias web iniciales (sin usar AppSync ni base de datos):`,
+  ];
+
+  if (results.length === 0) {
+    return [
+      ...intro,
+      '',
+      'No obtuve resultados directos en este intento.',
+      '',
+      'Prueba estas busquedas recomendadas:',
+      fallbackLinks(question),
+      '',
+      'Si quieres, en el siguiente mensaje te ayudo a afinar por marca, modelo, ano y numero de parte.',
+    ].join('\n');
   }
-  
-  // Log response structure for debugging (non-production-friendly)
-  if (process.env.NODE_ENV !== 'production') {
-    const responseKeys = typeof raw === 'object' ? Object.keys(raw || {}).join(',') : typeof raw;
-    console.error('[AI Chat] Response structure not recognized:', { type: typeof raw, keys: responseKeys, raw });
-  }
-  
-  return { text: '', debugCode: 'response_format_unknown', errorType: 'UNKNOWN_RESPONSE_FORMAT', detail: 'La respuesta IA llego sin texto utilizable.' };
+
+  const lines = results.slice(0, 6).map((r, idx) => {
+    const sourceLabel = r.source === 'wikipedia' ? 'Wikipedia' : 'DuckDuckGo';
+    return `${idx + 1}. [${r.title}](${r.url})\n   Fuente: ${sourceLabel}\n   Resumen: ${r.snippet || 'Sin resumen disponible.'}`;
+  });
+
+  return [
+    ...intro,
+    '',
+    ...lines,
+    '',
+    'Siguiente paso sugerido: comparte marca/modelo del equipo y, si existe, numero OEM para buscar resultados mas precisos.',
+    '',
+    'Nota: esta fase es solo consulta web. La conexion a AppSync y la BD la dejamos para la siguiente etapa.',
+  ].join('\n');
 }
 
 export async function POST(request: NextRequest) {
@@ -203,86 +206,41 @@ export async function POST(request: NextRequest) {
     session.data.email ||
     `Usuario #${session.data.userId}`;
 
+  const question = normalizeQuestion(last.content);
+  if (!question) {
+    return new Response(JSON.stringify({ error: 'Mensaje vacio' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const generationFn = (amplifyClient as any)?.generations?.inventoryAssistant;
-    if (typeof generationFn !== 'function') {
-      return new Response(
-        JSON.stringify({
-          error:
-            'La ruta IA de Amplify no está disponible todavía. Despliega el backend de Amplify con la nueva ruta `inventoryAssistant` y vuelve a intentar.',
-        }),
-        {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[AI Chat] Calling inventoryAssistant generation with input length:', last.content.length);
-    }
-
-    const timeoutMs = 22000;
-    const result = await Promise.race([
-      generationFn({
-        input: last.content,
-        context: buildContext(messages, userLabel),
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('ai_timeout')), timeoutMs)),
+    const searchQuery = `${question} repuestos maquinaria agricola`;
+    const timeoutMs = 15000;
+    const [duck, wiki] = await Promise.race([
+      Promise.all([fetchDuckDuckGo(searchQuery), fetchWikipedia(searchQuery)]),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('search_timeout')), timeoutMs)),
     ]);
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[AI Chat] Generation response type:', typeof result, 'keys:', typeof result === 'object' ? Object.keys(result || {}) : 'N/A');
-    }
+    const merged = dedupeResults([...duck, ...wiki]);
+    const text = buildReply(question, merged, userLabel);
 
-    const { text, debugCode, errorType, detail } = extractGenerationText(result);
-    if (!text.trim()) {
-      const errorPayload: any = {
-        error: 'La IA no devolvio contenido utilizable.',
-        errorType: errorType ?? 'EMPTY_RESPONSE',
-      };
-      if (detail) {
-        errorPayload.detail = detail;
-      }
-      if (process.env.NODE_ENV !== 'production' && debugCode) {
-        errorPayload.debugCode = debugCode;
-      }
-      return new Response(
-        JSON.stringify(errorPayload),
-        {
-          status: 502,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Keep text/plain so current client streaming reader continues working.
     return new Response(text, {
       status: 200,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (err: any) {
-    const extracted = extractNestedErrorInfo(err);
-    const msg = extracted.message;
-    const isTimeout = msg.includes('ai_timeout');
-    const classified = classifyGenerationError(msg);
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[AI Chat] Generation error:', { message: msg, isTimeout });
-    }
-
+    const msg = String(err?.message ?? 'search_error');
+    const isTimeout = msg.includes('search_timeout');
     return new Response(
       JSON.stringify({
         error: isTimeout
-          ? 'La IA tardó demasiado en responder. Intenta una pregunta más concreta.'
-          : `Error en IA Amplify: ${msg}`,
-        errorType: isTimeout ? 'TIMEOUT' : classified.errorType,
-        detail: isTimeout ? 'El modelo no respondio dentro de 22 segundos.' : classified.detail,
-        providerType: extracted.providerType,
-        providerDetail: extracted.providerDetail,
+          ? 'La consulta web tardo demasiado. Intenta una pregunta mas corta.'
+          : 'No fue posible consultar fuentes web en este momento.',
+        errorType: isTimeout ? 'WEB_SEARCH_TIMEOUT' : 'WEB_SEARCH_ERROR',
       }),
       {
-        status: isTimeout ? 504 : 500,
+        status: isTimeout ? 504 : 502,
         headers: { 'Content-Type': 'application/json' },
       }
     );
