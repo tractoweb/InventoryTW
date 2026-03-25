@@ -233,6 +233,18 @@ function buildWebContext(results: SearchResult[]): string {
 
 function classifyBedrockError(message: string): { errorType: string; detail: string } {
   const m = message.toLowerCase();
+  if (
+    m.includes('sigv4') ||
+    m.includes('requires aws credentials') ||
+    m.includes('aws access key id setting is missing') ||
+    m.includes('credential')
+  ) {
+    return {
+      errorType: 'BEDROCK_CREDENTIALS_MISSING',
+      detail:
+        'Faltan credenciales AWS para firmar solicitudes a Bedrock (SigV4). En Amplify Hosting, configura AI_MODEL_PRIMARY/AI_MODEL_FAST/AI_BEDROCK_REGION en Environment variables y asigna al rol SSR permisos bedrock:InvokeModel.',
+    };
+  }
   if (m.includes('accessdenied') || m.includes('not authorized') || m.includes('unauthorized')) {
     return {
       errorType: 'BEDROCK_ACCESS_DENIED',
@@ -411,7 +423,9 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         error: isTimeout
           ? 'La IA tardo demasiado en responder. Intenta una consulta mas corta.'
-          : 'No se pudo generar respuesta con Bedrock en este momento.',
+          : classified.errorType === 'BEDROCK_CREDENTIALS_MISSING'
+            ? 'Bedrock no tiene credenciales AWS configuradas en este entorno.'
+            : 'No se pudo generar respuesta con Bedrock en este momento.',
         errorType: isTimeout ? 'LLM_TIMEOUT' : classified.errorType,
         detail: isTimeout
           ? 'El modelo no respondio dentro de 22 segundos.'
