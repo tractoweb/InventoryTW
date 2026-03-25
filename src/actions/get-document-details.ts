@@ -12,6 +12,7 @@ type DocumentHeader = {
   number: string;
   date: string;
   stockdate?: string;
+  isclockedout: boolean;
   total: number;
   paidstatus: number;
   warehousename: string;
@@ -367,6 +368,7 @@ export async function getDocumentDetails(documentId: number) {
       number: String(doc.number ?? ""),
       date: String(doc.date ?? ""),
       stockdate: doc.stockDate ? String(doc.stockDate) : undefined,
+      isclockedout: Boolean(doc.isClockedOut),
       total: Number(doc.total ?? 0),
       paidstatus: Number(doc.paidStatus ?? 0),
       warehousename: String(warehouse?.name ?? ""),

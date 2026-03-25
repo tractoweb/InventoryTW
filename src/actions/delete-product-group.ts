@@ -9,7 +9,6 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import { requireSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
 import { listAllPages } from "@/services/amplify-list-all";
-import { deleteProductGroup } from "@/services/product-group-service";
 
 const DeleteProductGroupSchema = z.object({
   idProductGroup: z.coerce.number().int().positive(),
@@ -19,7 +18,7 @@ export type DeleteProductGroupInput = z.input<typeof DeleteProductGroupSchema>;
 
 export async function deleteProductGroupAction(
   raw: DeleteProductGroupInput
-): Promise<{ success: boolean; movedProducts?: number; movedChildren?: number; error?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   noStore();
 
   const parsed = DeleteProductGroupSchema.safeParse(raw);
@@ -29,63 +28,51 @@ export async function deleteProductGroupAction(
     const session = await requireSession(ACCESS_LEVELS.ADMIN);
     const idProductGroup = Number(parsed.data.idProductGroup);
 
+    // Verify group exists
     const currentRes = await amplifyClient.models.ProductGroup.get({ idProductGroup } as any);
     const current = (currentRes as any)?.data;
     if (!current) return { success: false, error: "Grupo no encontrado" };
 
+    // Check for products in this group
     const productsRes = await listAllPages((args) =>
       amplifyClient.models.Product.list({
         ...(args ?? {}),
         filter: { productGroupId: { eq: idProductGroup } },
-        limit: 200,
+        limit: 100,
       } as any)
     );
+
     if ("error" in productsRes) return { success: false, error: productsRes.error };
+    const products = productsRes.data ?? [];
 
-    const products = (productsRes.data ?? []).filter((p: any) => Number.isFinite(Number(p?.idProduct)));
-
-    for (const product of products) {
-      const idProduct = Number((product as any).idProduct);
-      const updateRes: any = await amplifyClient.models.Product.update({
-        idProduct,
-        productGroupId: null,
-      } as any);
-
-      if (Array.isArray(updateRes?.errors) && updateRes.errors.length) {
-        return {
-          success: false,
-          error: `No se pudo desvincular producto ${idProduct}: ${String(updateRes.errors[0]?.message ?? "error")}`,
-        };
-      }
+    if (products.length > 0) {
+      return { success: false, error: `Este grupo tiene ${products.length} producto(s) vinculado(s). Desvincula los productos antes de eliminar.` };
     }
 
+    // Check for child groups
     const childrenRes = await listAllPages((args) =>
       amplifyClient.models.ProductGroup.list({
         ...(args ?? {}),
         filter: { parentGroupId: { eq: idProductGroup } },
-        limit: 200,
+        limit: 100,
       } as any)
     );
+
     if ("error" in childrenRes) return { success: false, error: childrenRes.error };
+    const children = childrenRes.data ?? [];
 
-    const children = (childrenRes.data ?? []).filter((g: any) => Number.isFinite(Number(g?.idProductGroup)));
-    for (const child of children) {
-      const childId = Number((child as any).idProductGroup);
-      const updateRes: any = await amplifyClient.models.ProductGroup.update({
-        idProductGroup: childId,
-        parentGroupId: null,
-      } as any);
-
-      if (Array.isArray(updateRes?.errors) && updateRes.errors.length) {
-        return {
-          success: false,
-          error: `No se pudo desvincular subgrupo ${childId}: ${String(updateRes.errors[0]?.message ?? "error")}`,
-        };
-      }
+    if (children.length > 0) {
+      return { success: false, error: `Este grupo tiene ${children.length} subgrupo(s). Desvincula los subgrupos antes de eliminar.` };
     }
 
-    await deleteProductGroup({ idProductGroup });
+    // Delete the group
+    const deleteRes: any = await amplifyClient.models.ProductGroup.delete({ idProductGroup } as any);
+    
+    if (Array.isArray(deleteRes?.errors) && deleteRes.errors.length) {
+      return { success: false, error: String(deleteRes.errors[0]?.message ?? "Error al eliminar") };
+    }
 
+    // Log the deletion
     writeAuditLog({
       userId: session.userId,
       action: "DELETE",
@@ -98,18 +85,13 @@ export async function deleteProductGroupAction(
         color: current?.color ?? null,
         rank: current?.rank ?? null,
       },
-      newValues: {
-        deleted: true,
-        movedProducts: products.length,
-        movedChildren: children.length,
-      },
+      newValues: { deleted: true },
     }).catch(() => {});
 
     revalidateTag(CACHE_TAGS.ref.productGroups);
     revalidateTag(CACHE_TAGS.heavy.productsMaster);
-    revalidateTag(CACHE_TAGS.heavy.productsCompact);
 
-    return { success: true, movedProducts: products.length, movedChildren: children.length };
+    return { success: true };
   } catch (error) {
     return { success: false, error: formatAmplifyError(error) };
   }

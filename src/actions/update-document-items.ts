@@ -1,11 +1,13 @@
 'use server';
 
 import { z } from 'zod';
-import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, DOCUMENT_STOCK_DIRECTION, formatAmplifyError } from '@/lib/amplify-config';
+import { ACCESS_LEVELS, amplifyClient, DOCUMENT_STOCK_DIRECTION, KARDEX_TYPES, formatAmplifyError, normalizeStockDirection } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 import { listAllPages } from '@/services/amplify-list-all';
+import { createKardexEntry } from '@/services/kardex-service';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
 import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
@@ -38,19 +40,29 @@ export async function updateDocumentItemsAction(
 
   try {
     const documentId = Number(parsed.data.documentId);
+    const sessionRes = await getCurrentSession();
+    const sessionUserId = Number(sessionRes.data?.userId ?? 0) || undefined;
+    const isAdmin = Number(sessionRes.data?.accessLevel ?? -1) >= ACCESS_LEVELS.ADMIN;
 
     const docRes: any = await amplifyClient.models.Document.get({ documentId } as any);
     const doc = docRes?.data as any;
     if (!doc) return { success: false, error: 'Documento no encontrado' };
 
-    if (Boolean(doc.isClockedOut)) {
-      return { success: false, error: 'No se puede modificar un documento finalizado (impacta stock/kardex).' };
+    const isFinalized = Boolean(doc.isClockedOut);
+    if (isFinalized && !isAdmin) {
+      return { success: false, error: 'Solo un administrador puede modificar un documento finalizado.' };
     }
 
     // Resolve docType for pricing/tax logic.
     const dtRes: any = await amplifyClient.models.DocumentType.get({ documentTypeId: Number(doc.documentTypeId) } as any);
     const dt = dtRes?.data as any;
-    const stockDirection = Number(dt?.stockDirection ?? DOCUMENT_STOCK_DIRECTION.NONE) || DOCUMENT_STOCK_DIRECTION.NONE;
+    const stockDirection = normalizeStockDirection(dt?.stockDirection ?? DOCUMENT_STOCK_DIRECTION.NONE);
+    const stockDirectionMultiplier =
+      stockDirection === DOCUMENT_STOCK_DIRECTION.IN
+        ? 1
+        : stockDirection === DOCUMENT_STOCK_DIRECTION.OUT
+          ? -1
+          : 0;
 
     const pricesIncludeTax = (() => {
       if (stockDirection === DOCUMENT_STOCK_DIRECTION.OUT) return true;
@@ -80,6 +92,20 @@ export async function updateDocumentItemsAction(
     for (const it of existingItems) {
       const id = Number((it as any)?.documentItemId);
       if (Number.isFinite(id) && id > 0) existingById.set(id, it);
+    }
+    const existingBeforeById = new Map<number, any>();
+    for (const it of existingItems) {
+      const id = Number((it as any)?.documentItemId);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      existingBeforeById.set(id, {
+        documentItemId: id,
+        productId: Number((it as any)?.productId),
+        quantity: Number((it as any)?.quantity ?? 0) || 0,
+        price: Number((it as any)?.price ?? 0) || 0,
+        total: Number((it as any)?.total ?? 0) || 0,
+        productCost: Number((it as any)?.productCost ?? 0) || 0,
+        productNameSnapshot: typeof (it as any)?.productNameSnapshot === 'string' ? String((it as any).productNameSnapshot) : undefined,
+      });
     }
 
     const requested = (parsed.data.items ?? []).map((i) => ({
@@ -495,7 +521,170 @@ export async function updateDocumentItemsAction(
       total: Math.max(0, nextTotal),
     } as any);
 
-    const sessionRes = await getCurrentSession();
+    if (isFinalized && stockDirectionMultiplier !== 0) {
+      let allowNegativeStock = true;
+      try {
+        const companies: any = await amplifyClient.models.Company.list({ limit: 1 } as any);
+        const companyId = Number((companies?.data?.[0] as any)?.idCompany ?? 1);
+        const settings: any = await amplifyClient.models.ApplicationSettings.get({ companyId } as any);
+        if (settings?.data && (settings.data as any).allowNegativeStock !== undefined && (settings.data as any).allowNegativeStock !== null) {
+          allowNegativeStock = Boolean((settings.data as any).allowNegativeStock);
+        }
+      } catch {
+        // ignore
+      }
+
+      const changeEvents: Array<{
+        productId: number;
+        documentItemId?: number;
+        stockDelta: number;
+        oldQuantity: number;
+        newQuantity: number;
+        oldPrice: number;
+        newPrice: number;
+        unitCost: number;
+        label: string;
+      }> = [];
+
+      for (const [documentItemId, before] of existingBeforeById.entries()) {
+        const after = existingById.get(documentItemId);
+        if (!after) {
+          changeEvents.push({
+            productId: Number(before.productId),
+            documentItemId,
+            stockDelta: stockDirectionMultiplier * (0 - Number(before.quantity ?? 0)),
+            oldQuantity: Number(before.quantity ?? 0),
+            newQuantity: 0,
+            oldPrice: Number(before.price ?? 0),
+            newPrice: 0,
+            unitCost: Number(before.productCost ?? 0) || Number(before.price ?? 0) || 0,
+            label: before.productNameSnapshot || `Producto ${before.productId}`,
+          });
+          continue;
+        }
+
+        const nextQty = Number((after as any)?.quantity ?? 0) || 0;
+        const prevQty = Number(before.quantity ?? 0) || 0;
+        const nextPrice = Number((after as any)?.price ?? 0) || 0;
+        const prevPrice = Number(before.price ?? 0) || 0;
+        const stockDelta = stockDirectionMultiplier * (nextQty - prevQty);
+
+        if (stockDelta !== 0 || nextPrice !== prevPrice) {
+          changeEvents.push({
+            productId: Number((after as any)?.productId ?? before.productId),
+            documentItemId,
+            stockDelta,
+            oldQuantity: prevQty,
+            newQuantity: nextQty,
+            oldPrice: prevPrice,
+            newPrice: nextPrice,
+            unitCost: Number((after as any)?.productCost ?? before.productCost ?? 0) || nextPrice || prevPrice || 0,
+            label:
+              (typeof (after as any)?.productNameSnapshot === 'string' && String((after as any).productNameSnapshot)) ||
+              before.productNameSnapshot ||
+              `Producto ${before.productId}`,
+          });
+        }
+      }
+
+      for (const [documentItemId, after] of existingById.entries()) {
+        if (existingBeforeById.has(documentItemId)) continue;
+        changeEvents.push({
+          productId: Number((after as any)?.productId),
+          documentItemId,
+          stockDelta: stockDirectionMultiplier * (Number((after as any)?.quantity ?? 0) || 0),
+          oldQuantity: 0,
+          newQuantity: Number((after as any)?.quantity ?? 0) || 0,
+          oldPrice: 0,
+          newPrice: Number((after as any)?.price ?? 0) || 0,
+          unitCost: Number((after as any)?.productCost ?? 0) || Number((after as any)?.price ?? 0) || 0,
+          label:
+            (typeof (after as any)?.productNameSnapshot === 'string' && String((after as any).productNameSnapshot)) ||
+            `Producto ${(after as any)?.productId}`,
+        });
+      }
+
+      const currentStockByProduct = new Map<number, number>();
+      const uniqueProductIds = Array.from(new Set(changeEvents.map((event) => Number(event.productId)).filter((id) => Number.isFinite(id) && id > 0)));
+      for (const productId of uniqueProductIds) {
+        try {
+          const stockRes: any = await amplifyClient.models.Stock.get({ productId, warehouseId: Number(doc.warehouseId) } as any);
+          currentStockByProduct.set(productId, Number(stockRes?.data?.quantity ?? 0) || 0);
+        } catch {
+          currentStockByProduct.set(productId, 0);
+        }
+      }
+
+      if (!allowNegativeStock) {
+        const aggregatedDeltaByProduct = new Map<number, number>();
+        for (const event of changeEvents) {
+          aggregatedDeltaByProduct.set(event.productId, (aggregatedDeltaByProduct.get(event.productId) ?? 0) + event.stockDelta);
+        }
+        for (const [productId, delta] of aggregatedDeltaByProduct.entries()) {
+          const nextBalance = (currentStockByProduct.get(productId) ?? 0) + delta;
+          if (nextBalance < 0) {
+            return {
+              success: false,
+              error: `La edición del documento finalizado dejaría stock negativo para el producto ${productId} en la bodega.`
+            };
+          }
+        }
+      }
+
+      for (const event of changeEvents) {
+        const currentBalance = currentStockByProduct.get(event.productId) ?? 0;
+        const nextBalance = currentBalance + event.stockDelta;
+
+        if (event.stockDelta !== 0) {
+          const existingStockRes: any = await amplifyClient.models.Stock.get({
+            productId: Number(event.productId),
+            warehouseId: Number(doc.warehouseId),
+          } as any).catch(() => null);
+
+          if (existingStockRes?.data) {
+            await amplifyClient.models.Stock.update({
+              productId: Number(event.productId),
+              warehouseId: Number(doc.warehouseId),
+              quantity: nextBalance,
+            } as any);
+          } else {
+            await amplifyClient.models.Stock.create({
+              productId: Number(event.productId),
+              warehouseId: Number(doc.warehouseId),
+              quantity: nextBalance,
+            } as any);
+          }
+          currentStockByProduct.set(event.productId, nextBalance);
+        }
+
+        const parts: string[] = [`EDICION DOCUMENTO FINALIZADO ${String(doc.number ?? documentId)}`];
+        if (event.oldQuantity !== event.newQuantity) parts.push(`cantidad ${event.oldQuantity} -> ${event.newQuantity}`);
+        if (event.oldPrice !== event.newPrice) parts.push(`precio ${event.oldPrice} -> ${event.newPrice}`);
+        if (event.oldQuantity === 0 && event.newQuantity > 0) parts.push('item agregado');
+        if (event.oldQuantity > 0 && event.newQuantity === 0) parts.push('item eliminado');
+
+        await createKardexEntry({
+          productId: Number(event.productId),
+          date: new Date(),
+          documentId: Number(documentId),
+          documentItemId: event.documentItemId,
+          documentNumber: String(doc.number ?? documentId),
+          warehouseId: Number(doc.warehouseId),
+          type: KARDEX_TYPES.AJUSTE,
+          quantity: event.stockDelta,
+          previousBalance: currentBalance,
+          balance: event.stockDelta !== 0 ? nextBalance : currentBalance,
+          unitCost: event.unitCost || undefined,
+          totalCost: event.unitCost ? event.unitCost * event.stockDelta : undefined,
+          unitPrice: event.newPrice || undefined,
+          totalPrice: event.newPrice ? event.newPrice * event.newQuantity : undefined,
+          totalPriceAfterDiscount: event.newPrice ? event.newPrice * event.newQuantity : undefined,
+          note: `${parts.join(' · ')} · ${event.label}`,
+          userId: sessionUserId,
+        });
+      }
+    }
+
     if (sessionRes.data?.userId) {
       writeAuditLog({
         userId: sessionRes.data.userId,
@@ -505,11 +694,16 @@ export async function updateDocumentItemsAction(
         oldValues,
         newValues: {
           documentId,
+          finalizedEdit: isFinalized,
           total: Math.max(0, nextTotal),
           items: requested,
         },
       }).catch(() => {});
     }
+
+    revalidateTag(CACHE_TAGS.heavy.documents);
+    revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
+    revalidateTag(CACHE_TAGS.heavy.stockData);
 
     return { success: true };
   } catch (error) {

@@ -86,26 +86,7 @@ function useStreamingChat() {
             const error = typeof errBody?.error === "string" ? errBody.error : errMsg;
             const errorType = typeof errBody?.errorType === "string" ? ` [${errBody.errorType}]` : "";
             const detail = typeof errBody?.detail === "string" ? ` ${errBody.detail}` : "";
-            const providerType = typeof errBody?.providerType === "string" ? ` providerType=${errBody.providerType}` : "";
-            const providerDetail = typeof errBody?.providerDetail === "string" ? ` providerDetail=${errBody.providerDetail}` : "";
-
-            const credentialSource =
-              typeof errBody?.credentialSource === "string"
-                ? `\ncredentialSource=${errBody.credentialSource}`
-                : "";
-
-            const envPresenceObj =
-              errBody && typeof errBody === "object" && errBody.envPresence && typeof errBody.envPresence === "object"
-                ? (errBody.envPresence as Record<string, unknown>)
-                : null;
-
-            const envPresence = envPresenceObj
-              ? `\nenvPresence=${Object.entries(envPresenceObj)
-                  .map(([k, v]) => `${k}:${Boolean(v) ? "1" : "0"}`)
-                  .join(",")}`
-              : "";
-
-            errMsg = `${error}${errorType}${detail}${providerType}${providerDetail}${credentialSource}${envPresence}`.trim();
+            errMsg = `${error}${errorType}${detail}`.trim();
           } catch {}
           setMessages((prev) =>
             prev.map((m) =>

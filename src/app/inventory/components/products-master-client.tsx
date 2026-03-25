@@ -307,7 +307,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
     if (!selectedGroupId || !selectedGroup) return;
 
     const confirmed = window.confirm(
-      `Eliminar grupo \"${selectedGroup.name}\"?\n\nLos productos vinculados (${selectedGroupProductsCount}) pasarán a \"Sin grupo\".`
+        `Eliminar grupo "${selectedGroup.name}"?\n\nNota: Solo puedes eliminar grupos que no tienen productos ni subgrupos vinculados.`
     );
     if (!confirmed) return;
 
@@ -315,7 +315,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
     try {
       const res = await deleteProductGroupAction({ idProductGroup: selectedGroupId });
       if (!res.success) {
-        toast({ variant: "destructive", title: "Error al eliminar", description: res.error ?? "No se pudo eliminar el grupo." });
+          toast({ variant: "destructive", title: "No se pudo eliminar", description: res.error ?? "Verifica que no hay productos o subgrupos." });
         return;
       }
 
@@ -324,7 +324,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
       toast({
         title: "Grupo eliminado",
-        description: `Productos movidos a Sin grupo: ${res.movedProducts ?? 0}`,
+          description: `Grupo "${selectedGroup.name}" ha sido eliminado.`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo eliminar el grupo." });

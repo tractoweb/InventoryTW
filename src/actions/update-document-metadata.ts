@@ -1,9 +1,10 @@
 'use server';
 
 import { z } from 'zod';
-import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
-import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { ACCESS_LEVELS, amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
 
@@ -27,13 +28,15 @@ export async function updateDocumentMetadataAction(
 
   try {
     const { documentId } = parsed.data;
+    const sessionRes = await getCurrentSession();
+    const isAdmin = Number(sessionRes.data?.accessLevel ?? -1) >= ACCESS_LEVELS.ADMIN;
 
     const docRes: any = await amplifyClient.models.Document.get({ documentId: Number(documentId) } as any);
     const doc = docRes?.data as any;
     if (!doc) return { success: false, error: 'Documento no encontrado' };
 
-    if (Boolean(doc.isClockedOut)) {
-      return { success: false, error: 'No se puede modificar un documento finalizado (impacta stock/kardex).' };
+    if (Boolean(doc.isClockedOut) && !isAdmin) {
+      return { success: false, error: 'Solo un administrador puede modificar un documento finalizado.' };
     }
 
     const note = parsed.data.note !== undefined ? String(parsed.data.note ?? '').trim() : undefined;
@@ -85,7 +88,6 @@ export async function updateDocumentMetadataAction(
       return { success: false, error: String((updateRes as any)?.errors?.[0]?.message ?? 'No se pudo actualizar') };
     }
 
-    const sessionRes = await getCurrentSession();
     if (sessionRes.data?.userId) {
       writeAuditLog({
         userId: sessionRes.data.userId,
@@ -99,6 +101,7 @@ export async function updateDocumentMetadataAction(
           customerId: doc.customerId ?? null,
         },
         newValues: {
+          finalizedEdit: Boolean(doc.isClockedOut),
           note: note !== undefined ? (note || null) : doc.note ?? null,
           clientId: clientId !== undefined ? clientId : doc.clientId ?? null,
           clientNameSnapshot: clientNameSnapshot !== undefined ? clientNameSnapshot : doc.clientNameSnapshot ?? null,
@@ -106,6 +109,9 @@ export async function updateDocumentMetadataAction(
         },
       }).catch(() => {});
     }
+
+    revalidateTag(CACHE_TAGS.heavy.documents);
+    revalidateTag(CACHE_TAGS.heavy.dashboardOverview);
 
     return { success: true };
   } catch (error) {

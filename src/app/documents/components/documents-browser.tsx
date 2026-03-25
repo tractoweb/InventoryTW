@@ -1061,6 +1061,12 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                     Modificar
                   </Button>
 
+                  <Button variant="outline" asChild disabled={!selectedDocumentId}>
+                    <Link href={selectedDocumentId ? `/documents/${selectedDocumentId}/edit` : '/documents'}>
+                      {selectedIsFinalized ? 'Corregir finalizado' : 'Editar pantalla completa'}
+                    </Link>
+                  </Button>
+
                   <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
                     <Button
                       type="button"
