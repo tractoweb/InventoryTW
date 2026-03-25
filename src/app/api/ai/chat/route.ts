@@ -31,6 +31,29 @@ function readEnv(name: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function readSecretsBlob(): Record<string, unknown> | null {
+  const raw = process.env.secrets;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function readEnvWithSecretsFallback(name: string): string | undefined {
+  const direct = readEnv(name);
+  if (direct) return direct;
+
+  const secrets = readSecretsBlob();
+  const fromSecrets = secrets?.[name];
+  if (typeof fromSecrets === 'string' && fromSecrets.trim().length > 0) return fromSecrets.trim();
+
+  return undefined;
+}
+
 function sanitizeMessages(raw: unknown): ChatMessage[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -62,13 +85,27 @@ function toGeminiContents(messages: ChatMessage[]) {
 }
 
 async function generateResponse(messages: ChatMessage[]): Promise<string> {
-  const apiKey = readEnv('GEMINI_API_KEY');
-  const model = readEnv('GEMINI_MODEL') ?? 'gemini-2.5-flash';
-  const temperature = Number(readEnv('GEMINI_TEMPERATURE') ?? '0.3');
-  const maxOutputTokens = Number(readEnv('GEMINI_MAX_TOKENS') ?? '1024');
+  const apiKey =
+    readEnvWithSecretsFallback('GEMINI_API_KEY') ??
+    readEnvWithSecretsFallback('GOOGLE_API_KEY');
+  const model = readEnvWithSecretsFallback('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+  const temperature = Number(readEnvWithSecretsFallback('GEMINI_TEMPERATURE') ?? '0.3');
+  const maxOutputTokens = Number(readEnvWithSecretsFallback('GEMINI_MAX_TOKENS') ?? '1024');
 
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY no está configurada');
+    const secrets = readSecretsBlob();
+    const hasSecretsBlob = Boolean(process.env.secrets);
+    const envPresence = {
+      GEMINI_API_KEY: Boolean(readEnv('GEMINI_API_KEY')),
+      GOOGLE_API_KEY: Boolean(readEnv('GOOGLE_API_KEY')),
+      GEMINI_MODEL: Boolean(readEnv('GEMINI_MODEL')),
+      secretsBlob: hasSecretsBlob,
+      secretsGEMINI_API_KEY: Boolean(secrets && typeof secrets.GEMINI_API_KEY === 'string' && String(secrets.GEMINI_API_KEY).trim().length > 0),
+      secretsGOOGLE_API_KEY: Boolean(secrets && typeof secrets.GOOGLE_API_KEY === 'string' && String(secrets.GOOGLE_API_KEY).trim().length > 0),
+      AWS_BRANCH: Boolean(readEnv('AWS_BRANCH')),
+      NODE_ENV: readEnv('NODE_ENV') ?? 'unknown',
+    };
+    throw new Error(`GEMINI_API_KEY no está configurada (${JSON.stringify(envPresence)})`);
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
