@@ -12,8 +12,29 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import { getCurrentSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
 
+const OptionalPositiveInt = z.preprocess(
+  (value) => {
+    if (value === "" || value === null || value === undefined) return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.trunc(n) : value;
+  },
+  z.number().int().positive().optional()
+);
+
+const OptionalRankInt = z.preprocess(
+  (value) => {
+    if (value === "" || value === null || value === undefined) return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.trunc(n) : value;
+  },
+  z.number().int().min(0).max(100000).optional()
+);
+
 const CreateProductGroupSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(120),
+  parentGroupId: OptionalPositiveInt,
+  color: z.string().max(32).optional(),
+  rank: OptionalRankInt,
 });
 
 export type CreateProductGroupInput = z.input<typeof CreateProductGroupSchema>;
@@ -29,6 +50,16 @@ export async function createProductGroupAction(
     const input = parsed.data;
     const name = String(input.name ?? "").trim();
     if (!name) return { success: false, error: "El nombre es obligatorio" };
+    const parentGroupId = input.parentGroupId;
+    const color = input.color !== undefined ? String(input.color ?? "").trim() || undefined : undefined;
+    const rank = input.rank;
+
+    if (parentGroupId !== undefined) {
+      const parentRes = await amplifyClient.models.ProductGroup.get({ idProductGroup: parentGroupId } as any);
+      if (!(parentRes as any)?.data) {
+        return { success: false, error: "El grupo padre no existe" };
+      }
+    }
 
     let seededCounter = false;
     let collisionCount = 0;
@@ -65,7 +96,7 @@ export async function createProductGroupAction(
         continue;
       }
 
-      const created = await createProductGroup({ idProductGroup, name });
+      const created = await createProductGroup({ idProductGroup, name, parentGroupId, color, rank });
 
       if (created) {
         const sessionRes = await getCurrentSession();
@@ -78,6 +109,9 @@ export async function createProductGroupAction(
             newValues: {
               idProductGroup,
               name,
+              parentGroupId: parentGroupId ?? null,
+              color: color ?? null,
+              rank: rank ?? null,
             },
           }).catch(() => {});
         }

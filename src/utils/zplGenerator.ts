@@ -113,6 +113,7 @@ export const generate3UpLabelsRow = (
       const nombreRaw = sanitizeZplField(data.nombreProducto);
       const nombre = nombreRaw.slice(0, 90);
       const barcode = sanitizeZplField(data.codigoBarras);
+      const barcodeText = sanitizeZplField(data.codigoVisible ?? data.codigoBarras);
       const lote = sanitizeZplField(data.lote ?? "").slice(0, 30);
       const fecha = sanitizeZplField(data.fecha ?? "").slice(0, 30);
 
@@ -142,7 +143,7 @@ export const generate3UpLabelsRow = (
         `^FO${textX},${posY}^A0N,${posFont},${posFont}^FD${lote}^FS`,
         `^FO${textX},${dateY}^A0N,${dateFont},${dateFont}^FD${fecha}^FS`,
         `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
-        `^FO${x0 + xShift},${barcodeTextY}^FB${Math.max(10, labelW - xShift)},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcode}^FS`,
+        `^FO${x0 + xShift},${barcodeTextY}^FB${Math.max(10, labelW - xShift)},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcodeText}^FS`,
       ]
         .filter(Boolean)
         .join("\n");
@@ -171,6 +172,7 @@ export const generateProductLabel = (data: LabelData, options?: GenerateProductL
   const nombreRaw = sanitizeZplField(data.nombreProducto);
   const nombre = nombreRaw.slice(0, 120);
   const barcode = sanitizeZplField(data.codigoBarras);
+  const barcodeText = sanitizeZplField(data.codigoVisible ?? data.codigoBarras);
   const lote = sanitizeZplField(data.lote ?? "").slice(0, 30);
   const fecha = sanitizeZplField(data.fecha ?? "").slice(0, 30);
 
@@ -198,7 +200,7 @@ ${logoZpl ? `${logoZpl}\n` : ""}
 ^FO40,92^A0N,22,22^FD${lote}^FS
 ^FO40,112^A0N,20,20^FD${fecha}^FS
 ^FO40,130^BY1,3,40^BCN,40,N,N,N^FD${barcode}^FS
-^FO0,174^FB831,1,0,C,0^A0N,16,16^FD${barcode}^FS
+^FO0,174^FB831,1,0,C,0^A0N,16,16^FD${barcodeText}^FS
 ${copies ? `^PQ${copies},0,1,Y` : ""}
 ^XZ`
   ).trim();

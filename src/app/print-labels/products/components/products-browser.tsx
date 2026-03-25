@@ -127,6 +127,12 @@ export default function ProductsBrowser() {
     return `${day}/${m}/${y}`;
   };
 
+  const resolveVisibleCode = (reference: string | null | undefined, barcodeValue: unknown): string => {
+    const ref = String(reference ?? "").trim();
+    if (ref.length > 0) return ref;
+    return String(barcodeValue ?? "").trim();
+  };
+
   const setDraftQty = (idProduct: number, qty: unknown) => {
     setDraftList((prev) => {
       const existing = prev[idProduct];
@@ -485,6 +491,7 @@ export default function ProductsBrowser() {
     const lote = String(label.lote ?? "");
     const fecha = String(label.fecha ?? "");
     const barcode = String(label.codigoBarras ?? "");
+    const barcodeVisible = String(label.codigoVisible ?? label.codigoBarras ?? "");
     const radius = Math.max(2, Math.round(8 * scale)); // ~0.1cm
 
     const nameLinesAll = formatName(name);
@@ -600,7 +607,7 @@ export default function ProductsBrowser() {
             flexDirection: "column",
             gap: Math.max(2, Math.round(4 * scale)),
           }}
-          title={barcode}
+          title={barcodeVisible}
         >
           <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
           <div
@@ -613,9 +620,9 @@ export default function ProductsBrowser() {
               textOverflow: "ellipsis",
               width: "100%",
             }}
-            title={barcode}
+            title={barcodeVisible}
           >
-            {barcode}
+            {barcodeVisible}
           </div>
         </div>
       </div>
@@ -748,6 +755,7 @@ export default function ProductsBrowser() {
     const label: LabelData = {
       nombreProducto: String(row.name ?? ""),
       codigoBarras: String(primaryBarcode ?? ""),
+      codigoVisible: resolveVisibleCode(row.reference, primaryBarcode),
       lote: String(row.measurementUnit ?? ""),
       fecha: todayLocalIsoDate(),
     };
@@ -765,6 +773,7 @@ export default function ProductsBrowser() {
     return {
       nombreProducto: row.name,
       codigoBarras: String(primaryBarcode),
+      codigoVisible: resolveVisibleCode(row.reference, primaryBarcode),
       lote: row.measurementUnit ?? "",
       fecha: options?.printDate ?? todayLocalIsoDate(),
     };
@@ -886,6 +895,7 @@ export default function ProductsBrowser() {
           const label: LabelData = {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
+            codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
             lote: String(it.measurementUnit ?? ""),
             fecha: printDate,
           };
@@ -955,6 +965,7 @@ export default function ProductsBrowser() {
         const label: LabelData = {
           nombreProducto: String(it.name ?? ""),
           codigoBarras: String(primaryBarcode ?? ""),
+          codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
           lote: String(it.measurementUnit ?? ""),
           fecha: printDate,
         };
@@ -1159,6 +1170,7 @@ export default function ProductsBrowser() {
           const label: LabelData = {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
+            codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
             lote: String(it.measurementUnit ?? ""),
             fecha: printDate,
           };
@@ -1850,6 +1862,7 @@ export default function ProductsBrowser() {
               const label: LabelData = {
                 nombreProducto: String(hoveredRow.name ?? ""),
                 codigoBarras: String(primaryBarcode ?? ""),
+                codigoVisible: resolveVisibleCode(hoveredRow.reference, primaryBarcode),
                 lote: String(hoveredRow.measurementUnit ?? ""),
                 fecha: todayLocalIsoDate(),
               };

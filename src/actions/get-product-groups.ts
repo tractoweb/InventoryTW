@@ -6,6 +6,9 @@ import { listProductGroups } from '@/services/product-group-service';
 export type ProductGroup = {
   id: number;
   name: string;
+  parentGroupId?: number | null;
+  color?: string | null;
+  rank?: number | null;
 };
 
 export async function getProductGroups(): Promise<{ data?: ProductGroup[], error?: string }> {
@@ -17,6 +20,15 @@ export async function getProductGroups(): Promise<{ data?: ProductGroup[], error
           .map((g: any) => ({
             id: Number(g?.idProductGroup),
             name: String(g?.name ?? ''),
+            parentGroupId:
+              g?.parentGroupId === null || g?.parentGroupId === undefined
+                ? null
+                : Number(g?.parentGroupId),
+            color: g?.color ? String(g.color) : null,
+            rank:
+              g?.rank === null || g?.rank === undefined
+                ? null
+                : Number(g?.rank),
           }))
           .filter((g) => Number.isFinite(g.id) && g.id > 0 && g.name.length > 0)
           .sort((a, b) => a.name.localeCompare(b.name));

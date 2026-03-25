@@ -11,3 +11,36 @@ export async function createProductGroup({ idProductGroup, name, parentGroupId, 
   if (errors) throw new Error('Error al crear grupo');
   return data;
 }
+
+export async function updateProductGroup({
+  idProductGroup,
+  name,
+  parentGroupId,
+  color,
+  image,
+  rank,
+}: {
+  idProductGroup: number;
+  name?: string;
+  parentGroupId?: number | null;
+  color?: string | null;
+  image?: string | null;
+  rank?: number | null;
+}) {
+  const { data, errors } = await amplifyClient.models.ProductGroup.update({
+    idProductGroup,
+    name,
+    parentGroupId,
+    color,
+    image,
+    rank,
+  } as any);
+  if (errors) throw new Error('Error al actualizar grupo');
+  return data;
+}
+
+export async function deleteProductGroup({ idProductGroup }: { idProductGroup: number }) {
+  const { data, errors } = await amplifyClient.models.ProductGroup.delete({ idProductGroup } as any);
+  if (errors) throw new Error('Error al eliminar grupo');
+  return data;
+}

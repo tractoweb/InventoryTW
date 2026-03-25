@@ -25,26 +25,88 @@ type ToolResult = {
   content: string;
 };
 
-const PRIMARY_MODEL =
-  process.env.AI_MODEL_PRIMARY ??
-  process.env.AI_MODEL ??
-  'anthropic.claude-3-5-sonnet-20240620-v1:0';
-const FAST_MODEL = process.env.AI_MODEL_FAST ?? 'amazon.nova-micro-v1:0';
-const BEDROCK_REGION = process.env.AI_BEDROCK_REGION ?? process.env.AWS_REGION ?? 'us-east-2';
+type BedrockRuntimeConfig = {
+  primaryModel: string;
+  fastModel: string;
+  bedrockRegion: string;
+  bedrock: ReturnType<typeof createAmazonBedrock>;
+  explicitCredentialSource: 'bedrock_env' | 'aws_env' | 'none';
+  envPresence: {
+    bedrockAccessKey: boolean;
+    bedrockSecretKey: boolean;
+    bedrockSessionToken: boolean;
+    awsAccessKey: boolean;
+    awsSecretKey: boolean;
+    awsSessionToken: boolean;
+  };
+};
 
-const explicitBedrockCredentials =
-  process.env.BEDROCK_ACCESS_KEY_ID && process.env.BEDROCK_SECRET_ACCESS_KEY
-    ? {
-        accessKeyId: process.env.BEDROCK_ACCESS_KEY_ID,
-        secretAccessKey: process.env.BEDROCK_SECRET_ACCESS_KEY,
-        sessionToken: process.env.BEDROCK_SESSION_TOKEN,
-      }
-    : undefined;
+function readEnv(name: string): string | undefined {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null) return undefined;
+  const trimmed = String(raw).trim();
+  return trimmed.length ? trimmed : undefined;
+}
 
-const bedrock = createAmazonBedrock({
-  region: BEDROCK_REGION,
-  ...(explicitBedrockCredentials ?? {}),
-});
+function getBedrockRuntimeConfig(): BedrockRuntimeConfig {
+  const primaryModel = readEnv('AI_MODEL_PRIMARY') ?? readEnv('AI_MODEL') ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+  const fastModel = readEnv('AI_MODEL_FAST') ?? 'amazon.nova-micro-v1:0';
+  const bedrockRegion = readEnv('AI_BEDROCK_REGION') ?? readEnv('AWS_REGION') ?? 'us-east-2';
+
+  const bedrockAccessKey = readEnv('BEDROCK_ACCESS_KEY_ID');
+  const bedrockSecretKey = readEnv('BEDROCK_SECRET_ACCESS_KEY');
+  const bedrockSessionToken = readEnv('BEDROCK_SESSION_TOKEN');
+
+  const awsAccessKey = readEnv('AWS_ACCESS_KEY_ID');
+  const awsSecretKey = readEnv('AWS_SECRET_ACCESS_KEY');
+  const awsSessionToken = readEnv('AWS_SESSION_TOKEN');
+
+  const bedrockExplicitCredentials =
+    bedrockAccessKey && bedrockSecretKey
+      ? {
+          accessKeyId: bedrockAccessKey,
+          secretAccessKey: bedrockSecretKey,
+          sessionToken: bedrockSessionToken,
+        }
+      : undefined;
+
+  const awsExplicitCredentials =
+    awsAccessKey && awsSecretKey
+      ? {
+          accessKeyId: awsAccessKey,
+          secretAccessKey: awsSecretKey,
+          sessionToken: awsSessionToken,
+        }
+      : undefined;
+
+  const explicitCredentials = bedrockExplicitCredentials ?? awsExplicitCredentials;
+  const explicitCredentialSource = bedrockExplicitCredentials
+    ? 'bedrock_env'
+    : awsExplicitCredentials
+      ? 'aws_env'
+      : 'none';
+
+  const bedrock = createAmazonBedrock({
+    region: bedrockRegion,
+    ...(explicitCredentials ?? {}),
+  });
+
+  return {
+    primaryModel,
+    fastModel,
+    bedrockRegion,
+    bedrock,
+    explicitCredentialSource,
+    envPresence: {
+      bedrockAccessKey: Boolean(bedrockAccessKey),
+      bedrockSecretKey: Boolean(bedrockSecretKey),
+      bedrockSessionToken: Boolean(bedrockSessionToken),
+      awsAccessKey: Boolean(awsAccessKey),
+      awsSecretKey: Boolean(awsSecretKey),
+      awsSessionToken: Boolean(awsSessionToken),
+    },
+  };
+}
 
 const DOMAIN_HINTS = [
   'repuesto',
@@ -282,12 +344,13 @@ function classifyBedrockError(message: string): { errorType: string; detail: str
 }
 
 async function callBedrock(options: {
+  bedrock: ReturnType<typeof createAmazonBedrock>;
   model: string;
   messages: ChatMessage[];
   userLabel: string;
   toolContext?: string;
 }): Promise<string> {
-  const { model, messages, userLabel, toolContext } = options;
+  const { bedrock, model, messages, userLabel, toolContext } = options;
 
   const finalMessages = toCoreMessages(messages);
   if (toolContext) {
@@ -315,9 +378,10 @@ async function callBedrock(options: {
 }
 
 async function classifyIntent(question: string): Promise<IntentLabel> {
+  const runtimeConfig = getBedrockRuntimeConfig();
   try {
     const { text } = await generateText({
-      model: bedrock(FAST_MODEL),
+      model: runtimeConfig.bedrock(runtimeConfig.fastModel),
       system: [
         'Clasifica la intencion del mensaje del usuario.',
         'Responde solo una etiqueta exacta en minuscula:',
@@ -340,6 +404,7 @@ async function classifyIntent(question: string): Promise<IntentLabel> {
 }
 
 export async function POST(request: NextRequest) {
+  const runtimeConfig = getBedrockRuntimeConfig();
   const session = await getCurrentSession();
   if (!session.data) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), {
@@ -414,7 +479,8 @@ export async function POST(request: NextRequest) {
 
     const text = await Promise.race([
       callBedrock({
-        model: PRIMARY_MODEL,
+        bedrock: runtimeConfig.bedrock,
+        model: runtimeConfig.primaryModel,
         messages,
         userLabel,
         toolContext,
@@ -442,9 +508,11 @@ export async function POST(request: NextRequest) {
         detail: isTimeout
           ? 'El modelo no respondio dentro de 22 segundos.'
           : classified.detail,
-        bedrockRegion: BEDROCK_REGION,
-        bedrockModelPrimary: PRIMARY_MODEL,
-        bedrockModelFast: FAST_MODEL,
+        bedrockRegion: runtimeConfig.bedrockRegion,
+        bedrockModelPrimary: runtimeConfig.primaryModel,
+        bedrockModelFast: runtimeConfig.fastModel,
+        credentialSource: runtimeConfig.explicitCredentialSource,
+        envPresence: runtimeConfig.envPresence,
       }),
       {
         status: isTimeout ? 504 : 502,

@@ -37,6 +37,8 @@ import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
 import { createProductGroupAction } from "@/actions/create-product-group";
 import { getProductGroups } from "@/actions/get-product-groups";
+import { updateProductGroupAction } from "@/actions/update-product-group";
+import { deleteProductGroupAction } from "@/actions/delete-product-group";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -89,8 +91,14 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
   const [scanOpen, setScanOpen] = React.useState(false);
 
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
+  const [groupFormMode, setGroupFormMode] = React.useState<"create" | "edit">("create");
+  const [editingGroupId, setEditingGroupId] = React.useState<number | null>(null);
   const [createGroupName, setCreateGroupName] = React.useState("");
+  const [createGroupParentId, setCreateGroupParentId] = React.useState<string>("");
+  const [createGroupColor, setCreateGroupColor] = React.useState("");
+  const [createGroupRank, setCreateGroupRank] = React.useState<string>("");
   const [createGroupLoading, setCreateGroupLoading] = React.useState(false);
+  const [deleteGroupLoading, setDeleteGroupLoading] = React.useState(false);
 
   const groupNameById = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -183,6 +191,147 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       return idText.includes(qRaw) || name.includes(q) || code.includes(q);
     });
   }, [rows, selectedGroupId, dQuery]);
+
+  const selectedGroup = React.useMemo(
+    () => productGroupsState.find((g) => Number(g.id) === Number(selectedGroupId)) ?? null,
+    [productGroupsState, selectedGroupId]
+  );
+
+  const selectedGroupProductsCount = React.useMemo(() => {
+    if (!selectedGroupId) return 0;
+    return rows.filter((r) => Number(r.productGroupId) === Number(selectedGroupId)).length;
+  }, [rows, selectedGroupId]);
+
+  function resetGroupForm() {
+    setCreateGroupName("");
+    setCreateGroupParentId("");
+    setCreateGroupColor("");
+    setCreateGroupRank("");
+    setEditingGroupId(null);
+    setGroupFormMode("create");
+  }
+
+  function openCreateGroupDialog() {
+    resetGroupForm();
+    setGroupFormMode("create");
+    setCreateGroupOpen(true);
+  }
+
+  function openEditGroupDialog(group: ProductGroup) {
+    setGroupFormMode("edit");
+    setEditingGroupId(Number(group.id));
+    setCreateGroupName(String(group.name ?? ""));
+    setCreateGroupParentId(
+      group.parentGroupId === null || group.parentGroupId === undefined ? "" : String(group.parentGroupId)
+    );
+    setCreateGroupColor(group.color ? String(group.color) : "");
+    setCreateGroupRank(group.rank === null || group.rank === undefined ? "" : String(group.rank));
+    setCreateGroupOpen(true);
+  }
+
+  async function refreshGroups() {
+    const refreshed = await getProductGroups();
+    if (refreshed.data) {
+      setProductGroupsState(refreshed.data);
+    }
+  }
+
+  async function submitGroupForm() {
+    const name = String(createGroupName ?? "").trim();
+    if (!name) {
+      toast({ variant: "destructive", title: "Nombre requerido", description: "Ingresa un nombre para el grupo." });
+      return;
+    }
+
+    const parentGroupId = createGroupParentId ? Number(createGroupParentId) : undefined;
+    if (parentGroupId !== undefined && (!Number.isFinite(parentGroupId) || parentGroupId <= 0)) {
+      toast({ variant: "destructive", title: "Grupo padre inválido" });
+      return;
+    }
+
+    const rank = createGroupRank === "" ? undefined : Number(createGroupRank);
+    if (rank !== undefined && (!Number.isFinite(rank) || rank < 0)) {
+      toast({ variant: "destructive", title: "Ranking inválido", description: "Ingresa un número mayor o igual a 0." });
+      return;
+    }
+
+    setCreateGroupLoading(true);
+    try {
+      if (groupFormMode === "create") {
+        const res = await createProductGroupAction({
+          name,
+          parentGroupId,
+          color: String(createGroupColor ?? "").trim() || undefined,
+          rank,
+        });
+        if (!res.success) {
+          toast({ variant: "destructive", title: "Error al crear", description: res.error ?? "No se pudo crear el grupo." });
+          return;
+        }
+      } else {
+        if (!editingGroupId) {
+          toast({ variant: "destructive", title: "Error", description: "No se encontró el grupo a editar." });
+          return;
+        }
+
+        const res = await updateProductGroupAction({
+          idProductGroup: editingGroupId,
+          name,
+          parentGroupId,
+          color: String(createGroupColor ?? "").trim() || undefined,
+          rank,
+        });
+        if (!res.success) {
+          toast({ variant: "destructive", title: "Error al editar", description: res.error ?? "No se pudo editar el grupo." });
+          return;
+        }
+      }
+
+      await refreshGroups();
+
+      toast({
+        title: groupFormMode === "create" ? "Grupo creado" : "Grupo actualizado",
+        description: name,
+      });
+
+      setCreateGroupOpen(false);
+      resetGroupForm();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo guardar el grupo." });
+    } finally {
+      setCreateGroupLoading(false);
+    }
+  }
+
+  async function handleDeleteSelectedGroup() {
+    if (!selectedGroupId || !selectedGroup) return;
+
+    const confirmed = window.confirm(
+      `Eliminar grupo \"${selectedGroup.name}\"?\n\nLos productos vinculados (${selectedGroupProductsCount}) pasarán a \"Sin grupo\".`
+    );
+    if (!confirmed) return;
+
+    setDeleteGroupLoading(true);
+    try {
+      const res = await deleteProductGroupAction({ idProductGroup: selectedGroupId });
+      if (!res.success) {
+        toast({ variant: "destructive", title: "Error al eliminar", description: res.error ?? "No se pudo eliminar el grupo." });
+        return;
+      }
+
+      await refreshGroups();
+      setSelectedGroupId(null);
+
+      toast({
+        title: "Grupo eliminado",
+        description: `Productos movidos a Sin grupo: ${res.movedProducts ?? 0}`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo eliminar el grupo." });
+    } finally {
+      setDeleteGroupLoading(false);
+    }
+  }
 
   async function ensureGroupLoaded(groupId: number) {
     if (groupProducts[groupId]) return;
@@ -420,14 +569,18 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
           <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={openCreateGroupDialog}>
                 Nuevo grupo
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Crear grupo</DialogTitle>
-                <DialogDescription>Ingresa el nombre del nuevo grupo de productos.</DialogDescription>
+                <DialogTitle>{groupFormMode === "create" ? "Crear grupo" : "Editar grupo"}</DialogTitle>
+                <DialogDescription>
+                  {groupFormMode === "create"
+                    ? "Ingresa la información del nuevo grupo de productos."
+                    : "Actualiza la información del grupo seleccionado."}
+                </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-3">
@@ -439,13 +592,46 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
                   autoFocus
                 />
 
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={createGroupParentId}
+                    onChange={(e) => setCreateGroupParentId(e.target.value)}
+                    disabled={createGroupLoading}
+                  >
+                    <option value="">Sin grupo padre</option>
+                    {(productGroupsState ?? [])
+                      .filter((g) => Number(g.id) !== Number(editingGroupId ?? 0))
+                      .map((g) => (
+                        <option key={g.id} value={String(g.id)}>
+                          {g.name}
+                        </option>
+                      ))}
+                  </select>
+
+                  <Input
+                    placeholder="Ranking (ej. 10)"
+                    value={createGroupRank}
+                    onChange={(e) => setCreateGroupRank(e.target.value)}
+                    disabled={createGroupLoading}
+                    inputMode="numeric"
+                  />
+                </div>
+
+                <Input
+                  placeholder="Color (ej. #22c55e)"
+                  value={createGroupColor}
+                  onChange={(e) => setCreateGroupColor(e.target.value)}
+                  disabled={createGroupLoading}
+                />
+
                 <div className="flex gap-2 justify-end">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
                       setCreateGroupOpen(false);
-                      setCreateGroupName("");
+                      resetGroupForm();
                     }}
                     disabled={createGroupLoading}
                   >
@@ -453,43 +639,33 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
                   </Button>
                   <Button
                     type="button"
-                    onClick={async () => {
-                      const name = String(createGroupName ?? "").trim();
-                      if (!name) {
-                        toast({ variant: "destructive", title: "Nombre requerido", description: "Ingresa un nombre para el grupo." });
-                        return;
-                      }
-
-                      setCreateGroupLoading(true);
-                      try {
-                        const res = await createProductGroupAction({ name });
-                        if (!res.success) {
-                          toast({ variant: "destructive", title: "Error al crear", description: res.error ?? "No se pudo crear el grupo." });
-                          return;
-                        }
-
-                        const refreshed = await getProductGroups();
-                        if (refreshed.data) {
-                          setProductGroupsState(refreshed.data);
-                        }
-
-                        toast({ title: "Grupo creado", description: `Se creó el grupo: ${name}` });
-                        setCreateGroupOpen(false);
-                        setCreateGroupName("");
-                      } catch (e: any) {
-                        toast({ variant: "destructive", title: "Error", description: e?.message ?? "No se pudo crear el grupo." });
-                      } finally {
-                        setCreateGroupLoading(false);
-                      }
-                    }}
+                    onClick={submitGroupForm}
                     disabled={createGroupLoading}
                   >
-                    {createGroupLoading ? "Creando…" : "Crear"}
+                    {createGroupLoading ? "Guardando…" : groupFormMode === "create" ? "Crear" : "Guardar cambios"}
                   </Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
+
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => selectedGroup && openEditGroupDialog(selectedGroup)}
+            disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
+          >
+            Editar grupo
+          </Button>
+
+          <Button
+            variant="destructive"
+            className="w-full sm:w-auto"
+            onClick={handleDeleteSelectedGroup}
+            disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
+          >
+            {deleteGroupLoading ? "Eliminando…" : "Eliminar grupo"}
+          </Button>
 
           <Input
             placeholder="Buscar productos (nombre, código o barcode)…"
