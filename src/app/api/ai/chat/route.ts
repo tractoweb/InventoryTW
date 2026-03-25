@@ -1,3 +1,4 @@
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { type NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -8,19 +9,10 @@ type ChatMessage = {
   content: string;
 };
 
-type OpenAIChatCompletionsResponse = {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
-    finish_reason?: string;
-  }>;
-  error?: {
-    code?: number | string;
-    message?: string;
-    status?: string;
-    type?: string;
-  };
+type ClaudeResponse = {
+  content?: Array<{ type: string; text?: string }>;
+  stop_reason?: string;
+  error?: { type?: string; message?: string };
 };
 
 function readEnv(name: string): string | undefined {
@@ -28,29 +20,6 @@ function readEnv(name: string): string | undefined {
   if (raw === undefined || raw === null) return undefined;
   const trimmed = String(raw).trim();
   return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function readSecretsBlob(): Record<string, unknown> | null {
-  const raw = process.env.secrets;
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    return parsed as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function readEnvWithSecretsFallback(name: string): string | undefined {
-  const direct = readEnv(name);
-  if (direct) return direct;
-
-  const secrets = readSecretsBlob();
-  const fromSecrets = secrets?.[name];
-  if (typeof fromSecrets === 'string' && fromSecrets.trim().length > 0) return fromSecrets.trim();
-
-  return undefined;
 }
 
 function sanitizeMessages(raw: unknown): ChatMessage[] {
@@ -65,7 +34,7 @@ function sanitizeMessages(raw: unknown): ChatMessage[] {
     }));
 }
 
-function buildSystemInstruction(): string {
+function buildSystemPrompt(): string {
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
     'Responde en espanol claro y concreto.',
@@ -76,87 +45,66 @@ function buildSystemInstruction(): string {
   ].join(' ');
 }
 
-function toGeminiContents(messages: ChatMessage[]) {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.content,
-  }));
-}
-
 async function generateResponse(messages: ChatMessage[]): Promise<string> {
-  const apiKey = readEnvWithSecretsFallback('OPENAI_API_KEY');
-  const baseUrl =
-    readEnvWithSecretsFallback('OPENAI_BASE_URL') ??
-    'https://bedrock-mantle.us-east-2.api.aws/v1';
-  const model =
-    readEnvWithSecretsFallback('OPENAI_MODEL') ??
-    readEnvWithSecretsFallback('AI_MODEL_PRIMARY') ??
-    readEnvWithSecretsFallback('AI_MODEL') ??
-    'openai.gpt-oss-120b';
-  const temperature = Number(readEnvWithSecretsFallback('OPENAI_TEMPERATURE') ?? '0.3');
-  const maxOutputTokens = Number(readEnvWithSecretsFallback('OPENAI_MAX_TOKENS') ?? '1024');
+  const accessKeyId = readEnv('BEDROCK_ACCESS_KEY_ID');
+  const secretAccessKey = readEnv('BEDROCK_SECRET_ACCESS_KEY');
+  const region = readEnv('AI_BEDROCK_REGION') ?? 'us-east-2';
+  const modelId =
+    readEnv('AI_MODEL_PRIMARY') ??
+    readEnv('AI_MODEL') ??
+    'anthropic.claude-3-5-sonnet-20240620-v1:0';
+  const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
 
-  if (!apiKey) {
-    const secrets = readSecretsBlob();
-    const hasSecretsBlob = Boolean(process.env.secrets);
+  if (!accessKeyId || !secretAccessKey) {
     const envPresence = {
-      OPENAI_API_KEY: Boolean(readEnv('OPENAI_API_KEY')),
-      OPENAI_BASE_URL: Boolean(readEnv('OPENAI_BASE_URL')),
-      OPENAI_MODEL: Boolean(readEnv('OPENAI_MODEL')),
+      BEDROCK_ACCESS_KEY_ID: Boolean(accessKeyId),
+      BEDROCK_SECRET_ACCESS_KEY: Boolean(secretAccessKey),
+      AI_BEDROCK_REGION: Boolean(readEnv('AI_BEDROCK_REGION')),
       AI_MODEL_PRIMARY: Boolean(readEnv('AI_MODEL_PRIMARY')),
-      AI_MODEL: Boolean(readEnv('AI_MODEL')),
-      secretsBlob: hasSecretsBlob,
-      secretsOPENAI_API_KEY: Boolean(secrets && typeof secrets.OPENAI_API_KEY === 'string' && String(secrets.OPENAI_API_KEY).trim().length > 0),
-      secretsOPENAI_BASE_URL: Boolean(secrets && typeof secrets.OPENAI_BASE_URL === 'string' && String(secrets.OPENAI_BASE_URL).trim().length > 0),
-      AWS_BRANCH: Boolean(readEnv('AWS_BRANCH')),
       NODE_ENV: readEnv('NODE_ENV') ?? 'unknown',
     };
-    throw new Error(`OPENAI_API_KEY no está configurada (${JSON.stringify(envPresence)})`);
+    throw new Error(`Credenciales Bedrock no configuradas (${JSON.stringify(envPresence)})`);
   }
 
-  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
-  const url = `${normalizedBaseUrl}/chat/completions`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+  const client = new BedrockRuntimeClient({
+    region,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: buildSystemInstruction() },
-        ...toGeminiContents(messages),
-      ],
-      temperature: Number.isFinite(temperature) ? temperature : 0.3,
-      max_tokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
-      stream: false,
-      // Keep compatibility if provider also accepts Responses API fields.
-      max_output_tokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
-      generationConfig: {
-        temperature: Number.isFinite(temperature) ? temperature : 0.3,
-        maxOutputTokens: Number.isFinite(maxOutputTokens) ? maxOutputTokens : 1024,
-      },
-    }),
-    cache: 'no-store',
   });
 
-  const payload = (await response.json()) as OpenAIChatCompletionsResponse;
+  const body = JSON.stringify({
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: Number.isFinite(maxTokens) ? maxTokens : 1024,
+    system: buildSystemPrompt(),
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  });
 
-  if (!response.ok) {
-    const message = payload?.error?.message || 'Error llamando a OpenAI-compatible API';
-    const status =
-      payload?.error?.status ||
-      payload?.error?.type ||
-      String(payload?.error?.code || 'OPENAI_COMPAT_API_ERROR');
-    throw new Error(`${message} [${status}]`);
+  const command = new InvokeModelCommand({
+    modelId,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body,
+  });
+
+  const result = await client.send(command);
+
+  const decoded = new TextDecoder().decode(result.body);
+  const payload = JSON.parse(decoded) as ClaudeResponse;
+
+  if (payload.error) {
+    throw new Error(`${payload.error.message ?? 'Error Bedrock'} [${payload.error.type ?? 'BEDROCK_ERROR'}]`);
   }
 
-  const text = String(payload?.choices?.[0]?.message?.content ?? '').trim();
+  const text = payload.content
+    ?.filter((c) => c.type === 'text')
+    .map((c) => c.text ?? '')
+    .join('')
+    .trim();
 
   if (!text) {
-    throw new Error('OpenAI-compatible API respondió vacío');
+    throw new Error('Bedrock respondió vacío');
   }
 
   return text;
