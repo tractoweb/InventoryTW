@@ -32,7 +32,19 @@ const PRIMARY_MODEL =
 const FAST_MODEL = process.env.AI_MODEL_FAST ?? 'amazon.nova-micro-v1:0';
 const BEDROCK_REGION = process.env.AI_BEDROCK_REGION ?? process.env.AWS_REGION ?? 'us-east-2';
 
-const bedrock = createAmazonBedrock({ region: BEDROCK_REGION });
+const explicitBedrockCredentials =
+  process.env.BEDROCK_ACCESS_KEY_ID && process.env.BEDROCK_SECRET_ACCESS_KEY
+    ? {
+        accessKeyId: process.env.BEDROCK_ACCESS_KEY_ID,
+        secretAccessKey: process.env.BEDROCK_SECRET_ACCESS_KEY,
+        sessionToken: process.env.BEDROCK_SESSION_TOKEN,
+      }
+    : undefined;
+
+const bedrock = createAmazonBedrock({
+  region: BEDROCK_REGION,
+  ...(explicitBedrockCredentials ?? {}),
+});
 
 const DOMAIN_HINTS = [
   'repuesto',
@@ -242,7 +254,7 @@ function classifyBedrockError(message: string): { errorType: string; detail: str
     return {
       errorType: 'BEDROCK_CREDENTIALS_MISSING',
       detail:
-        'Faltan credenciales AWS para firmar solicitudes a Bedrock (SigV4). En Amplify Hosting, configura AI_MODEL_PRIMARY/AI_MODEL_FAST/AI_BEDROCK_REGION en Environment variables y asigna al rol SSR permisos bedrock:InvokeModel.',
+        'Faltan credenciales AWS para firmar solicitudes a Bedrock (SigV4). Configura AI_MODEL_PRIMARY/AI_MODEL_FAST/AI_BEDROCK_REGION y, si el rol SSR no propaga credenciales, agrega BEDROCK_ACCESS_KEY_ID/BEDROCK_SECRET_ACCESS_KEY (y opcional BEDROCK_SESSION_TOKEN) en Amplify Secrets.',
     };
   }
   if (m.includes('accessdenied') || m.includes('not authorized') || m.includes('unauthorized')) {
