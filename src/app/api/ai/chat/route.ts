@@ -20,6 +20,7 @@ import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-r
 import { type NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { amplifyClient } from '@/lib/amplify-config';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -27,6 +28,53 @@ export const maxDuration = 30;
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
+};
+
+type IncomingAttachment = {
+  name?: string;
+  mimeType?: string;
+  kind?: 'image' | 'text' | 'document';
+  dataUrl?: string;
+  text?: string;
+};
+
+type ProductMatch = {
+  id: number;
+  code: string;
+  name: string;
+  stock: number | null;
+};
+
+type DocumentMatch = {
+  id: number;
+  number: string;
+  date: string;
+  total: number;
+};
+
+type WebResult = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
+type AssistantLink = {
+  label: string;
+  url: string;
+};
+
+type AssistantTable = {
+  title: string;
+  columns: string[];
+  rows: Array<Array<string | number>>;
+};
+
+type ActionProposal = {
+  id: string;
+  title: string;
+  description: string;
+  requiresConfirmation: boolean;
+  requiresDoubleConfirmation?: boolean;
 };
 
 function readEnv(name: string): string | undefined {
@@ -67,16 +115,215 @@ function sanitizeMessages(raw: unknown): ChatMessage[] {
     .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 3000) }));
 }
 
-function buildSystemPrompt(context?: Record<string, unknown>): string {
+function sanitizeAttachments(raw: unknown): IncomingAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((a: any) => a && typeof a === 'object')
+    .slice(0, 6)
+    .map((a: any) => ({
+      name: typeof a.name === 'string' ? a.name.slice(0, 120) : undefined,
+      mimeType: typeof a.mimeType === 'string' ? a.mimeType.slice(0, 80) : undefined,
+      kind: a.kind === 'image' || a.kind === 'text' || a.kind === 'document' ? a.kind : undefined,
+      dataUrl: typeof a.dataUrl === 'string' ? a.dataUrl.slice(0, 2_500_000) : undefined,
+      text: typeof a.text === 'string' ? a.text.slice(0, 12_000) : undefined,
+    }));
+}
+
+function toLower(v: unknown): string {
+  return String(v ?? '').toLowerCase().trim();
+}
+
+function asNumber(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseDataUrl(dataUrl: string): { mime: string; bytes: Uint8Array } | null {
+  const m = /^data:([^;]+);base64,(.+)$/i.exec(dataUrl.trim());
+  if (!m) return null;
+  const mime = String(m[1] ?? '').toLowerCase();
+  const b64 = String(m[2] ?? '');
+  try {
+    const buf = Buffer.from(b64, 'base64');
+    if (!buf.length) return null;
+    return { mime, bytes: new Uint8Array(buf) };
+  } catch {
+    return null;
+  }
+}
+
+function imageFormatFromMime(mime: string): 'png' | 'jpeg' | 'gif' | 'webp' | null {
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpeg';
+  if (mime === 'image/gif') return 'gif';
+  if (mime === 'image/webp') return 'webp';
+  return null;
+}
+
+async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
+  if (!query || query.length < 2) return [];
+  try {
+    const { data } = await amplifyClient.models.Product.list({ limit: 80 } as any);
+    const q = query.toLowerCase();
+    const rows = (data ?? []) as any[];
+
+    const matches = rows
+      .map((p) => {
+        const id = asNumber((p as any).idProduct ?? (p as any).productId);
+        const code = String((p as any).code ?? (p as any).productCode ?? '').trim();
+        const name = String((p as any).name ?? (p as any).productName ?? '').trim();
+        const stock = asNumber((p as any).stock);
+        return { id, code, name, stock };
+      })
+      .filter((p) => p.id && (toLower(p.name).includes(q) || toLower(p.code).includes(q)))
+      .slice(0, 8)
+      .map((p) => ({ id: Number(p.id), code: p.code, name: p.name, stock: p.stock }));
+
+    return matches;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
+  if (!query || query.length < 2) return [];
+  try {
+    const { data } = await amplifyClient.models.Document.list({ limit: 60 } as any);
+    const q = query.toLowerCase();
+    const rows = (data ?? []) as any[];
+
+    const matches = rows
+      .map((d) => {
+        const id = asNumber((d as any).documentId ?? (d as any).id);
+        const number = String((d as any).number ?? (d as any).documentNumber ?? '').trim();
+        const date = String((d as any).date ?? '').trim();
+        const total = asNumber((d as any).total) ?? 0;
+        const note = String((d as any).note ?? (d as any).internalnote ?? '').trim();
+        return { id, number, date, total, note };
+      })
+      .filter((d) => d.id && (toLower(d.number).includes(q) || toLower(d.note).includes(q)))
+      .slice(0, 6)
+      .map((d) => ({ id: Number(d.id), number: d.number, date: d.date, total: d.total }));
+
+    return matches;
+  } catch {
+    return [];
+  }
+}
+
+async function searchWeb(query: string, enabled: boolean): Promise<WebResult[]> {
+  if (!enabled || !query || query.length < 3) return [];
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json`;
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    if (!res.ok) return [];
+    const payload = (await res.json()) as [string, string[], string[], string[]];
+    const titles = Array.isArray(payload?.[1]) ? payload[1] : [];
+    const snippets = Array.isArray(payload?.[2]) ? payload[2] : [];
+    const links = Array.isArray(payload?.[3]) ? payload[3] : [];
+
+    const out: WebResult[] = [];
+    for (let i = 0; i < Math.min(links.length, 5); i++) {
+      const link = String(links[i] ?? '').trim();
+      if (!link) continue;
+      out.push({
+        title: String(titles[i] ?? 'Resultado web').trim() || 'Resultado web',
+        snippet: String(snippets[i] ?? '').trim(),
+        url: link,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function buildAttachmentText(attachments: IncomingAttachment[]): string {
+  const parts: string[] = [];
+  for (const a of attachments) {
+    const name = a.name ? `Archivo: ${a.name}` : 'Archivo adjunto';
+    if (a.kind === 'text' || a.kind === 'document') {
+      const text = String(a.text ?? '').trim();
+      if (text) {
+        parts.push(`${name}\n${text.slice(0, 4000)}`);
+      }
+    }
+  }
+  return parts.join('\n\n').slice(0, 12000);
+}
+
+function buildActionProposals(message: string): ActionProposal[] {
+  const q = message.toLowerCase();
+  const actions: ActionProposal[] = [];
+
+  if (/(crear|agregar).*(producto|documento|stock)/i.test(q)) {
+    actions.push({
+      id: 'propose-create',
+      title: 'Proponer creación de registro',
+      description: 'Antes de escribir datos en el sistema, se pedirá confirmación explícita del usuario.',
+      requiresConfirmation: true,
+    });
+  }
+
+  if (/(editar|modificar|ajustar|actualizar)/i.test(q)) {
+    actions.push({
+      id: 'propose-update',
+      title: 'Proponer modificación de datos',
+      description: 'La IA puede preparar cambios sugeridos y aplicarlos solo con aprobación del usuario.',
+      requiresConfirmation: true,
+    });
+  }
+
+  if (/(eliminar|borrar|anular)/i.test(q)) {
+    actions.push({
+      id: 'propose-delete',
+      title: 'Proponer eliminación/anulación',
+      description: 'Las acciones destructivas requieren doble confirmación.',
+      requiresConfirmation: true,
+      requiresDoubleConfirmation: true,
+    });
+  }
+
+  return actions;
+}
+
+function buildSystemPrompt(
+  context?: Record<string, unknown>,
+  dbContext?: { products: ProductMatch[]; documents: DocumentMatch[] },
+  webResults?: WebResult[]
+): string {
   const totalProducts = typeof context?.totalProducts === 'string' ? context.totalProducts : '1.243+';
+  const currentModule = typeof context?.currentModule === 'string' ? context.currentModule : 'general';
+  const currentPath = typeof context?.currentPath === 'string' ? context.currentPath : '/';
+
+  const productsInline = (dbContext?.products ?? [])
+    .map((p) => `${p.code || '(sin-codigo)'} - ${p.name}`)
+    .join(' | ')
+    .slice(0, 1200);
+
+  const docsInline = (dbContext?.documents ?? [])
+    .map((d) => `Doc ${d.number || d.id} (${d.date || 'sin-fecha'}) total ${d.total}`)
+    .join(' | ')
+    .slice(0, 1200);
+
+  const webInline = (webResults ?? [])
+    .map((r) => `${r.title}: ${r.url}`)
+    .join(' | ')
+    .slice(0, 1200);
+
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
     `Gestionas un inventario de ${totalProducts} productos.`,
+    `Contexto actual: modulo=${currentModule}, ruta=${currentPath}.`,
     'Responde en espanol claro y concreto.',
+    'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
     'Si no tienes acceso a una consulta exacta de la base de datos, dilo explicitamente.',
     'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
+    productsInline ? `Productos candidatos encontrados: ${productsInline}` : '',
+    docsInline ? `Documentos candidatos encontrados: ${docsInline}` : '',
+    webInline ? `Resultados web sugeridos: ${webInline}` : '',
   ].join(' ');
 }
 
@@ -98,7 +345,13 @@ function buildBedrockClient(): BedrockRuntimeClient {
   return new BedrockRuntimeClient({ region, credentials: { accessKeyId, secretAccessKey } });
 }
 
-async function invokeModel(messages: ChatMessage[], context?: Record<string, unknown>): Promise<string> {
+async function invokeModel(
+  messages: ChatMessage[],
+  context?: Record<string, unknown>,
+  dbContext?: { products: ProductMatch[]; documents: DocumentMatch[] },
+  webResults?: WebResult[],
+  attachments?: IncomingAttachment[]
+): Promise<string> {
   const client = buildBedrockClient();
   const modelId =
     readEnv('AI_MODEL_PRIMARY') ??
@@ -106,13 +359,40 @@ async function invokeModel(messages: ChatMessage[], context?: Record<string, unk
     'anthropic.claude-3-haiku-20240307-v1:0';
   const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
 
+  const attachmentText = buildAttachmentText(attachments ?? []);
+  const messageBlocks = messages.map((message) => {
+    const content: any[] = [{ text: message.content }];
+
+    if (message.role === 'user' && attachmentText) {
+      content.push({ text: `Contexto de archivos adjuntos:\n${attachmentText}` });
+    }
+
+    if (message.role === 'user') {
+      const imageAttachments = (attachments ?? []).filter((a) => a.kind === 'image' && a.dataUrl).slice(0, 2);
+      for (const img of imageAttachments) {
+        const parsed = parseDataUrl(String(img.dataUrl));
+        if (!parsed) continue;
+        const format = imageFormatFromMime(parsed.mime);
+        if (!format) continue;
+        content.push({
+          image: {
+            format,
+            source: { bytes: parsed.bytes },
+          },
+        });
+      }
+    }
+
+    return {
+      role: message.role,
+      content,
+    };
+  });
+
   const command = new ConverseCommand({
     modelId,
-    system: [{ text: buildSystemPrompt(context) }],
-    messages: messages.map((message) => ({
-      role: message.role,
-      content: [{ text: message.content }],
-    })),
+    system: [{ text: buildSystemPrompt(context, dbContext, webResults) }],
+    messages: messageBlocks,
     inferenceConfig: {
       maxTokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
     },
@@ -144,12 +424,71 @@ export async function POST(request: NextRequest) {
       const message = body.message.trim();
       if (!message) return errorResponse('El mensaje está vacío', 'EMPTY_MESSAGE', 400);
 
+      const context = (typeof body?.context === 'object' && body?.context) ? body.context as Record<string, unknown> : {};
+      const attachments = sanitizeAttachments(body?.attachments);
+
+      const [products, documents, webResults] = await Promise.all([
+        fetchProductMatches(message),
+        fetchDocumentMatches(message),
+        searchWeb(message, Boolean(body?.enableWeb)),
+      ]);
+
       const messages: ChatMessage[] = [{ role: 'user', content: message.slice(0, 3000) }];
-      const text = await invokeModel(messages, body.context);
+      const text = await invokeModel(
+        messages,
+        context,
+        { products, documents },
+        webResults,
+        attachments
+      );
       const modelId = readEnv('AI_MODEL_PRIMARY') ?? readEnv('AI_MODEL') ?? 'anthropic.claude-3-haiku-20240307-v1:0';
 
+      const links: AssistantLink[] = [];
+      for (const p of products) {
+        const q = encodeURIComponent(String(p.code || p.name).trim());
+        links.push({ label: `Producto: ${p.code || p.name}`, url: `/inventory?q=${q}` });
+      }
+      for (const d of documents) {
+        links.push({ label: `Documento ${d.number || d.id}`, url: `/documents/${d.id}/pdf` });
+      }
+      for (const w of webResults) {
+        links.push({ label: `Web: ${w.title}`, url: w.url });
+      }
+
+      const tables: AssistantTable[] = [];
+      if (products.length > 0) {
+        tables.push({
+          title: 'Productos relacionados',
+          columns: ['ID', 'Codigo', 'Producto', 'Stock'],
+          rows: products.map((p) => [p.id, p.code || '-', p.name, p.stock ?? '-']),
+        });
+      }
+      if (documents.length > 0) {
+        tables.push({
+          title: 'Documentos relacionados',
+          columns: ['ID', 'Numero', 'Fecha', 'Total'],
+          rows: documents.map((d) => [d.id, d.number || '-', d.date || '-', d.total]),
+        });
+      }
+
+      const actions = buildActionProposals(message);
+
       return new Response(
-        JSON.stringify({ response: text, model: modelId, timestamp: new Date().toISOString() }),
+        JSON.stringify({
+          response: text,
+          model: modelId,
+          timestamp: new Date().toISOString(),
+          links: links.slice(0, 10),
+          tables,
+          actions,
+          sources: webResults,
+          contextEcho: {
+            currentModule: String(context?.currentModule ?? 'general'),
+            currentPath: String(context?.currentPath ?? '/'),
+            productsFound: products.length,
+            documentsFound: documents.length,
+          },
+        }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -163,7 +502,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('El mensaje del usuario está vacío', 'EMPTY_MESSAGE', 400);
     }
 
-    const text = await invokeModel(messages);
+    const text = await invokeModel(messages, undefined, undefined, undefined, undefined);
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
