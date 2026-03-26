@@ -299,7 +299,7 @@ export default function AILabPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="hidden md:inline-flex">
-            AWS Bedrock · {modelId}
+            AWS Bedrock Â· {modelId}
           </Badge>
           {hasMessages && (
             <Button
@@ -328,7 +328,7 @@ export default function AILabPage() {
                 <Bot className="h-7 w-7 text-primary" />
               </div>
               <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                ¿Por donde empezamos?
+                Â¿Por donde empezamos?
               </h1>
               <p className="mt-3 max-w-2xl text-sm text-muted-foreground md:text-base">
                 Preguntame sobre inventario, documentos, bodegas o kardex. Tambien puedes adjuntar imagenes y PDF para analizarlos dentro del flujo operativo.
@@ -450,7 +450,7 @@ export default function AILabPage() {
 
                         {msg.payload?.contextEcho && (
                           <div className="rounded border border-dashed bg-background p-2 text-[11px] text-muted-foreground">
-                            Contexto: modulo {msg.payload.contextEcho.currentModule} · ruta {msg.payload.contextEcho.currentPath} · productos {msg.payload.contextEcho.productsFound} · documentos {msg.payload.contextEcho.documentsFound}
+                            Contexto: modulo {msg.payload.contextEcho.currentModule} Â· ruta {msg.payload.contextEcho.currentPath} Â· productos {msg.payload.contextEcho.productsFound} Â· documentos {msg.payload.contextEcho.documentsFound}
                           </div>
                         )}
                       </div>
@@ -481,7 +481,7 @@ export default function AILabPage() {
                     onClick={() => removeAttachment(a.id)}
                     aria-label="Quitar adjunto"
                   >
-                    ×
+                    Ã—
                   </button>
                 </div>
               ))}
