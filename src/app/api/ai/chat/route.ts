@@ -1,3 +1,21 @@
+/**
+ * POST /api/ai/chat
+ *
+ * Proxy server-side hacia AWS Bedrock (Claude).
+ *
+ * Credenciales: IAM estáticas via variables de entorno (BEDROCK_ACCESS_KEY_ID /
+ * BEDROCK_SECRET_ACCESS_KEY). Este route corre en el servidor de Next.js, no en
+ * el browser, por lo que NO usa Cognito session credentials.
+ * Configura las variables en Amplify Console → App → Environment variables.
+ *
+ * Formatos de request aceptados:
+ *   { messages: [{role, content}, ...] }         ← panel flotante (streaming)
+ *   { message: string, context?: {...} }          ← página /ai-lab (JSON)
+ *
+ * Formato de respuesta:
+ *   - Si el request incluye "messages" → stream text/plain (compatible con el panel)
+ *   - Si el request incluye "message"  → JSON { response, model, timestamp }
+ */
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { type NextRequest } from 'next/server';
 
@@ -9,9 +27,8 @@ type ChatMessage = {
   content: string;
 };
 
-type ClaudeResponse = {
+type ClaudePayload = {
   content?: Array<{ type: string; text?: string }>;
-  stop_reason?: string;
   error?: { type?: string; message?: string };
 };
 
@@ -28,70 +45,62 @@ function sanitizeMessages(raw: unknown): ChatMessage[] {
     .filter((m: any) => m && typeof m.role === 'string' && typeof m.content === 'string')
     .filter((m: any) => m.role === 'user' || m.role === 'assistant')
     .slice(-16)
-    .map((m: any) => ({
-      role: m.role,
-      content: String(m.content).slice(0, 3000),
-    }));
+    .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 3000) }));
 }
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(context?: Record<string, unknown>): string {
+  const totalProducts = typeof context?.totalProducts === 'string' ? context.totalProducts : '1.243+';
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
+    `Gestionas un inventario de ${totalProducts} productos.`,
     'Responde en espanol claro y concreto.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
-    'Si no sabes algo del estado real de la base de datos o no tienes acceso a una consulta exacta, dilo explicitamente.',
-    'No inventes datos, stock, precios, ni resultados de documentos.',
+    'Si no tienes acceso a una consulta exacta de la base de datos, dilo explicitamente.',
+    'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
   ].join(' ');
 }
 
-async function generateResponse(messages: ChatMessage[]): Promise<string> {
+function buildBedrockClient(): BedrockRuntimeClient {
   const accessKeyId = readEnv('BEDROCK_ACCESS_KEY_ID');
   const secretAccessKey = readEnv('BEDROCK_SECRET_ACCESS_KEY');
   const region = readEnv('AI_BEDROCK_REGION') ?? 'us-east-2';
+
+  if (!accessKeyId || !secretAccessKey) {
+    throw Object.assign(
+      new Error(
+        'Credenciales Bedrock no configuradas. ' +
+        'Agrega BEDROCK_ACCESS_KEY_ID y BEDROCK_SECRET_ACCESS_KEY en Amplify Console → Environment variables.'
+      ),
+      { errorType: 'MISSING_CREDENTIALS' }
+    );
+  }
+
+  return new BedrockRuntimeClient({ region, credentials: { accessKeyId, secretAccessKey } });
+}
+
+async function invokeModel(messages: ChatMessage[], context?: Record<string, unknown>): Promise<string> {
+  const client = buildBedrockClient();
   const modelId =
     readEnv('AI_MODEL_PRIMARY') ??
     readEnv('AI_MODEL') ??
-    'anthropic.claude-3-5-sonnet-20240620-v1:0';
+    'anthropic.claude-3-haiku-20240307-v1:0';
   const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
-
-  if (!accessKeyId || !secretAccessKey) {
-    const envPresence = {
-      BEDROCK_ACCESS_KEY_ID: Boolean(accessKeyId),
-      BEDROCK_SECRET_ACCESS_KEY: Boolean(secretAccessKey),
-      AI_BEDROCK_REGION: Boolean(readEnv('AI_BEDROCK_REGION')),
-      AI_MODEL_PRIMARY: Boolean(readEnv('AI_MODEL_PRIMARY')),
-      NODE_ENV: readEnv('NODE_ENV') ?? 'unknown',
-    };
-    throw new Error(`Credenciales Bedrock no configuradas (${JSON.stringify(envPresence)})`);
-  }
-
-  const client = new BedrockRuntimeClient({
-    region,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  });
-
-  const body = JSON.stringify({
-    anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: Number.isFinite(maxTokens) ? maxTokens : 1024,
-    system: buildSystemPrompt(),
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-  });
 
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
-    body,
+    body: JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
+      system: buildSystemPrompt(context),
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
   });
 
   const result = await client.send(command);
-
-  const decoded = new TextDecoder().decode(result.body);
-  const payload = JSON.parse(decoded) as ClaudeResponse;
+  const payload = JSON.parse(new TextDecoder().decode(result.body)) as ClaudePayload;
 
   if (payload.error) {
     throw new Error(`${payload.error.message ?? 'Error Bedrock'} [${payload.error.type ?? 'BEDROCK_ERROR'}]`);
@@ -103,57 +112,59 @@ async function generateResponse(messages: ChatMessage[]): Promise<string> {
     .join('')
     .trim();
 
-  if (!text) {
-    throw new Error('Bedrock respondió vacío');
-  }
-
+  if (!text) throw new Error('Bedrock respondió vacío');
   return text;
+}
+
+function errorResponse(message: string, errorType: string, status: number): Response {
+  return new Response(
+    JSON.stringify({ error: message, errorType }),
+    { status, headers: { 'Content-Type': 'application/json' } }
+  );
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const rawMessages = Array.isArray(body?.messages) ? body.messages : [];
-    const messages = sanitizeMessages(rawMessages);
+    // ── Formato 1: { message, context } → respuesta JSON (página /ai-lab) ──
+    if (typeof body?.message === 'string') {
+      const message = body.message.trim();
+      if (!message) return errorResponse('El mensaje está vacío', 'EMPTY_MESSAGE', 400);
 
+      const messages: ChatMessage[] = [{ role: 'user', content: message.slice(0, 3000) }];
+      const text = await invokeModel(messages, body.context);
+      const modelId = readEnv('AI_MODEL_PRIMARY') ?? readEnv('AI_MODEL') ?? 'anthropic.claude-3-haiku-20240307-v1:0';
+
+      return new Response(
+        JSON.stringify({ response: text, model: modelId, timestamp: new Date().toISOString() }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── Formato 2: { messages: [...] } → stream text/plain (panel flotante) ──
+    const messages = sanitizeMessages(body?.messages);
     if (messages.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error: 'No hay mensajes válidos en la solicitud',
-          errorType: 'INVALID_INPUT',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return errorResponse('No hay mensajes válidos en la solicitud', 'INVALID_INPUT', 400);
+    }
+    if (!messages[messages.length - 1]?.content) {
+      return errorResponse('El mensaje del usuario está vacío', 'EMPTY_MESSAGE', 400);
     }
 
-    const userMessage = messages[messages.length - 1]?.content || '';
-    if (!userMessage) {
-      return new Response(
-        JSON.stringify({
-          error: 'El mensaje del usuario está vacío',
-          errorType: 'EMPTY_MESSAGE',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const text = await invokeModel(messages);
 
-    const response = await generateResponse(messages);
-
-    // Stream response in chunks (simulating streaming)
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         let idx = 0;
         const chunkSize = 40;
         const interval = setInterval(() => {
-          if (idx >= response.length) {
+          if (idx >= text.length) {
             clearInterval(interval);
             controller.close();
             return;
           }
-          const chunk = response.slice(idx, idx + chunkSize);
-          controller.enqueue(encoder.encode(chunk));
+          controller.enqueue(encoder.encode(text.slice(idx, idx + chunkSize)));
           idx += chunkSize;
         }, 40);
       },
@@ -161,17 +172,14 @@ export async function POST(request: NextRequest) {
 
     return new Response(stream, {
       status: 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({
-        error: `Error: ${error?.message || 'Desconocido'}`,
-        errorType: 'INTERNAL_ERROR',
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    const isCredErr = error?.errorType === 'MISSING_CREDENTIALS';
+    return errorResponse(
+      error?.message ?? 'Error desconocido',
+      error?.errorType ?? 'INTERNAL_ERROR',
+      isCredErr ? 503 : 500
     );
   }
 }
