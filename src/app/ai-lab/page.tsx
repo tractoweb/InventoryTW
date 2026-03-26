@@ -227,8 +227,11 @@ export default function AILabPage() {
             role: 'assistant',
             content: `✅ ${result.data.message}`,
             payload: {
-              links: result.data.link ? [result.data.link] : [],
-              tables: [],
+              links: [
+                ...(Array.isArray(result.data.links) ? result.data.links : []),
+                ...(result.data.link ? [result.data.link] : []),
+              ],
+              tables: result.data.table ? [result.data.table] : [],
               actions: [],
               sources: [],
             },

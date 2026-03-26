@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { NextRequest } from 'next/server';
 
 import { ACCESS_LEVELS } from '@/lib/amplify-config';
+import { amplifyClient } from '@/lib/amplify-config';
 import { requireSession } from '@/lib/session';
 import { adjustStock } from '@/actions/adjust-stock';
 import { createProductAction } from '@/actions/create-product';
@@ -78,19 +79,40 @@ export async function POST(request: NextRequest) {
         return jsonError(String(res.error ?? 'No se pudo ajustar el stock'), 400);
       }
 
+      const productRes = await amplifyClient.models.Product.get({ idProduct: validated.data.productId } as any);
+      const product: any = productRes?.data;
+      const productLabel = String(product?.code ?? product?.name ?? validated.data.productId);
+
       return new Response(
         JSON.stringify({
           success: true,
           operation,
-          message: `Stock actualizado. Cantidad previa: ${res.previousQuantity}, nueva: ${res.newQuantity}.`,
+          message: `✅ Ajuste aplicado: stock actualizado para ${productLabel}. Antes: ${res.previousQuantity}, ahora: ${res.newQuantity} (Δ ${res.difference}).`,
           result: {
             previousQuantity: res.previousQuantity,
             newQuantity: res.newQuantity,
             difference: res.difference,
+            productId: validated.data.productId,
+            warehouseId: validated.data.warehouseId,
           },
-          link: {
-            label: 'Ver stock del producto',
-            url: `/stock?q=${encodeURIComponent(String(validated.data.productId))}`,
+          links: [
+            {
+              label: 'Ver producto en Inventario',
+              url: `/inventory?q=${encodeURIComponent(productLabel)}`,
+            },
+            {
+              label: 'Ver stock del producto',
+              url: `/stock?q=${encodeURIComponent(productLabel)}`,
+            },
+            {
+              label: 'Abrir Kardex',
+              url: '/kardex',
+            },
+          ],
+          table: {
+            title: 'Resultado de ajuste de stock',
+            columns: ['Producto', 'Almacén', 'Stock anterior', 'Stock nuevo', 'Diferencia'],
+            rows: [[productLabel, validated.data.warehouseId, res.previousQuantity, res.newQuantity, res.difference]],
           },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -126,11 +148,26 @@ export async function POST(request: NextRequest) {
         JSON.stringify({
           success: true,
           operation,
-          message: `Producto creado con éxito (ID ${res.idProduct}).`,
-          result: { idProduct: res.idProduct },
-          link: {
-            label: 'Abrir producto en inventario',
-            url: `/inventory?q=${encodeURIComponent(String(validated.data.code ?? validated.data.name))}`,
+          message: `✅ Producto creado con éxito. ID ${res.idProduct}.`,
+          result: {
+            idProduct: res.idProduct,
+            name: validated.data.name,
+            code: validated.data.code ?? null,
+          },
+          links: [
+            {
+              label: 'Abrir producto en Inventario',
+              url: `/inventory?q=${encodeURIComponent(String(validated.data.code ?? validated.data.name))}`,
+            },
+            {
+              label: 'Revisar stock del producto',
+              url: `/stock?q=${encodeURIComponent(String(validated.data.code ?? validated.data.name))}`,
+            },
+          ],
+          table: {
+            title: 'Producto creado',
+            columns: ['ID', 'Código', 'Nombre'],
+            rows: [[res.idProduct, validated.data.code ?? '-', validated.data.name]],
           },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }

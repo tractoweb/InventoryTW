@@ -46,7 +46,9 @@ export type AssistantResponse = {
 export type AssistantActionResult = {
   success: boolean;
   message: string;
+  links?: Array<{ label: string; url: string }>;
   link?: { label: string; url: string };
+  table?: { title: string; columns: string[]; rows: Array<Array<string | number>> };
   operation?: string;
   result?: Record<string, unknown>;
 };
@@ -153,7 +155,9 @@ export async function executeAssistantAction(input: {
     data: {
       success: Boolean(payload?.success),
       message: String(payload?.message ?? ''),
+      links: Array.isArray(payload?.links) ? payload.links : [],
       link: payload?.link,
+      table: payload?.table,
       operation: payload?.operation,
       result: payload?.result,
     },
