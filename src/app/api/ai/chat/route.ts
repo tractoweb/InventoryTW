@@ -16,7 +16,7 @@
  *   - Si el request incluye "messages" → stream text/plain (compatible con el panel)
  *   - Si el request incluye "message"  → JSON { response, model, timestamp }
  */
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { type NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -27,11 +27,6 @@ export const maxDuration = 30;
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
-};
-
-type ClaudePayload = {
-  content?: Array<{ type: string; text?: string }>;
-  error?: { type?: string; message?: string };
 };
 
 function readEnv(name: string): string | undefined {
@@ -111,28 +106,21 @@ async function invokeModel(messages: ChatMessage[], context?: Record<string, unk
     'anthropic.claude-3-haiku-20240307-v1:0';
   const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
 
-  const command = new InvokeModelCommand({
+  const command = new ConverseCommand({
     modelId,
-    contentType: 'application/json',
-    accept: 'application/json',
-    body: JSON.stringify({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
-      system: buildSystemPrompt(context),
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    }),
+    system: [{ text: buildSystemPrompt(context) }],
+    messages: messages.map((message) => ({
+      role: message.role,
+      content: [{ text: message.content }],
+    })),
+    inferenceConfig: {
+      maxTokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
+    },
   });
 
   const result = await client.send(command);
-  const payload = JSON.parse(new TextDecoder().decode(result.body)) as ClaudePayload;
-
-  if (payload.error) {
-    throw new Error(`${payload.error.message ?? 'Error Bedrock'} [${payload.error.type ?? 'BEDROCK_ERROR'}]`);
-  }
-
-  const text = payload.content
-    ?.filter((c) => c.type === 'text')
-    .map((c) => c.text ?? '')
+  const text = result.output?.message?.content
+    ?.map((part) => ('text' in part && typeof part.text === 'string' ? part.text : ''))
     .join('')
     .trim();
 
