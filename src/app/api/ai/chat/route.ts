@@ -161,21 +161,25 @@ function imageFormatFromMime(mime: string): 'png' | 'jpeg' | 'gif' | 'webp' | nu
 }
 
 async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
-  if (!query || query.length < 2) return [];
+  const normalized = String(query ?? '').trim().toLowerCase();
   try {
     const { data } = await amplifyClient.models.Product.list({ limit: 80 } as any);
-    const q = query.toLowerCase();
     const rows = (data ?? []) as any[];
 
-    const matches = rows
+    const projected = rows
       .map((p) => {
         const id = asNumber((p as any).idProduct ?? (p as any).productId);
         const code = String((p as any).code ?? (p as any).productCode ?? '').trim();
         const name = String((p as any).name ?? (p as any).productName ?? '').trim();
         const stock = asNumber((p as any).stock);
         return { id, code, name, stock };
-      })
-      .filter((p) => p.id && (toLower(p.name).includes(q) || toLower(p.code).includes(q)))
+      });
+
+    const filtered = normalized.length >= 2
+      ? projected.filter((p) => p.id && (toLower(p.name).includes(normalized) || toLower(p.code).includes(normalized)))
+      : projected.filter((p) => p.id);
+
+    const matches = filtered
       .slice(0, 8)
       .map((p) => ({ id: Number(p.id), code: p.code, name: p.name, stock: p.stock }));
 
@@ -186,13 +190,12 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
 }
 
 async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
-  if (!query || query.length < 2) return [];
+  const normalized = String(query ?? '').trim().toLowerCase();
   try {
     const { data } = await amplifyClient.models.Document.list({ limit: 60 } as any);
-    const q = query.toLowerCase();
     const rows = (data ?? []) as any[];
 
-    const matches = rows
+    const projected = rows
       .map((d) => {
         const id = asNumber((d as any).documentId ?? (d as any).id);
         const number = String((d as any).number ?? (d as any).documentNumber ?? '').trim();
@@ -200,8 +203,13 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
         const total = asNumber((d as any).total) ?? 0;
         const note = String((d as any).note ?? (d as any).internalnote ?? '').trim();
         return { id, number, date, total, note };
-      })
-      .filter((d) => d.id && (toLower(d.number).includes(q) || toLower(d.note).includes(q)))
+      });
+
+    const filtered = normalized.length >= 2
+      ? projected.filter((d) => d.id && (toLower(d.number).includes(normalized) || toLower(d.note).includes(normalized)))
+      : projected.filter((d) => d.id);
+
+    const matches = filtered
       .slice(0, 6)
       .map((d) => ({ id: Number(d.id), number: d.number, date: d.date, total: d.total }));
 
@@ -426,6 +434,7 @@ export async function POST(request: NextRequest) {
 
       const context = (typeof body?.context === 'object' && body?.context) ? body.context as Record<string, unknown> : {};
       const attachments = sanitizeAttachments(body?.attachments);
+      const history = sanitizeMessages(body?.history);
 
       const [products, documents, webResults] = await Promise.all([
         fetchProductMatches(message),
@@ -433,7 +442,10 @@ export async function POST(request: NextRequest) {
         searchWeb(message, Boolean(body?.enableWeb)),
       ]);
 
-      const messages: ChatMessage[] = [{ role: 'user', content: message.slice(0, 3000) }];
+      const messages: ChatMessage[] = [
+        ...history,
+        { role: 'user' as const, content: message.slice(0, 3000) },
+      ].slice(-16);
       const text = await invokeModel(
         messages,
         context,

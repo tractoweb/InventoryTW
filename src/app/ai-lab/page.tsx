@@ -8,31 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { buildAssistantContext, sendAssistantMessage, type AssistantAttachment, type AssistantMessage, type AssistantPayload } from '@/lib/ai/assistant-shared';
 import { cn } from '@/lib/utils';
 
 type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  attachments?: UploadedAttachment[];
+  attachments?: AssistantAttachment[];
   payload?: AssistantPayload;
-};
-
-type UploadedAttachment = {
-  id: string;
-  name: string;
-  mimeType: string;
-  kind: 'image' | 'text' | 'document';
-  dataUrl?: string;
-  text?: string;
-};
-
-type AssistantPayload = {
-  links?: Array<{ label: string; url: string }>;
-  tables?: Array<{ title: string; columns: string[]; rows: Array<Array<string | number>> }>;
-  actions?: Array<{ id: string; title: string; description: string; requiresConfirmation: boolean; requiresDoubleConfirmation?: boolean }>;
-  sources?: Array<{ title: string; url: string; snippet: string }>;
-  contextEcho?: { currentModule: string; currentPath: string; productsFound: number; documentsFound: number };
 };
 
 const SUGGESTED = [
@@ -45,7 +29,7 @@ const SUGGESTED = [
 
 const TEXT_FILE_EXTENSIONS = ['.txt', '.md', '.csv', '.json', '.tsv', '.log'];
 
-function inferKind(file: File): UploadedAttachment['kind'] {
+function inferKind(file: File): AssistantAttachment['kind'] {
   if (file.type.startsWith('image/')) return 'image';
   const lower = file.name.toLowerCase();
   if (TEXT_FILE_EXTENSIONS.some((e) => lower.endsWith(e))) return 'text';
@@ -66,7 +50,7 @@ export default function AILabPage() {
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [enableWeb, setEnableWeb] = React.useState(true);
-  const [attachments, setAttachments] = React.useState<UploadedAttachment[]>([]);
+  const [attachments, setAttachments] = React.useState<AssistantAttachment[]>([]);
   const [doubleConfirmActionId, setDoubleConfirmActionId] = React.useState<string | null>(null);
 
   const pathname = usePathname();
@@ -98,34 +82,31 @@ export default function AILabPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          enableWeb,
-          attachments,
-          context: {
-            totalProducts: '1.243+',
-            system: 'InventoryTW',
-            currentPath: safePathname,
-            currentModule: safePathname.split('/')[1] || 'dashboard',
-          },
-        }),
+      const history: AssistantMessage[] = messages
+        .filter((m) => m.id !== asstId)
+        .slice(-12)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const result = await sendAssistantMessage({
+        message,
+        history,
+        attachments,
+        enableWeb,
+        context: buildAssistantContext(safePathname),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!result.ok) {
         const errText =
-          res.status === 503
+          result.status === 503
             ? '⚠️ El asistente de IA no está configurado aún. Contacta al administrador para activar las variables de entorno de Bedrock en Amplify Console.'
-            : `❌ ${data?.error ?? 'Error al procesar tu consulta'}`;
+            : `❌ ${result.error ?? 'Error al procesar tu consulta'}`;
         setMessages((prev) =>
           prev.map((m) => (m.id === asstId ? { ...m, content: errText } : m))
         );
         return;
       }
+
+      const data = result.data;
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -134,11 +115,11 @@ export default function AILabPage() {
                 ...m,
                 content: data.response ?? '(sin respuesta)',
                 payload: {
-                  links: Array.isArray(data?.links) ? data.links : [],
-                  tables: Array.isArray(data?.tables) ? data.tables : [],
-                  actions: Array.isArray(data?.actions) ? data.actions : [],
-                  sources: Array.isArray(data?.sources) ? data.sources : [],
-                  contextEcho: data?.contextEcho,
+                  links: data.links ?? [],
+                  tables: data.tables ?? [],
+                  actions: data.actions ?? [],
+                  sources: data.sources ?? [],
+                  contextEcho: data.contextEcho,
                 },
               }
             : m
@@ -162,11 +143,11 @@ export default function AILabPage() {
     if (!files || files.length === 0) return;
 
     const picked = Array.from(files).slice(0, 4);
-    const parsed: UploadedAttachment[] = [];
+    const parsed: AssistantAttachment[] = [];
 
     for (const file of picked) {
       const kind = inferKind(file);
-      const item: UploadedAttachment = {
+      const item: AssistantAttachment = {
         id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: file.name,
         mimeType: file.type || 'application/octet-stream',

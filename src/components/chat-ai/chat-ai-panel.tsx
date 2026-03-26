@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bot, X, Send, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bot, X, Send, Loader2, RotateCcw, Sparkles, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { buildAssistantContext, sendAssistantMessage, type AssistantMessage, type AssistantPayload } from "@/lib/ai/assistant-shared";
 import { useChatAI } from "./chat-ai-provider";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -14,17 +16,19 @@ type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  payload?: AssistantPayload;
 };
 
-// ─── Streaming chat hook ───────────────────────────────────────────────────
+// ─── Unified chat hook (shared with AI workspace backend contract) ────────
 
 const STORAGE_KEY = "tracto-ai-chat-history";
 const MAX_STORED = 50;
 
-function useStreamingChat() {
+function useAssistantChat(pathname: string | null) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [enableWeb, setEnableWeb] = React.useState(true);
   const abortRef = React.useRef<AbortController | null>(null);
   const hydrated = React.useRef(false);
 
@@ -65,29 +69,23 @@ function useStreamingChat() {
       abortRef.current = ctrl;
       const timeout = setTimeout(() => ctrl.abort(), 25000);
 
-      // Build messages array for API (history + new user message, exclude trailing empty assistant)
-      const apiMessages = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const history: AssistantMessage[] = messages
+        .slice(-12)
+        .map((m) => ({ role: m.role, content: m.content }));
 
       try {
-        const response = await fetch("/api/ai/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: apiMessages }),
+        const result = await sendAssistantMessage({
+          message: trimmed,
+          history,
+          enableWeb,
+          context: buildAssistantContext(pathname),
           signal: ctrl.signal,
         });
 
-        if (!response.ok) {
-          let errMsg = "Error del servidor.";
-          try {
-            const errBody = await response.json();
-            const error = typeof errBody?.error === "string" ? errBody.error : errMsg;
-            const errorType = typeof errBody?.errorType === "string" ? ` [${errBody.errorType}]` : "";
-            const detail = typeof errBody?.detail === "string" ? ` ${errBody.detail}` : "";
-            errMsg = `${error}${errorType}${detail}`.trim();
-          } catch {}
+        if (!result.ok) {
+          const errMsg = result.status === 503
+            ? "El asistente no está configurado en el servidor."
+            : (result.error || "Error del servidor.");
           setMessages((prev) =>
             prev.map((m) =>
               m.id === asstId ? { ...m, content: `❌ ${errMsg}` } : m
@@ -96,28 +94,23 @@ function useStreamingChat() {
           return;
         }
 
-        if (!response.body) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === asstId ? { ...m, content: "❌ Respuesta vacía del servidor." } : m
-            )
-          );
-          return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === asstId ? { ...m, content: m.content + chunk } : m
-            )
-          );
-        }
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === asstId
+              ? {
+                  ...m,
+                  content: result.data.response || "(sin respuesta)",
+                  payload: {
+                    links: result.data.links ?? [],
+                    tables: result.data.tables ?? [],
+                    actions: result.data.actions ?? [],
+                    sources: result.data.sources ?? [],
+                    contextEcho: result.data.contextEcho,
+                  },
+                }
+              : m
+          )
+        );
       } catch (err: any) {
         if (err?.name === "AbortError") {
           setMessages((prev) =>
@@ -142,7 +135,7 @@ function useStreamingChat() {
         abortRef.current = null;
       }
     },
-    [messages, isLoading]
+    [messages, isLoading, enableWeb, pathname]
   );
 
   const stop = React.useCallback(() => {
@@ -157,7 +150,7 @@ function useStreamingChat() {
     } catch {}
   }, []);
 
-  return { messages, input, setInput, isLoading, sendMessage, stop, clear };
+  return { messages, input, setInput, isLoading, enableWeb, setEnableWeb, sendMessage, stop, clear };
 }
 
 // ─── Inline Markdown renderer ──────────────────────────────────────────────
@@ -260,6 +253,72 @@ function MarkdownMessage({ content }: { content: string }) {
   );
 }
 
+function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
+  if (!payload) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {(payload.tables ?? []).map((t, idx) => (
+        <div key={`t-${idx}`} className="rounded-md border p-2 bg-background overflow-auto">
+          <p className="text-[11px] font-semibold mb-1">{t.title}</p>
+          <table className="w-full text-[11px] border-collapse">
+            <thead>
+              <tr>
+                {t.columns.map((c) => (
+                  <th key={c} className="text-left border-b py-1 pr-2">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {t.rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => (
+                    <td key={`${ri}-${ci}`} className="py-1 pr-2 border-b border-border/40">{String(cell)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+
+      {(payload.links ?? []).length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {(payload.links ?? []).slice(0, 6).map((l, i) => {
+            const ext = /^https?:\/\//i.test(String(l.url));
+            return ext ? (
+              <a
+                key={`ln-${i}`}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] rounded-full border px-2 py-0.5 inline-flex items-center gap-1 hover:bg-muted"
+              >
+                {l.label} <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            ) : (
+              <Link key={`ln-${i}`} href={l.url} className="text-[11px] rounded-full border px-2 py-0.5 hover:bg-muted">
+                {l.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {(payload.actions ?? []).length > 0 && (
+        <div className="rounded-md border p-2 bg-background">
+          <p className="text-[11px] font-semibold mb-1">Acciones propuestas</p>
+          <ul className="space-y-1 text-[11px] text-muted-foreground">
+            {(payload.actions ?? []).map((a) => (
+              <li key={a.id}>• {a.title}{a.requiresDoubleConfirmation ? " (doble confirmación)" : ""}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Message bubble ────────────────────────────────────────────────────────
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
@@ -296,7 +355,10 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         ) : isUser ? (
           <span className="whitespace-pre-wrap break-words">{msg.content}</span>
         ) : (
-          <MarkdownMessage content={msg.content} />
+          <>
+            <MarkdownMessage content={msg.content} />
+            <PayloadExtras payload={msg.payload} />
+          </>
         )}
       </div>
     </div>
@@ -317,7 +379,8 @@ const QUICK_CHIPS = [
 
 export function ChatAIPanel() {
   const { isOpen, close } = useChatAI();
-  const { messages, input, setInput, isLoading, sendMessage, stop, clear } = useStreamingChat();
+  const pathname = usePathname();
+  const { messages, input, setInput, isLoading, enableWeb, setEnableWeb, sendMessage, stop, clear } = useAssistantChat(pathname);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -376,7 +439,7 @@ export function ChatAIPanel() {
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-none">Asistente Web</p>
+              <p className="text-sm font-semibold leading-none">Asistente IA</p>
               <p className="text-xs text-muted-foreground mt-0.5">TRACTO AGRÍCOLA</p>
             </div>
             {isLoading && (
@@ -415,16 +478,16 @@ export function ChatAIPanel() {
               <summary className="cursor-pointer text-xs font-semibold">Informacion del Asistente Web</summary>
               <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                 <p>
-                  <span className="font-medium text-foreground">Puedes consultar:</span> informacion publica en la web sobre repuestos,
-                  fallas frecuentes, guias tecnicas y referencias para busqueda de partes.
+                  <span className="font-medium text-foreground">Puede usar:</span> contexto del módulo actual,
+                  consultas de productos/documentos y búsqueda web opcional.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Por ahora no hace:</span> consultas directas a inventario interno,
-                  AppSync o base de datos, ni acciones de escritura.
+                  <span className="font-medium text-foreground">Acciones de escritura:</span> solo se proponen;
+                  requieren aprobación del usuario antes de ejecutarse.
                 </p>
                 <p>
-                  <span className="font-medium text-foreground">Reglas:</span> usa preguntas concretas (marca, modelo, sistema, sintoma),
-                  y valida compatibilidad final con catalogo OEM antes de comprar.
+                  <span className="font-medium text-foreground">Tip:</span> puedes abrir el workspace completo en
+                  <Link href="/ai-lab" className="underline ml-1">/ai-lab</Link> para adjuntar imágenes y documentos.
                 </p>
               </div>
             </details>
@@ -435,9 +498,9 @@ export function ChatAIPanel() {
                   <Bot className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Consulta web de repuestos</p>
+                  <p className="font-medium text-sm">Asistente unificado InventoryTW</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
-                    Te ayudo a encontrar referencias y guias tecnicas en la web.
+                    Usa contexto del módulo y puede enlazar productos, documentos y reportes.
                   </p>
                 </div>
                 <div className="w-full flex flex-col gap-2 mt-2">
@@ -472,13 +535,25 @@ export function ChatAIPanel() {
         {/* ── Input area ───────────────────────────────────────────────────── */}
         <div className="border-t p-3 shrink-0 bg-background">
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="icon"
+              variant={enableWeb ? "default" : "outline"}
+              className="h-9 w-9 shrink-0"
+              onClick={() => setEnableWeb((v: boolean) => !v)}
+              title="Activar/desactivar búsqueda web"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="sr-only">Web</span>
+            </Button>
+
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Pregunta sobre repuestos, fallas o numeros OEM..."
+              placeholder="Pregunta sobre este módulo, productos, documentos o web..."
               disabled={isLoading}
               className={cn(
                 "flex-1 min-w-0 h-9 rounded-lg border bg-muted/40 px-3 text-sm",
@@ -514,7 +589,7 @@ export function ChatAIPanel() {
             )}
           </form>
           <p className="text-center text-[10px] text-muted-foreground mt-2">
-            Fase 1: consultas web sobre repuestos
+            Modo web: {enableWeb ? "ON" : "OFF"} · Contexto del módulo activo
           </p>
         </div>
       </div>

@@ -30,6 +30,7 @@ import {
   Calculator,
   Settings,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { AppLogo } from "../icons";
 import { DatabaseStatus } from "./database-status";
@@ -59,6 +60,7 @@ type MenuGroup = {
 
 const topLevelItems: MenuItem[] = [
   { href: "/", label: "Panel de Control", icon: LayoutDashboard },
+  { href: "/ai-lab", label: "Workspace IA TAW", icon: Sparkles },
 ];
 
 const menuGroups: MenuGroup[] = [
