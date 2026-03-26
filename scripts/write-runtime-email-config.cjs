@@ -1,5 +1,5 @@
 /*
-  Writes SMTP config into the deployed Next.js server bundle so it can be read
+  Writes runtime config into the deployed Next.js server bundle so it can be read
   at runtime even if the hosting provider doesn't inject env vars into the
   compute runtime.
 
@@ -39,6 +39,12 @@ function main() {
     SMTP_PASS: pick("SMTP_PASS"),
     SMTP_DEFAULT_CC: pick("SMTP_DEFAULT_CC"),
     SMTP_TLS_REJECT_UNAUTHORIZED: pick("SMTP_TLS_REJECT_UNAUTHORIZED"),
+    BEDROCK_ACCESS_KEY_ID: pick("BEDROCK_ACCESS_KEY_ID"),
+    BEDROCK_SECRET_ACCESS_KEY: pick("BEDROCK_SECRET_ACCESS_KEY"),
+    AI_BEDROCK_REGION: pick("AI_BEDROCK_REGION"),
+    AI_MODEL_PRIMARY: pick("AI_MODEL_PRIMARY"),
+    AI_MODEL: pick("AI_MODEL"),
+    AI_MAX_TOKENS: pick("AI_MAX_TOKENS"),
   };
 
   fs.writeFileSync(outFile, JSON.stringify(data), { encoding: "utf8" });

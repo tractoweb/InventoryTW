@@ -18,6 +18,8 @@
  */
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { type NextRequest } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -34,9 +36,31 @@ type ClaudePayload = {
 
 function readEnv(name: string): string | undefined {
   const raw = process.env[name];
-  if (raw === undefined || raw === null) return undefined;
-  const trimmed = String(raw).trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  const direct = raw === undefined || raw === null ? '' : String(raw).trim();
+  if (direct) return direct;
+
+  // AWS Amplify Hosting may expose runtime secrets via process.env.secrets.
+  const secrets = (process.env as any)?.secrets as Record<string, unknown> | undefined;
+  const secretVal = secrets?.[name];
+  const secret = secretVal ? String(secretVal).trim() : '';
+  if (secret) return secret;
+
+  // Fallback for hosting setups where runtime env is not injected into SSR.
+  // Snapshot is created during build by scripts/write-runtime-email-config.cjs.
+  try {
+    const cfgPath = path.join(process.cwd(), '.next', 'server', 'runtime-email-config.json');
+    if (fs.existsSync(cfgPath)) {
+      const rawCfg = fs.readFileSync(cfgPath, 'utf8');
+      const parsed = JSON.parse(rawCfg) as Record<string, unknown>;
+      const snapVal = parsed?.[name];
+      const snap = snapVal ? String(snapVal).trim() : '';
+      if (snap) return snap;
+    }
+  } catch {
+    // ignore
+  }
+
+  return undefined;
 }
 
 function sanitizeMessages(raw: unknown): ChatMessage[] {
