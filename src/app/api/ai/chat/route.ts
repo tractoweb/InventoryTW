@@ -52,6 +52,20 @@ type DocumentMatch = {
   total: number;
 };
 
+type WarehouseMatch = {
+  id: number;
+  name: string;
+};
+
+type KardexMatch = {
+  id: number;
+  type: string;
+  date: string;
+  quantity: number;
+  productId: number | null;
+  warehouseId: number | null;
+};
+
 type WebResult = {
   title: string;
   url: string;
@@ -139,6 +153,23 @@ function toLower(v: unknown): string {
   return String(v ?? '').toLowerCase().trim();
 }
 
+function normalizeSearch(v: unknown): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeSearch(v: unknown): string[] {
+  return normalizeSearch(v)
+    .split(' ')
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+}
+
 function asNumber(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -167,22 +198,43 @@ function imageFormatFromMime(mime: string): 'png' | 'jpeg' | 'gif' | 'webp' | nu
 }
 
 async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
-  const normalized = String(query ?? '').trim().toLowerCase();
+  const normalized = normalizeSearch(query);
+  const tokens = tokenizeSearch(query);
   try {
-    const { data } = await amplifyClient.models.Product.list({ limit: 80 } as any);
-    const rows = (data ?? []) as any[];
+    const rows: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+    const pageLimit = 250;
+    const maxPages = 20;
+    let page = 0;
+
+    do {
+      const res: any = await amplifyClient.models.Product.list({ limit: pageLimit, nextToken } as any);
+      rows.push(...((res?.data ?? []) as any[]));
+      nextToken = res?.nextToken;
+      page++;
+      if (page >= maxPages) break;
+    } while (nextToken);
 
     const projected = rows
       .map((p) => {
         const id = asNumber((p as any).idProduct ?? (p as any).productId);
         const code = String((p as any).code ?? (p as any).productCode ?? '').trim();
         const name = String((p as any).name ?? (p as any).productName ?? '').trim();
+        const description = String((p as any).description ?? '').trim();
         const stock = asNumber((p as any).stock);
-        return { id, code, name, stock };
+        return { id, code, name, description, stock };
       });
 
     const filtered = normalized.length >= 2
-      ? projected.filter((p) => p.id && (toLower(p.name).includes(normalized) || toLower(p.code).includes(normalized)))
+      ? projected
+          .map((p) => {
+            const haystack = normalizeSearch(`${p.code} ${p.name} ${p.description}`);
+            const full = normalized && haystack.includes(normalized) ? 3 : 0;
+            const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
+            return { ...p, score: full + tokenScore };
+          })
+          .filter((p) => p.id && p.score > 0)
+          .sort((a, b) => b.score - a.score)
       : projected.filter((p) => p.id);
 
     const matches = filtered
@@ -196,10 +248,22 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
 }
 
 async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
-  const normalized = String(query ?? '').trim().toLowerCase();
+  const normalized = normalizeSearch(query);
+  const tokens = tokenizeSearch(query);
   try {
-    const { data } = await amplifyClient.models.Document.list({ limit: 60 } as any);
-    const rows = (data ?? []) as any[];
+    const rows: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+    const pageLimit = 200;
+    const maxPages = 15;
+    let page = 0;
+
+    do {
+      const res: any = await amplifyClient.models.Document.list({ limit: pageLimit, nextToken } as any);
+      rows.push(...((res?.data ?? []) as any[]));
+      nextToken = res?.nextToken;
+      page++;
+      if (page >= maxPages) break;
+    } while (nextToken);
 
     const projected = rows
       .map((d) => {
@@ -212,7 +276,15 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
       });
 
     const filtered = normalized.length >= 2
-      ? projected.filter((d) => d.id && (toLower(d.number).includes(normalized) || toLower(d.note).includes(normalized)))
+      ? projected
+          .map((d) => {
+            const haystack = normalizeSearch(`${d.number} ${d.note}`);
+            const full = normalized && haystack.includes(normalized) ? 3 : 0;
+            const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
+            return { ...d, score: full + tokenScore };
+          })
+          .filter((d) => d.id && d.score > 0)
+          .sort((a, b) => b.score - a.score)
       : projected.filter((d) => d.id);
 
     const matches = filtered
@@ -220,6 +292,104 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
       .map((d) => ({ id: Number(d.id), number: d.number, date: d.date, total: d.total }));
 
     return matches;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchWarehouseMatches(query: string): Promise<WarehouseMatch[]> {
+  const normalized = normalizeSearch(query);
+  const tokens = tokenizeSearch(query);
+  try {
+    const rows: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+    const pageLimit = 100;
+    const maxPages = 10;
+    let page = 0;
+
+    do {
+      const res: any = await amplifyClient.models.Warehouse.list({ limit: pageLimit, nextToken } as any);
+      rows.push(...((res?.data ?? []) as any[]));
+      nextToken = res?.nextToken;
+      page++;
+      if (page >= maxPages) break;
+    } while (nextToken);
+
+    const projected = rows.map((w) => ({
+      id: asNumber((w as any).idWarehouse),
+      name: String((w as any).name ?? '').trim(),
+    }));
+
+    const filtered = normalized.length >= 2
+      ? projected
+          .map((w) => {
+            const haystack = normalizeSearch(`${w.id ?? ''} ${w.name}`);
+            const full = normalized && haystack.includes(normalized) ? 3 : 0;
+            const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
+            return { ...w, score: full + tokenScore };
+          })
+          .filter((w) => w.id && w.score > 0)
+          .sort((a, b) => b.score - a.score)
+      : projected.filter((w) => w.id);
+
+    return filtered.slice(0, 6).map((w) => ({ id: Number(w.id), name: w.name }));
+  } catch {
+    return [];
+  }
+}
+
+async function fetchKardexMatches(query: string): Promise<KardexMatch[]> {
+  const normalized = normalizeSearch(query);
+  const tokens = tokenizeSearch(query);
+  try {
+    const rows: any[] = [];
+    let nextToken: string | null | undefined = undefined;
+    const pageLimit = 250;
+    const maxPages = 12;
+    let page = 0;
+
+    do {
+      const res: any = await amplifyClient.models.Kardex.list({ limit: pageLimit, nextToken } as any);
+      rows.push(...((res?.data ?? []) as any[]));
+      nextToken = res?.nextToken;
+      page++;
+      if (page >= maxPages) break;
+    } while (nextToken);
+
+    const projected = rows.map((k) => {
+      const id = asNumber((k as any).kardexId);
+      const type = String((k as any).type ?? '').trim();
+      const date = String((k as any).date ?? '').trim();
+      const quantity = asNumber((k as any).quantity) ?? 0;
+      const productId = asNumber((k as any).productId);
+      const warehouseId = asNumber((k as any).warehouseId);
+      const note = String((k as any).note ?? '').trim();
+      const documentNumber = String((k as any).documentNumber ?? '').trim();
+      return { id, type, date, quantity, productId, warehouseId, note, documentNumber };
+    });
+
+    const filtered = normalized.length >= 2
+      ? projected
+          .map((k) => {
+            const haystack = normalizeSearch(`${k.type} ${k.note} ${k.documentNumber} ${k.productId ?? ''} ${k.warehouseId ?? ''}`);
+            const full = normalized && haystack.includes(normalized) ? 3 : 0;
+            const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
+            return { ...k, score: full + tokenScore };
+          })
+          .filter((k) => k.id && k.score > 0)
+          .sort((a, b) => b.score - a.score)
+      : projected.filter((k) => k.id);
+
+    return filtered
+      .slice(0, 8)
+      .map((k) => ({
+        id: Number(k.id),
+        type: k.type,
+        date: k.date,
+        quantity: k.quantity,
+        productId: k.productId,
+        warehouseId: k.warehouseId,
+      }));
   } catch {
     return [];
   }
@@ -266,12 +436,20 @@ function buildAttachmentText(attachments: IncomingAttachment[]): string {
   return parts.join('\n\n').slice(0, 12000);
 }
 
-function buildActionProposals(message: string, products: ProductMatch[], documents: DocumentMatch[]): ActionProposal[] {
+function buildActionProposals(
+  message: string,
+  products: ProductMatch[],
+  documents: DocumentMatch[],
+  warehouses: WarehouseMatch[],
+  kardex: KardexMatch[]
+): ActionProposal[] {
   const q = message.toLowerCase();
   const actions: ActionProposal[] = [];
 
   const firstProduct = products[0];
   const firstDocument = documents[0];
+  const firstWarehouse = warehouses[0];
+  const firstKardex = kardex[0];
 
   if (firstProduct) {
     actions.push({
@@ -297,6 +475,34 @@ function buildActionProposals(message: string, products: ProductMatch[], documen
       link: {
         label: `Ver documento ${firstDocument.number || firstDocument.id}`,
         url: `/documents/${firstDocument.id}/pdf`,
+      },
+    });
+  }
+
+  if (firstWarehouse) {
+    actions.push({
+      id: `open-warehouse-${firstWarehouse.id}`,
+      kind: 'navigate',
+      title: `Abrir bodega ${firstWarehouse.name || firstWarehouse.id}`,
+      description: 'Ir al modulo de stock filtrado por esta bodega.',
+      requiresConfirmation: false,
+      link: {
+        label: `Ver stock bodega ${firstWarehouse.name || firstWarehouse.id}`,
+        url: `/stock?warehouseId=${firstWarehouse.id}`,
+      },
+    });
+  }
+
+  if (firstKardex) {
+    actions.push({
+      id: `open-kardex-${firstKardex.id}`,
+      kind: 'navigate',
+      title: `Abrir kardex relacionado #${firstKardex.id}`,
+      description: 'Navegar al modulo Kardex para revisar movimientos asociados.',
+      requiresConfirmation: false,
+      link: {
+        label: 'Ver modulo Kardex',
+        url: '/kardex',
       },
     });
   }
@@ -355,7 +561,12 @@ function buildActionProposals(message: string, products: ProductMatch[], documen
 
 function buildSystemPrompt(
   context?: Record<string, unknown>,
-  dbContext?: { products: ProductMatch[]; documents: DocumentMatch[] },
+  dbContext?: {
+    products: ProductMatch[];
+    documents: DocumentMatch[];
+    warehouses: WarehouseMatch[];
+    kardex: KardexMatch[];
+  },
   webResults?: WebResult[]
 ): string {
   const totalProducts = typeof context?.totalProducts === 'string' ? context.totalProducts : '1.243+';
@@ -372,6 +583,16 @@ function buildSystemPrompt(
     .join(' | ')
     .slice(0, 1200);
 
+  const warehousesInline = (dbContext?.warehouses ?? [])
+    .map((w) => `Bodega ${w.id}: ${w.name}`)
+    .join(' | ')
+    .slice(0, 1200);
+
+  const kardexInline = (dbContext?.kardex ?? [])
+    .map((k) => `Kardex ${k.id} tipo ${k.type} fecha ${k.date} qty ${k.quantity}`)
+    .join(' | ')
+    .slice(0, 1200);
+
   const webInline = (webResults ?? [])
     .map((r) => `${r.title}: ${r.url}`)
     .join(' | ')
@@ -384,11 +605,13 @@ function buildSystemPrompt(
     'Responde en espanol claro y concreto.',
     'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
-    'Si no tienes acceso a una consulta exacta de la base de datos, dilo explicitamente.',
+    'No digas que no tienes acceso a base de datos; en su lugar indica si no hubo coincidencias en la consulta del backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
     productsInline ? `Productos candidatos encontrados: ${productsInline}` : '',
     docsInline ? `Documentos candidatos encontrados: ${docsInline}` : '',
+    warehousesInline ? `Bodegas candidatas encontradas: ${warehousesInline}` : '',
+    kardexInline ? `Movimientos kardex candidatos: ${kardexInline}` : '',
     webInline ? `Resultados web sugeridos: ${webInline}` : '',
   ].join(' ');
 }
@@ -414,64 +637,89 @@ function buildBedrockClient(): BedrockRuntimeClient {
 async function invokeModel(
   messages: ChatMessage[],
   context?: Record<string, unknown>,
-  dbContext?: { products: ProductMatch[]; documents: DocumentMatch[] },
+  dbContext?: {
+    products: ProductMatch[];
+    documents: DocumentMatch[];
+    warehouses: WarehouseMatch[];
+    kardex: KardexMatch[];
+  },
   webResults?: WebResult[],
   attachments?: IncomingAttachment[]
 ): Promise<string> {
   const client = buildBedrockClient();
-  const modelId =
+  const primaryModelId =
     readEnv('AI_MODEL_PRIMARY') ??
     readEnv('AI_MODEL') ??
     'anthropic.claude-3-haiku-20240307-v1:0';
+  const visionModelId = readEnv('AI_MODEL_VISION') ?? primaryModelId;
   const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
 
   const attachmentText = buildAttachmentText(attachments ?? []);
-  const messageBlocks = messages.map((message) => {
-    const content: any[] = [{ text: message.content }];
+  const imageAttachments = (attachments ?? []).filter((a) => a.kind === 'image' && a.dataUrl).slice(0, 2);
 
-    if (message.role === 'user' && attachmentText) {
-      content.push({ text: `Contexto de archivos adjuntos:\n${attachmentText}` });
-    }
+  const buildMessageBlocks = (includeImages: boolean) => {
+    return messages.map((message) => {
+      const content: any[] = [{ text: message.content }];
 
-    if (message.role === 'user') {
-      const imageAttachments = (attachments ?? []).filter((a) => a.kind === 'image' && a.dataUrl).slice(0, 2);
-      for (const img of imageAttachments) {
-        const parsed = parseDataUrl(String(img.dataUrl));
-        if (!parsed) continue;
-        const format = imageFormatFromMime(parsed.mime);
-        if (!format) continue;
-        content.push({
-          image: {
-            format,
-            source: { bytes: parsed.bytes },
-          },
-        });
+      if (message.role === 'user' && attachmentText) {
+        content.push({ text: `Contexto de archivos adjuntos:\n${attachmentText}` });
       }
+
+      if (includeImages && message.role === 'user') {
+        for (const img of imageAttachments) {
+          const parsed = parseDataUrl(String(img.dataUrl));
+          if (!parsed) continue;
+          const format = imageFormatFromMime(parsed.mime);
+          if (!format) continue;
+          content.push({
+            image: {
+              format,
+              source: { bytes: parsed.bytes },
+            },
+          });
+        }
+      }
+
+      return { role: message.role, content };
+    });
+  };
+
+  const runConverse = async (modelId: string, includeImages: boolean): Promise<string> => {
+    const command = new ConverseCommand({
+      modelId,
+      system: [{ text: buildSystemPrompt(context, dbContext, webResults) }],
+      messages: buildMessageBlocks(includeImages),
+      inferenceConfig: {
+        maxTokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
+      },
+    });
+
+    const result = await client.send(command);
+    const text = result.output?.message?.content
+      ?.map((part) => ('text' in part && typeof part.text === 'string' ? part.text : ''))
+      .join('')
+      .trim();
+
+    if (!text) throw new Error('Bedrock respondió vacío');
+    return text;
+  };
+
+  const hasImages = imageAttachments.length > 0;
+  const modelForAttempt = hasImages ? visionModelId : primaryModelId;
+
+  try {
+    return await runConverse(modelForAttempt, hasImages);
+  } catch (error: any) {
+    const msg = String(error?.message ?? '');
+    const isImageUnsupported = /image content block|doesn't support the image|no support for image/i.test(msg);
+
+    if (hasImages && isImageUnsupported) {
+      const textOnly = await runConverse(primaryModelId, false);
+      return `${textOnly}\n\nNota: El modelo actual no soporta imágenes en este endpoint. Se procesó solo texto/adjuntos extraídos.`;
     }
 
-    return {
-      role: message.role,
-      content,
-    };
-  });
-
-  const command = new ConverseCommand({
-    modelId,
-    system: [{ text: buildSystemPrompt(context, dbContext, webResults) }],
-    messages: messageBlocks,
-    inferenceConfig: {
-      maxTokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024,
-    },
-  });
-
-  const result = await client.send(command);
-  const text = result.output?.message?.content
-    ?.map((part) => ('text' in part && typeof part.text === 'string' ? part.text : ''))
-    .join('')
-    .trim();
-
-  if (!text) throw new Error('Bedrock respondió vacío');
-  return text;
+    throw error;
+  }
 }
 
 function errorResponse(message: string, errorType: string, status: number): Response {
@@ -494,9 +742,11 @@ export async function POST(request: NextRequest) {
       const attachments = sanitizeAttachments(body?.attachments);
       const history = sanitizeMessages(body?.history);
 
-      const [products, documents, webResults] = await Promise.all([
+      const [products, documents, warehouses, kardexEntries, webResults] = await Promise.all([
         fetchProductMatches(message),
         fetchDocumentMatches(message),
+        fetchWarehouseMatches(message),
+        fetchKardexMatches(message),
         searchWeb(message, Boolean(body?.enableWeb)),
       ]);
 
@@ -507,7 +757,7 @@ export async function POST(request: NextRequest) {
       const text = await invokeModel(
         messages,
         context,
-        { products, documents },
+        { products, documents, warehouses, kardex: kardexEntries },
         webResults,
         attachments
       );
@@ -521,8 +771,42 @@ export async function POST(request: NextRequest) {
       for (const d of documents) {
         links.push({ label: `Documento ${d.number || d.id}`, url: `/documents/${d.id}/pdf` });
       }
+      for (const w of warehouses) {
+        links.push({ label: `Bodega ${w.name || w.id}`, url: `/stock?warehouseId=${w.id}` });
+      }
+      for (const k of kardexEntries) {
+        links.push({ label: `Kardex #${k.id} (${k.type || 'mov'})`, url: '/kardex' });
+      }
       for (const w of webResults) {
         links.push({ label: `Web: ${w.title}`, url: w.url });
+      }
+
+      if (products.length === 0) {
+        links.push({
+          label: `Buscar "${message.slice(0, 40)}" en Inventario`,
+          url: `/inventory?q=${encodeURIComponent(message)}`,
+        });
+      }
+
+      if (documents.length === 0) {
+        links.push({
+          label: `Buscar "${message.slice(0, 40)}" en Documentos`,
+          url: `/documents`,
+        });
+      }
+
+      if (warehouses.length === 0) {
+        links.push({
+          label: `Revisar bodegas para "${message.slice(0, 40)}"`,
+          url: '/warehouses',
+        });
+      }
+
+      if (kardexEntries.length === 0) {
+        links.push({
+          label: `Revisar Kardex para "${message.slice(0, 40)}"`,
+          url: '/kardex',
+        });
       }
 
       const tables: AssistantTable[] = [];
@@ -541,7 +825,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const actions = buildActionProposals(message, products, documents);
+      if (warehouses.length > 0) {
+        tables.push({
+          title: 'Bodegas relacionadas',
+          columns: ['ID', 'Bodega'],
+          rows: warehouses.map((w) => [w.id, w.name || '-']),
+        });
+      }
+
+      if (kardexEntries.length > 0) {
+        tables.push({
+          title: 'Movimientos Kardex relacionados',
+          columns: ['ID', 'Tipo', 'Fecha', 'Cantidad', 'Producto', 'Bodega'],
+          rows: kardexEntries.map((k) => [k.id, k.type || '-', k.date || '-', k.quantity, k.productId ?? '-', k.warehouseId ?? '-']),
+        });
+      }
+
+      const actions = buildActionProposals(message, products, documents, warehouses, kardexEntries);
 
       return new Response(
         JSON.stringify({
@@ -557,6 +857,8 @@ export async function POST(request: NextRequest) {
             currentPath: String(context?.currentPath ?? '/'),
             productsFound: products.length,
             documentsFound: documents.length,
+            warehousesFound: warehouses.length,
+            kardexFound: kardexEntries.length,
           },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
