@@ -163,6 +163,38 @@ function normalizeSearch(v: unknown): string {
     .trim();
 }
 
+function normalizeRef(v: unknown): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function extractReferenceCandidates(query: string): string[] {
+  const raw = String(query ?? '');
+  const rx = /[A-Za-z0-9][A-Za-z0-9.'\-/]{3,}/g;
+  const out = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = rx.exec(raw)) !== null) {
+    const normalized = normalizeRef(m[0]);
+    if (normalized.length >= 4) out.add(normalized);
+  }
+  return Array.from(out).slice(0, 8);
+}
+
+function extractDocumentNumberCandidates(query: string): string[] {
+  const raw = String(query ?? '');
+  const rx = /[A-Za-z0-9]{1,6}[\-\/][A-Za-z0-9\-\/]{2,20}/g;
+  const out = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = rx.exec(raw)) !== null) {
+    const normalized = normalizeRef(m[0]);
+    if (normalized.length >= 4) out.add(normalized);
+  }
+  return Array.from(out).slice(0, 8);
+}
+
 function tokenizeSearch(v: unknown): string[] {
   return normalizeSearch(v)
     .split(' ')
@@ -200,6 +232,8 @@ function imageFormatFromMime(mime: string): 'png' | 'jpeg' | 'gif' | 'webp' | nu
 async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
   const normalized = normalizeSearch(query);
   const tokens = tokenizeSearch(query);
+  const refCandidates = extractReferenceCandidates(query);
+  const explicitRefSearch = refCandidates.length > 0;
   try {
     const rows: any[] = [];
     let nextToken: string | null | undefined = undefined;
@@ -215,29 +249,67 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
       if (page >= maxPages) break;
     } while (nextToken);
 
+    const stockRows: any[] = [];
+    let stockNextToken: string | null | undefined = undefined;
+    let stockPage = 0;
+    const stockPageLimit = 300;
+    const stockMaxPages = 30;
+
+    do {
+      const res: any = await amplifyClient.models.Stock.list({ limit: stockPageLimit, nextToken: stockNextToken } as any);
+      stockRows.push(...((res?.data ?? []) as any[]));
+      stockNextToken = res?.nextToken;
+      stockPage++;
+      if (stockPage >= stockMaxPages) break;
+    } while (stockNextToken);
+
+    const stockByProduct = new Map<number, number>();
+    for (const s of stockRows) {
+      const pid = asNumber((s as any).productId);
+      const qty = asNumber((s as any).quantity);
+      if (!pid || qty === null) continue;
+      stockByProduct.set(pid, (stockByProduct.get(pid) ?? 0) + qty);
+    }
+
     const projected = rows
       .map((p) => {
         const id = asNumber((p as any).idProduct ?? (p as any).productId);
         const code = String((p as any).code ?? (p as any).productCode ?? '').trim();
         const name = String((p as any).name ?? (p as any).productName ?? '').trim();
         const description = String((p as any).description ?? '').trim();
-        const stock = asNumber((p as any).stock);
-        return { id, code, name, description, stock };
+        const stockFallback = asNumber((p as any).stock);
+        const stock = id ? (stockByProduct.get(Number(id)) ?? stockFallback) : stockFallback;
+        const normalizedCode = normalizeRef(code);
+        return { id, code, name, description, stock, normalizedCode };
       });
 
-    const filtered = normalized.length >= 2
+    const scored = normalized.length >= 2
       ? projected
           .map((p) => {
             const haystack = normalizeSearch(`${p.code} ${p.name} ${p.description}`);
             const full = normalized && haystack.includes(normalized) ? 3 : 0;
             const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
-            return { ...p, score: full + tokenScore };
+
+            let refScore = 0;
+            for (const ref of refCandidates) {
+              if (!p.normalizedCode) continue;
+              if (p.normalizedCode === ref) refScore = Math.max(refScore, 200);
+              else if (p.normalizedCode.includes(ref) || ref.includes(p.normalizedCode)) refScore = Math.max(refScore, 80);
+            }
+
+            return { ...p, score: full + tokenScore + refScore, refScore };
           })
           .filter((p) => p.id && p.score > 0)
           .sort((a, b) => b.score - a.score)
-      : projected.filter((p) => p.id);
+      : projected.filter((p) => p.id).map((p) => ({ ...p, score: 1, refScore: 0 }));
+
+    const bestExact = explicitRefSearch ? scored.filter((p) => p.refScore >= 200) : [];
+    const filtered = bestExact.length > 0 ? bestExact : scored;
+
+    const minScore = explicitRefSearch ? 8 : 1;
 
     const matches = filtered
+      .filter((p) => (p.score ?? 0) >= minScore)
       .slice(0, 8)
       .map((p) => ({ id: Number(p.id), code: p.code, name: p.name, stock: p.stock }));
 
@@ -250,6 +322,12 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
 async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
   const normalized = normalizeSearch(query);
   const tokens = tokenizeSearch(query);
+  const docCandidates = extractDocumentNumberCandidates(query);
+  const refCandidates = extractReferenceCandidates(query);
+  const explicitDocSearch = docCandidates.length > 0;
+  const asksForDocuments = /(documento|documentos|doc\b|factura|boleta|comprobante|numero de documento|nro\b)/i.test(query);
+  if (!asksForDocuments && !explicitDocSearch) return [];
+
   try {
     const rows: any[] = [];
     let nextToken: string | null | undefined = undefined;
@@ -272,22 +350,40 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
         const date = String((d as any).date ?? '').trim();
         const total = asNumber((d as any).total) ?? 0;
         const note = String((d as any).note ?? (d as any).internalnote ?? '').trim();
-        return { id, number, date, total, note };
+        const normalizedNumber = normalizeRef(number);
+        return { id, number, date, total, note, normalizedNumber };
       });
 
-    const filtered = normalized.length >= 2
+    const scored = normalized.length >= 2
       ? projected
           .map((d) => {
-            const haystack = normalizeSearch(`${d.number} ${d.note}`);
-            const full = normalized && haystack.includes(normalized) ? 3 : 0;
-            const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
-            return { ...d, score: full + tokenScore };
+            const numberText = normalizeSearch(d.number);
+            const noteText = normalizeSearch(d.note);
+            const fullNumber = normalized && numberText.includes(normalized) ? 6 : 0;
+            const fullNote = normalized && noteText.includes(normalized) ? 1 : 0;
+            const tokenScore = tokens.reduce((acc, t) => acc + (numberText.includes(t) ? 2 : 0), 0);
+
+            let exactDocScore = 0;
+            const allDocRefs = [...docCandidates, ...refCandidates];
+            for (const ref of allDocRefs) {
+              if (!d.normalizedNumber) continue;
+              if (d.normalizedNumber === ref) exactDocScore = Math.max(exactDocScore, 200);
+              else if (d.normalizedNumber.includes(ref) || ref.includes(d.normalizedNumber)) exactDocScore = Math.max(exactDocScore, 40);
+            }
+
+            return { ...d, score: fullNumber + fullNote + tokenScore + exactDocScore, exactDocScore };
           })
           .filter((d) => d.id && d.score > 0)
           .sort((a, b) => b.score - a.score)
-      : projected.filter((d) => d.id);
+      : projected.filter((d) => d.id).map((d) => ({ ...d, score: 1, exactDocScore: 0 }));
+
+    const exactDocs = explicitDocSearch ? scored.filter((d) => d.exactDocScore >= 200) : [];
+    const filtered = exactDocs.length > 0 ? exactDocs : scored;
+
+    const minScore = explicitDocSearch ? 10 : 2;
 
     const matches = filtered
+      .filter((d) => (d.score ?? 0) >= minScore)
       .slice(0, 6)
       .map((d) => ({ id: Number(d.id), number: d.number, date: d.date, total: d.total }));
 
@@ -605,6 +701,8 @@ function buildSystemPrompt(
     'Responde en espanol claro y concreto.',
     'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
+    'Regla critica: si hay coincidencia exacta por codigo de producto o numero de documento, usa solo esa coincidencia como fuente principal.',
+    'No mezcles datos de productos/documentos distintos en una misma respuesta.',
     'No digas que no tienes acceso a base de datos; en su lugar indica si no hubo coincidencias en la consulta del backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
