@@ -310,7 +310,25 @@ function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
           <p className="text-[11px] font-semibold mb-1">Acciones propuestas</p>
           <ul className="space-y-1 text-[11px] text-muted-foreground">
             {(payload.actions ?? []).map((a) => (
-              <li key={a.id}>• {a.title}{a.requiresDoubleConfirmation ? " (doble confirmación)" : ""}</li>
+              <li key={a.id} className="space-y-1">
+                <div>• {a.title}{a.requiresDoubleConfirmation ? " (doble confirmación)" : ""}</div>
+                {a.link?.url && (
+                  /^https?:\/\//i.test(String(a.link.url)) ? (
+                    <a
+                      href={a.link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] hover:bg-muted"
+                    >
+                      {a.link.label || 'Abrir'} <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  ) : (
+                    <Link href={a.link.url} className="inline-flex rounded border px-2 py-0.5 text-[10px] hover:bg-muted">
+                      {a.link.label || 'Abrir'}
+                    </Link>
+                  )
+                )}
+              </li>
             ))}
           </ul>
         </div>

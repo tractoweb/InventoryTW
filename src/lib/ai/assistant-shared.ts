@@ -10,7 +10,19 @@ export type AssistantAttachment = {
 export type AssistantPayload = {
   links?: Array<{ label: string; url: string }>;
   tables?: Array<{ title: string; columns: string[]; rows: Array<Array<string | number>> }>;
-  actions?: Array<{ id: string; title: string; description: string; requiresConfirmation: boolean; requiresDoubleConfirmation?: boolean }>;
+  actions?: Array<{
+    id: string;
+    kind?: 'navigate' | 'write' | 'analysis';
+    title: string;
+    description: string;
+    requiresConfirmation: boolean;
+    requiresDoubleConfirmation?: boolean;
+    link?: { label: string; url: string };
+    execute?: {
+      operation: 'adjustStock' | 'createProduct';
+      params: Record<string, unknown>;
+    };
+  }>;
   sources?: Array<{ title: string; url: string; snippet: string }>;
   contextEcho?: { currentModule: string; currentPath: string; productsFound: number; documentsFound: number };
 };
@@ -29,6 +41,14 @@ export type AssistantResponse = {
   actions?: AssistantPayload['actions'];
   sources?: AssistantPayload['sources'];
   contextEcho?: AssistantPayload['contextEcho'];
+};
+
+export type AssistantActionResult = {
+  success: boolean;
+  message: string;
+  link?: { label: string; url: string };
+  operation?: string;
+  result?: Record<string, unknown>;
 };
 
 export function deriveModuleFromPath(pathname: string | null | undefined): string {
@@ -93,6 +113,49 @@ export async function sendAssistantMessage(input: {
       actions: Array.isArray(payload?.actions) ? payload.actions : [],
       sources: Array.isArray(payload?.sources) ? payload.sources : [],
       contextEcho: payload?.contextEcho ?? undefined,
+    },
+  };
+}
+
+export async function executeAssistantAction(input: {
+  operation: 'adjustStock' | 'createProduct';
+  params: Record<string, unknown>;
+  confirmation: boolean;
+  doubleConfirmation?: boolean;
+  signal?: AbortSignal;
+}): Promise<{ ok: true; data: AssistantActionResult } | { ok: false; error: string; status: number }> {
+  const response = await fetch('/api/ai/actions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: input.signal,
+    body: JSON.stringify({
+      operation: input.operation,
+      params: input.params,
+      confirmation: Boolean(input.confirmation),
+      doubleConfirmation: Boolean(input.doubleConfirmation),
+    }),
+  });
+
+  let payload: any = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const error = typeof payload?.error === 'string' ? payload.error : 'Error al ejecutar acción';
+    return { ok: false, error, status: response.status };
+  }
+
+  return {
+    ok: true,
+    data: {
+      success: Boolean(payload?.success),
+      message: String(payload?.message ?? ''),
+      link: payload?.link,
+      operation: payload?.operation,
+      result: payload?.result,
     },
   };
 }

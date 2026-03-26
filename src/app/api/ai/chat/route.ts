@@ -71,10 +71,16 @@ type AssistantTable = {
 
 type ActionProposal = {
   id: string;
+  kind?: 'navigate' | 'write' | 'analysis';
   title: string;
   description: string;
   requiresConfirmation: boolean;
   requiresDoubleConfirmation?: boolean;
+  link?: AssistantLink;
+  execute?: {
+    operation: 'adjustStock' | 'createProduct';
+    params: Record<string, unknown>;
+  };
 };
 
 function readEnv(name: string): string | undefined {
@@ -260,31 +266,83 @@ function buildAttachmentText(attachments: IncomingAttachment[]): string {
   return parts.join('\n\n').slice(0, 12000);
 }
 
-function buildActionProposals(message: string): ActionProposal[] {
+function buildActionProposals(message: string, products: ProductMatch[], documents: DocumentMatch[]): ActionProposal[] {
   const q = message.toLowerCase();
   const actions: ActionProposal[] = [];
+
+  const firstProduct = products[0];
+  const firstDocument = documents[0];
+
+  if (firstProduct) {
+    actions.push({
+      id: `open-product-${firstProduct.id}`,
+      kind: 'navigate',
+      title: `Abrir producto ${firstProduct.code || firstProduct.name}`,
+      description: 'Ir directamente al módulo de inventario filtrado por este producto.',
+      requiresConfirmation: false,
+      link: {
+        label: `Ver producto ${firstProduct.code || firstProduct.name}`,
+        url: `/inventory?q=${encodeURIComponent(String(firstProduct.code || firstProduct.name))}`,
+      },
+    });
+  }
+
+  if (firstDocument) {
+    actions.push({
+      id: `open-document-${firstDocument.id}`,
+      kind: 'navigate',
+      title: `Abrir documento ${firstDocument.number || firstDocument.id}`,
+      description: 'Abrir el PDF del documento sugerido.',
+      requiresConfirmation: false,
+      link: {
+        label: `Ver documento ${firstDocument.number || firstDocument.id}`,
+        url: `/documents/${firstDocument.id}/pdf`,
+      },
+    });
+  }
 
   if (/(crear|agregar).*(producto|documento|stock)/i.test(q)) {
     actions.push({
       id: 'propose-create',
+      kind: 'write',
       title: 'Proponer creación de registro',
       description: 'Antes de escribir datos en el sistema, se pedirá confirmación explícita del usuario.',
       requiresConfirmation: true,
+      requiresDoubleConfirmation: true,
+      execute: {
+        operation: 'createProduct',
+        params: {
+          name: `Nuevo producto IA (${new Date().toISOString().slice(0, 10)})`,
+        },
+      },
     });
   }
 
   if (/(editar|modificar|ajustar|actualizar)/i.test(q)) {
     actions.push({
       id: 'propose-update',
+      kind: 'write',
       title: 'Proponer modificación de datos',
       description: 'La IA puede preparar cambios sugeridos y aplicarlos solo con aprobación del usuario.',
       requiresConfirmation: true,
+      execute: firstProduct
+        ? {
+            operation: 'adjustStock',
+            params: {
+              productId: firstProduct.id,
+              warehouseId: 1,
+              quantity: firstProduct.stock ?? 0,
+              reason: 'Ajuste asistido por IA (requiere validación humana)',
+            },
+          }
+        : undefined,
     });
   }
 
   if (/(eliminar|borrar|anular)/i.test(q)) {
     actions.push({
       id: 'propose-delete',
+      kind: 'write',
       title: 'Proponer eliminación/anulación',
       description: 'Las acciones destructivas requieren doble confirmación.',
       requiresConfirmation: true,
@@ -483,7 +541,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const actions = buildActionProposals(message);
+      const actions = buildActionProposals(message, products, documents);
 
       return new Response(
         JSON.stringify({

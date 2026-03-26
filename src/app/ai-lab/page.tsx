@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { buildAssistantContext, sendAssistantMessage, type AssistantAttachment, type AssistantMessage, type AssistantPayload } from '@/lib/ai/assistant-shared';
+import { buildAssistantContext, executeAssistantAction, sendAssistantMessage, type AssistantAttachment, type AssistantMessage, type AssistantPayload } from '@/lib/ai/assistant-shared';
 import { cn } from '@/lib/utils';
 
 type Message = {
@@ -179,7 +179,16 @@ export default function AILabPage() {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
+  async function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
+    if (action.link?.url) {
+      if (/^https?:\/\//i.test(String(action.link.url))) {
+        window.open(action.link.url, '_blank', 'noopener,noreferrer');
+      } else {
+        window.location.href = action.link.url;
+      }
+      return;
+    }
+
     const needsDouble = Boolean(action.requiresDoubleConfirmation);
     if (needsDouble && doubleConfirmActionId !== action.id) {
       setDoubleConfirmActionId(action.id);
@@ -187,6 +196,50 @@ export default function AILabPage() {
     }
 
     setDoubleConfirmActionId(null);
+
+    if (action.execute?.operation) {
+      setLoading(true);
+      try {
+        const result = await executeAssistantAction({
+          operation: action.execute.operation,
+          params: action.execute.params,
+          confirmation: true,
+          doubleConfirmation: Boolean(action.requiresDoubleConfirmation),
+        });
+
+        const id = `a-exec-${Date.now()}`;
+        if (!result.ok) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id,
+              role: 'assistant',
+              content: `❌ No se pudo ejecutar la acción: ${result.error}`,
+            },
+          ]);
+          return;
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id,
+            role: 'assistant',
+            content: `✅ ${result.data.message}`,
+            payload: {
+              links: result.data.link ? [result.data.link] : [],
+              tables: [],
+              actions: [],
+              sources: [],
+            },
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     void sendMessage(`Autorizo la acción propuesta: ${action.title}. Continúa con un plan paso a paso y confirmación final.`);
   }
 
