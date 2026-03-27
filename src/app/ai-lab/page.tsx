@@ -69,9 +69,13 @@ async function extractPdfText(file: File): Promise<string> {
       }
     }
 
+    if (chunks.length === 0) {
+      return `PDF ${file.name}: no se detecto capa de texto. Puede ser escaneado como imagen o protegido.`;
+    }
+
     return chunks.join('\n').slice(0, 12000);
   } catch {
-    return '';
+    return `PDF ${file.name}: no se pudo extraer texto.`;
   }
 }
 
@@ -82,6 +86,7 @@ export default function AILabPage() {
   const [enableWeb, setEnableWeb] = React.useState(true);
   const [attachments, setAttachments] = React.useState<AssistantAttachment[]>([]);
   const [doubleConfirmActionId, setDoubleConfirmActionId] = React.useState<string | null>(null);
+  const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
 
   const pathname = usePathname();
   const safePathname = pathname ?? '/';
@@ -197,7 +202,7 @@ export default function AILabPage() {
         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
         if (isPdf) {
           const extracted = await extractPdfText(file);
-          item.text = extracted || `No se pudo extraer texto del PDF ${file.name}.`;
+          item.text = extracted;
         } else {
           item.text = `Documento adjunto: ${file.name}. Tipo ${item.mimeType}.`;
         }
@@ -213,13 +218,24 @@ export default function AILabPage() {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
+  function modifyProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
+    const operation = action.execute?.operation ? ` (${action.execute.operation})` : '';
+    setInput(`Quiero modificar esta accion${operation}: ${action.title}. Cambios solicitados:`);
+    setDoubleConfirmActionId(null);
+    textareaRef.current?.focus();
+  }
+
   async function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
+    if (activeActionId && activeActionId !== action.id) return;
+
     if (action.link?.url) {
+      setActiveActionId(action.id);
       if (/^https?:\/\//i.test(String(action.link.url))) {
         window.open(action.link.url, '_blank', 'noopener,noreferrer');
       } else {
         window.location.href = action.link.url;
       }
+      setActiveActionId(null);
       return;
     }
 
@@ -232,6 +248,7 @@ export default function AILabPage() {
     setDoubleConfirmActionId(null);
 
     if (action.execute?.operation) {
+      setActiveActionId(action.id);
       setLoading(true);
       try {
         const result = await executeAssistantAction({
@@ -272,6 +289,7 @@ export default function AILabPage() {
           },
         ]);
       } finally {
+        setActiveActionId(null);
         setLoading(false);
       }
       return;
@@ -426,21 +444,45 @@ export default function AILabPage() {
                             {msg.payload.actions.map((a) => {
                               const waitingDouble = doubleConfirmActionId === a.id && a.requiresDoubleConfirmation;
                               return (
-                                <div key={a.id} className="rounded border p-2">
-                                  <p className="text-xs font-medium">{a.title}</p>
+                                <div key={a.id} className="rounded border bg-white p-2 shadow-sm">
+                                  <div className="mb-1 flex items-center justify-between gap-2">
+                                    <p className="text-xs font-medium text-foreground">{a.title}</p>
+                                    <div className="flex items-center gap-1">
+                                      {a.kind === 'write' ? (
+                                        <Badge variant="destructive" className="text-[10px]">Escritura</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-[10px]">Lectura</Badge>
+                                      )}
+                                      {a.requiresDoubleConfirmation && (
+                                        <Badge variant="outline" className="text-[10px]">Doble confirmacion</Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                   <p className="mt-1 text-xs text-muted-foreground">{a.description}</p>
-                                  <div className="mt-2 flex gap-2">
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-xs"
+                                      onClick={() => modifyProposedAction(a)}
+                                    >
+                                      Modificar
+                                    </Button>
                                     <Button
                                       size="sm"
                                       variant={waitingDouble ? 'destructive' : 'secondary'}
                                       className="h-7 text-xs"
                                       onClick={() => submitProposedAction(a)}
+                                      disabled={Boolean(activeActionId) && activeActionId !== a.id}
                                     >
-                                      {waitingDouble ? 'Confirmar definitivamente' : 'Aprobar'}
+                                      {activeActionId === a.id
+                                        ? 'Procesando...'
+                                        : waitingDouble
+                                          ? 'Confirmar definitivamente'
+                                          : a.execute?.operation
+                                            ? 'Aprobar y ejecutar'
+                                            : 'Ejecutar'}
                                     </Button>
-                                    {a.requiresDoubleConfirmation && (
-                                      <Badge variant="outline" className="text-[10px]">Doble confirmacion</Badge>
-                                    )}
                                   </div>
                                 </div>
                               );

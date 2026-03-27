@@ -31,7 +31,7 @@ import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
-import { ScanLine } from "lucide-react";
+import { MoreHorizontal, ScanLine } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
@@ -39,6 +39,7 @@ import { createProductGroupAction } from "@/actions/create-product-group";
 import { getProductGroups } from "@/actions/get-product-groups";
 import { updateProductGroupAction } from "@/actions/update-product-group";
 import { deleteProductGroupAction } from "@/actions/delete-product-group";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -568,11 +569,6 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
           </Button>
 
           <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={openCreateGroupDialog}>
-                Nuevo grupo
-              </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>{groupFormMode === "create" ? "Crear grupo" : "Editar grupo"}</DialogTitle>
@@ -649,23 +645,37 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
             </DialogContent>
           </Dialog>
 
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => selectedGroup && openEditGroupDialog(selectedGroup)}
-            disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
-          >
-            Editar grupo
-          </Button>
-
-          <Button
-            variant="destructive"
-            className="w-full sm:w-auto"
-            onClick={handleDeleteSelectedGroup}
-            disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
-          >
-            {deleteGroupLoading ? "Eliminando…" : "Eliminar grupo"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="w-full sm:w-10" title="Acciones de grupos">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                onClick={() => {
+                  openCreateGroupDialog();
+                  setCreateGroupOpen(true);
+                }}
+                disabled={createGroupLoading || deleteGroupLoading}
+              >
+                Nuevo grupo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => selectedGroup && openEditGroupDialog(selectedGroup)}
+                disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
+              >
+                Editar grupo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDeleteSelectedGroup}
+                disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
+                className="text-destructive focus:text-destructive"
+              >
+                {deleteGroupLoading ? "Eliminando…" : "Eliminar grupo"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Input
             placeholder="Buscar productos (nombre, código o barcode)…"

@@ -603,6 +603,21 @@ function buildActionProposals(
     });
   }
 
+  if (/(imprimir|etiqueta|zebra|label)/i.test(q) && firstProduct) {
+    const printableRef = encodeURIComponent(String(firstProduct.code || firstProduct.name));
+    actions.push({
+      id: `print-label-${firstProduct.id}`,
+      kind: 'navigate',
+      title: `Preparar impresión de etiqueta: ${firstProduct.code || firstProduct.name}`,
+      description: 'Abrir el módulo de impresión para confirmar formato, cantidad y dispositivo.',
+      requiresConfirmation: true,
+      link: {
+        label: 'Abrir impresión de etiquetas',
+        url: `/print-labels/products?q=${printableRef}`,
+      },
+    });
+  }
+
   if (/(crear|agregar).*(producto|documento|stock)/i.test(q)) {
     actions.push({
       id: 'propose-create',
@@ -668,6 +683,7 @@ function buildSystemPrompt(
   const totalProducts = typeof context?.totalProducts === 'string' ? context.totalProducts : '1.243+';
   const currentModule = typeof context?.currentModule === 'string' ? context.currentModule : 'general';
   const currentPath = typeof context?.currentPath === 'string' ? context.currentPath : '/';
+  const pageSnapshot = typeof context?.pageSnapshot === 'string' ? context.pageSnapshot.slice(0, 2200) : '';
 
   const productsInline = (dbContext?.products ?? [])
     .map((p) => `${p.code || '(sin-codigo)'} - ${p.name}`)
@@ -698,14 +714,19 @@ function buildSystemPrompt(
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
     `Gestionas un inventario de ${totalProducts} productos.`,
     `Contexto actual: modulo=${currentModule}, ruta=${currentPath}.`,
-    'Responde en espanol claro y concreto.',
+    'Responde en espanol natural, claro y concreto; evita sonar mecanico o excesivamente estructurado.',
+    'Usa tono conversacional profesional. Solo usa listas/tablas si realmente mejoran la comprension.',
     'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
+    'Si el usuario pregunta por lo que esta viendo en pantalla (ej: documento abierto), prioriza el contexto de pantalla provisto y explicalo de forma legible.',
+    'Cuando el usuario pida editar/escribir datos, primero responde con un mini plan y preguntas de confirmacion (que, por que, alcance) antes de ejecutar.',
+    'Si propones cambios, especifica exactamente que campos se tocaran y que campos NO se tocaran.',
     'Regla critica: si hay coincidencia exacta por codigo de producto o numero de documento, usa solo esa coincidencia como fuente principal.',
     'No mezcles datos de productos/documentos distintos en una misma respuesta.',
     'No digas que no tienes acceso a base de datos; en su lugar indica si no hubo coincidencias en la consulta del backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
+    pageSnapshot ? `Contexto visible actual de pantalla: ${pageSnapshot}` : '',
     productsInline ? `Productos candidatos encontrados: ${productsInline}` : '',
     docsInline ? `Documentos candidatos encontrados: ${docsInline}` : '',
     warehousesInline ? `Bodegas candidatas encontradas: ${warehousesInline}` : '',

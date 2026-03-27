@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
-import { ACCESS_LEVELS, amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
+import { amplifyClient, formatAmplifyError } from '@/lib/amplify-config';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 import { getCurrentSession } from '@/lib/session';
 import { writeAuditLog } from '@/services/audit-log-service';
@@ -29,15 +29,10 @@ export async function updateDocumentMetadataAction(
   try {
     const { documentId } = parsed.data;
     const sessionRes = await getCurrentSession();
-    const isAdmin = Number(sessionRes.data?.accessLevel ?? -1) >= ACCESS_LEVELS.ADMIN;
 
     const docRes: any = await amplifyClient.models.Document.get({ documentId: Number(documentId) } as any);
     const doc = docRes?.data as any;
     if (!doc) return { success: false, error: 'Documento no encontrado' };
-
-    if (Boolean(doc.isClockedOut) && !isAdmin) {
-      return { success: false, error: 'Solo un administrador puede modificar un documento finalizado.' };
-    }
 
     const note = parsed.data.note !== undefined ? String(parsed.data.note ?? '').trim() : undefined;
 

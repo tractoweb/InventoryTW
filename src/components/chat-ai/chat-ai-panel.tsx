@@ -7,7 +7,7 @@ import { Bot, X, Send, Loader2, RotateCcw, Sparkles, Globe, ExternalLink } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { buildAssistantContext, sendAssistantMessage, type AssistantMessage, type AssistantPayload } from "@/lib/ai/assistant-shared";
+import { buildAssistantContext, executeAssistantAction, sendAssistantMessage, type AssistantMessage, type AssistantPayload } from "@/lib/ai/assistant-shared";
 import { useChatAI } from "./chat-ai-provider";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -23,8 +23,11 @@ type ChatMessage = {
 
 const STORAGE_KEY = "tracto-ai-chat-history";
 const MAX_STORED = 50;
+const PANEL_WIDTH_KEY = "tracto-ai-panel-width";
+const PANEL_MIN_WIDTH = 340;
+const PANEL_MAX_WIDTH = 760;
 
-function useAssistantChat(pathname: string | null) {
+function useAssistantChat(pathname: string | null, contextExtra?: Record<string, unknown>) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -78,7 +81,7 @@ function useAssistantChat(pathname: string | null) {
           message: trimmed,
           history,
           enableWeb,
-          context: buildAssistantContext(pathname),
+          context: buildAssistantContext(pathname, contextExtra),
           signal: ctrl.signal,
         });
 
@@ -135,7 +138,7 @@ function useAssistantChat(pathname: string | null) {
         abortRef.current = null;
       }
     },
-    [messages, isLoading, enableWeb, pathname]
+    [messages, isLoading, enableWeb, pathname, contextExtra]
   );
 
   const stop = React.useCallback(() => {
@@ -150,7 +153,19 @@ function useAssistantChat(pathname: string | null) {
     } catch {}
   }, []);
 
-  return { messages, input, setInput, isLoading, enableWeb, setEnableWeb, sendMessage, stop, clear };
+  const appendAssistantMessage = React.useCallback((content: string, payload?: AssistantPayload) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `a-local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        role: "assistant",
+        content,
+        payload,
+      },
+    ]);
+  }, []);
+
+  return { messages, input, setInput, isLoading, setIsLoading, enableWeb, setEnableWeb, sendMessage, stop, clear, appendAssistantMessage };
 }
 
 // ─── Inline Markdown renderer ──────────────────────────────────────────────
@@ -253,7 +268,19 @@ function MarkdownMessage({ content }: { content: string }) {
   );
 }
 
-function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
+function PayloadExtras({
+  payload,
+  onActionClick,
+  onModifyClick,
+  activeActionId,
+  doubleConfirmActionId,
+}: {
+  payload?: AssistantPayload;
+  onActionClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
+  onModifyClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
+  activeActionId?: string | null;
+  doubleConfirmActionId?: string | null;
+}) {
   if (!payload) return null;
 
   return (
@@ -283,7 +310,9 @@ function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
       ))}
 
       {(payload.links ?? []).length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold">Enlaces útiles</p>
+          <div className="flex flex-wrap gap-1.5">
           {(payload.links ?? []).slice(0, 6).map((l, i) => {
             const ext = /^https?:\/\//i.test(String(l.url));
             return ext ? (
@@ -302,32 +331,70 @@ function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
               </Link>
             );
           })}
+          </div>
         </div>
       )}
 
       {(payload.actions ?? []).length > 0 && (
-        <div className="rounded-md border p-2 bg-background">
+        <div className="space-y-2">
           <p className="text-[11px] font-semibold mb-1">Acciones propuestas</p>
-          <ul className="space-y-1 text-[11px] text-muted-foreground">
+          <ul className="space-y-2 text-[11px] text-muted-foreground">
             {(payload.actions ?? []).map((a) => (
-              <li key={a.id} className="space-y-1">
-                <div>• {a.title}{a.requiresDoubleConfirmation ? " (doble confirmación)" : ""}</div>
+              <li key={a.id} className="rounded-md border bg-background p-2 space-y-1.5">
+                <p className="text-[11px] font-semibold text-foreground">{a.title}</p>
+                <p className="text-[10px] text-muted-foreground">{a.description}</p>
+                {a.requiresDoubleConfirmation ? (
+                  <p className="text-[10px] font-medium text-amber-700">Requiere doble confirmación</p>
+                ) : null}
                 {a.link?.url && (
                   /^https?:\/\//i.test(String(a.link.url)) ? (
                     <a
                       href={a.link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] hover:bg-muted"
+                      className="inline-flex items-center gap-1 rounded border bg-white px-2 py-1 text-[10px] font-medium hover:bg-muted"
                     >
-                      {a.link.label || 'Abrir'} <ExternalLink className="h-2.5 w-2.5" />
+                      {a.link.label || 'Ejecutar acción'} <ExternalLink className="h-2.5 w-2.5" />
                     </a>
                   ) : (
-                    <Link href={a.link.url} className="inline-flex rounded border px-2 py-0.5 text-[10px] hover:bg-muted">
-                      {a.link.label || 'Abrir'}
+                    <Link href={a.link.url} className="inline-flex rounded border bg-white px-2 py-1 text-[10px] font-medium hover:bg-muted">
+                      {a.link.label || 'Ejecutar acción'}
                     </Link>
                   )
                 )}
+                {(onActionClick || onModifyClick) && (a.execute?.operation || a.link?.url) ? (
+                  <div className="flex flex-wrap gap-1">
+                    {onModifyClick ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => onModifyClick(a)}
+                      >
+                        Modificar
+                      </Button>
+                    ) : null}
+                    {onActionClick ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={doubleConfirmActionId === a.id ? "destructive" : "secondary"}
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => onActionClick(a)}
+                        disabled={Boolean(activeActionId) && activeActionId !== a.id}
+                      >
+                        {activeActionId === a.id
+                          ? "Procesando…"
+                          : doubleConfirmActionId === a.id
+                            ? "Confirmar definitivamente"
+                            : a.execute?.operation
+                              ? "Aprobar y ejecutar"
+                              : "Ejecutar"}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -339,7 +406,19 @@ function PayloadExtras({ payload }: { payload?: AssistantPayload }) {
 
 // ─── Message bubble ────────────────────────────────────────────────────────
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+function MessageBubble({
+  msg,
+  onActionClick,
+  onModifyClick,
+  activeActionId,
+  doubleConfirmActionId,
+}: {
+  msg: ChatMessage;
+  onActionClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
+  onModifyClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
+  activeActionId?: string | null;
+  doubleConfirmActionId?: string | null;
+}) {
   const isUser = msg.role === "user";
   const isEmpty = msg.role === "assistant" && msg.content === "";
 
@@ -375,7 +454,13 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         ) : (
           <>
             <MarkdownMessage content={msg.content} />
-            <PayloadExtras payload={msg.payload} />
+            <PayloadExtras
+              payload={msg.payload}
+              onActionClick={onActionClick}
+              onModifyClick={onModifyClick}
+              activeActionId={activeActionId}
+              doubleConfirmActionId={doubleConfirmActionId}
+            />
           </>
         )}
       </div>
@@ -398,7 +483,73 @@ const QUICK_CHIPS = [
 export function ChatAIPanel() {
   const { isOpen, close } = useChatAI();
   const pathname = usePathname();
-  const { messages, input, setInput, isLoading, enableWeb, setEnableWeb, sendMessage, stop, clear } = useAssistantChat(pathname);
+
+  const [panelWidth, setPanelWidth] = React.useState<number>(420);
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  const isDraggingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const sync = () => setIsDesktop(window.innerWidth >= 768);
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PANEL_WIDTH_KEY);
+      if (!saved) return;
+      const parsed = Number(saved);
+      if (Number.isFinite(parsed)) {
+        setPanelWidth(Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, parsed)));
+      }
+    } catch {}
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth));
+    } catch {}
+  }, [panelWidth]);
+
+  const [pageSnapshot, setPageSnapshot] = React.useState<string>("");
+  const [activeDocumentId, setActiveDocumentId] = React.useState<string>("");
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const sp = new URLSearchParams(window.location.search);
+    setActiveDocumentId(sp.get("documentId") ?? "");
+    const title = document.title ? `Titulo: ${document.title}` : "";
+    const mainText =
+      document.querySelector("main")?.textContent ||
+      document.querySelector("[role='main']")?.textContent ||
+      "";
+    const compact = mainText.replace(/\s+/g, " ").trim().slice(0, 2400);
+    setPageSnapshot([title, compact].filter(Boolean).join("\n"));
+  }, [isOpen, pathname]);
+
+  const contextExtra = React.useMemo<Record<string, unknown>>(() => {
+    const out: Record<string, unknown> = {};
+    if (activeDocumentId) out.documentId = activeDocumentId;
+    if (pageSnapshot) out.pageSnapshot = pageSnapshot;
+    return out;
+  }, [activeDocumentId, pageSnapshot]);
+
+  const {
+    messages,
+    input,
+    setInput,
+    isLoading,
+    setIsLoading,
+    enableWeb,
+    setEnableWeb,
+    sendMessage,
+    stop,
+    clear,
+    appendAssistantMessage,
+  } = useAssistantChat(pathname, contextExtra);
+
+  const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
+  const [doubleConfirmActionId, setDoubleConfirmActionId] = React.useState<string | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -426,6 +577,94 @@ export function ChatAIPanel() {
     }
   };
 
+  const handlePayloadAction = React.useCallback(
+    async (action: NonNullable<AssistantPayload["actions"]>[number]) => {
+      if (!action) return;
+
+      if (action.requiresDoubleConfirmation && doubleConfirmActionId !== action.id) {
+        setDoubleConfirmActionId(action.id);
+        return;
+      }
+      setDoubleConfirmActionId(null);
+
+      if (action.execute?.operation) {
+        setActiveActionId(action.id);
+        setIsLoading(true);
+        try {
+          const res = await executeAssistantAction({
+            operation: action.execute.operation,
+            params: action.execute.params,
+            confirmation: true,
+            doubleConfirmation: Boolean(action.requiresDoubleConfirmation),
+          });
+
+          if (!res.ok) {
+            appendAssistantMessage(`❌ No se pudo ejecutar la acción: ${res.error}`);
+            return;
+          }
+
+          appendAssistantMessage(`✅ ${res.data.message}`, {
+            links: [
+              ...(Array.isArray(res.data.links) ? res.data.links : []),
+              ...(res.data.link ? [res.data.link] : []),
+            ],
+            tables: res.data.table ? [res.data.table] : [],
+            actions: [],
+            sources: [],
+          });
+          return;
+        } finally {
+          setActiveActionId(null);
+          setIsLoading(false);
+        }
+      }
+
+      if (action.link?.url) {
+        const url = String(action.link.url);
+        if (/^https?:\/\//i.test(url)) {
+          window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+          window.location.href = url;
+        }
+      }
+    },
+    [appendAssistantMessage, doubleConfirmActionId, setIsLoading]
+  );
+
+  const handleModifyAction = React.useCallback(
+    (action: NonNullable<AssistantPayload["actions"]>[number]) => {
+      const operation = action.execute?.operation ? ` (${action.execute.operation})` : "";
+      setInput(`Quiero modificar esta acción${operation}: ${action.title}. Cambios solicitados:`);
+      setDoubleConfirmActionId(null);
+    },
+    [setInput]
+  );
+
+  const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (window.innerWidth < 768) return;
+    e.preventDefault();
+    isDraggingRef.current = true;
+  };
+
+  React.useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const next = window.innerWidth - e.clientX;
+      setPanelWidth(Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, next)));
+    };
+
+    const onUp = () => {
+      isDraggingRef.current = false;
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
   return (
     <>
       {/* Overlay on mobile */}
@@ -443,13 +682,19 @@ export function ChatAIPanel() {
         aria-label="Asistente IA"
         className={cn(
           "fixed top-0 right-0 h-screen z-50",
-          "w-full sm:w-[380px]",
+          "w-full md:w-auto",
           "bg-background border-l shadow-2xl",
           "flex flex-col",
           "transition-transform duration-300 ease-in-out will-change-transform",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={{ width: isDesktop ? `${panelWidth}px` : undefined }}
       >
+        <div
+          className="hidden md:block absolute left-0 top-0 h-full w-1.5 -translate-x-1 cursor-col-resize bg-transparent hover:bg-primary/15"
+          onMouseDown={startResize}
+          title="Redimensionar panel"
+        />
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 shrink-0">
           <div className="flex items-center gap-2">
@@ -542,7 +787,14 @@ export function ChatAIPanel() {
             ) : (
               <>
                 {messages.map((msg) => (
-                  <MessageBubble key={msg.id} msg={msg} />
+                  <MessageBubble
+                    key={msg.id}
+                    msg={msg}
+                    onActionClick={handlePayloadAction}
+                    onModifyClick={handleModifyAction}
+                    activeActionId={activeActionId}
+                    doubleConfirmActionId={doubleConfirmActionId}
+                  />
                 ))}
                 <div ref={messagesEndRef} />
               </>

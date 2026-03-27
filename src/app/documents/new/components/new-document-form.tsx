@@ -144,7 +144,7 @@ export function NewDocumentForm() {
   const [finalizing, setFinalizing] = React.useState(false);
 
   const [resultOpen, setResultOpen] = React.useState(false);
-  const [resultKind, setResultKind] = React.useState<'draft' | 'finalized' | 'created_not_finalized'>('draft');
+  const [resultKind, setResultKind] = React.useState<'finalized' | 'created_not_finalized'>('finalized');
   const [resultTitle, setResultTitle] = React.useState<string>('');
   const [resultDescription, setResultDescription] = React.useState<string>('');
   const [resultDocumentId, setResultDocumentId] = React.useState<number | null>(null);
@@ -152,7 +152,7 @@ export function NewDocumentForm() {
   const [retryingFinalize, setRetryingFinalize] = React.useState(false);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [confirmFinalize, setConfirmFinalize] = React.useState(false);
+  const [confirmFinalize] = React.useState(true);
 
   const [customers, setCustomers] = React.useState<SelectOption[]>([]);
   const [countries, setCountries] = React.useState<CountryListItem[]>([]);
@@ -548,24 +548,24 @@ export function NewDocumentForm() {
       setNewProductMeasurementUnit('');
       setNewProductIsEnabled(true);
       setNewProductIsService(false);
-      toast({ title: 'Producto agregado', description: 'Se creará al guardar/finalizar el documento.' });
+      toast({ title: 'Producto agregado', description: 'Se creará al confirmar el documento.' });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e?.message ?? 'No se pudo crear el producto' });
     }
   }
 
-  async function handleSave(finalize: boolean) {
+  async function handleSave() {
     if (submitLockRef.current) {
       toast({ variant: 'destructive', title: 'En proceso', description: 'Ya hay un guardado/finalización en curso.' });
       return;
     }
 
     submitLockRef.current = true;
-    setSaving(!finalize);
-    setFinalizing(finalize);
+    setSaving(false);
+    setFinalizing(true);
 
     const progress = toast({
-      title: finalize ? 'Finalizando…' : 'Guardando…',
+      title: 'Finalizando…',
       description: 'Preparando datos…',
     });
 
@@ -739,40 +739,35 @@ export function NewDocumentForm() {
         description: created.documentNumber ? `Número: ${created.documentNumber}` : 'Documento creado. Continuando…',
       });
 
-      if (finalize) {
-        (progress as any).update({
-          title: 'Finalizando…',
-          description: 'Impactando Stock y generando Kardex…',
-        });
-        const fin = await finalizeDocumentAction({ documentId: createdDocumentId });
-        if (!fin?.success) {
-          // IMPORTANT: the document was created, but inventory posting failed.
-          // Show a POS-like feedback dialog with an actionable link.
-          (progress as any).dismiss?.();
-          setResultKind('created_not_finalized');
-          setResultDocumentId(createdDocumentId);
-          setResultDocumentNumber(createdDocumentNumber);
-          setResultTitle('Documento creado, pero NO finalizado');
-          setResultDescription(
-            `${fin?.error || 'No se pudo finalizar el documento'}\n\nEl documento quedó creado como borrador y aparece en Documentos.`
-          );
-          setResultOpen(true);
-          return;
-        }
+      (progress as any).update({
+        title: 'Finalizando…',
+        description: 'Impactando Stock y generando Kardex…',
+      });
+      const fin = await finalizeDocumentAction({ documentId: createdDocumentId });
+      if (!fin?.success) {
+        // IMPORTANT: the document was created, but inventory posting failed.
+        (progress as any).dismiss?.();
+        setResultKind('created_not_finalized');
+        setResultDocumentId(createdDocumentId);
+        setResultDocumentNumber(createdDocumentNumber);
+        setResultTitle('Documento creado, pero no finalizado');
+        setResultDescription(
+          `${fin?.error || 'No se pudo finalizar el documento'}\n\nCorrige el documento y reintenta finalizar desde Documentos.`
+        );
+        setResultOpen(true);
+        return;
       }
 
       (progress as any).dismiss?.();
 
-      setResultKind(finalize ? 'finalized' : 'draft');
+      setResultKind('finalized');
       setResultDocumentId(createdDocumentId);
       setResultDocumentNumber(createdDocumentNumber);
-      setResultTitle(finalize ? 'Documento finalizado' : 'Documento guardado');
+      setResultTitle('Documento finalizado');
       setResultDescription(
         createdDocumentNumber
           ? `Número: ${createdDocumentNumber}`
-          : finalize
-            ? 'Stock y Kardex fueron actualizados correctamente.'
-            : 'Se guardó como borrador (no afecta Stock ni Kardex).'
+          : 'Stock y Kardex fueron actualizados correctamente.'
       );
       setResultOpen(true);
     } catch (e: any) {
@@ -785,8 +780,7 @@ export function NewDocumentForm() {
     }
   }
 
-  function requestSave(finalize: boolean) {
-    setConfirmFinalize(finalize);
+  function requestSave() {
     setConfirmOpen(true);
   }
 
@@ -849,7 +843,7 @@ export function NewDocumentForm() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nuevo documento</h1>
-          <p className="text-muted-foreground">Entrada (compra) / Salida (venta) con impacto en stock y kardex.</p>
+          <p className="text-muted-foreground">Entrada (compra) / Salida (venta). Al confirmar, el documento se finaliza con impacto en Stock y Kardex.</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/documents">Volver</Link>
@@ -1141,7 +1135,7 @@ export function NewDocumentForm() {
                           <div className="flex flex-col">
                             <span>{it.productLabel}</span>
                             {typeof it.productId !== 'number' ? (
-                              <span className="text-xs text-muted-foreground">Pendiente: se creará al guardar/finalizar</span>
+                              <span className="text-xs text-muted-foreground">Pendiente: se creará al confirmar</span>
                             ) : null}
                           </div>
                         </TableCell>
@@ -1338,10 +1332,7 @@ export function NewDocumentForm() {
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => requestSave(false)} disabled={saving || finalizing || loading}>
-              {saving ? 'Guardando…' : 'Guardar borrador'}
-            </Button>
-            <Button onClick={() => requestSave(true)} disabled={saving || finalizing || loading}>
+            <Button onClick={() => requestSave()} disabled={saving || finalizing || loading}>
               {finalizing ? 'Finalizando…' : 'Finalizar (Stock + Kardex)'}
             </Button>
           </div>
@@ -1352,12 +1343,10 @@ export function NewDocumentForm() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmFinalize ? 'Confirmar finalización' : 'Confirmar guardado'}
+              Confirmar finalización
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmFinalize
-                ? 'Esta acción impacta Stock y genera Kardex. Verifica cantidades y costos antes de continuar.'
-                : 'Se guardará como borrador (no afecta Stock ni Kardex).'}
+              Esta acción impacta Stock y genera Kardex. Verifica cantidades y costos antes de continuar.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1385,11 +1374,11 @@ export function NewDocumentForm() {
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false);
-                handleSave(confirmFinalize);
+                handleSave();
               }}
               disabled={saving || finalizing || loading}
             >
-              {confirmFinalize ? 'Finalizar' : 'Guardar'}
+              Finalizar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

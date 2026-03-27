@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
-import { ACCESS_LEVELS, amplifyClient, DOCUMENT_STOCK_DIRECTION, KARDEX_TYPES, formatAmplifyError, normalizeStockDirection } from '@/lib/amplify-config';
+import { amplifyClient, DOCUMENT_STOCK_DIRECTION, KARDEX_TYPES, formatAmplifyError, normalizeStockDirection } from '@/lib/amplify-config';
 import { allocateCounterRange, ensureCounterAtLeast } from '@/lib/allocate-counter-range';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 import { listAllPages } from '@/services/amplify-list-all';
@@ -42,16 +42,12 @@ export async function updateDocumentItemsAction(
     const documentId = Number(parsed.data.documentId);
     const sessionRes = await getCurrentSession();
     const sessionUserId = Number(sessionRes.data?.userId ?? 0) || undefined;
-    const isAdmin = Number(sessionRes.data?.accessLevel ?? -1) >= ACCESS_LEVELS.ADMIN;
 
     const docRes: any = await amplifyClient.models.Document.get({ documentId } as any);
     const doc = docRes?.data as any;
     if (!doc) return { success: false, error: 'Documento no encontrado' };
 
     const isFinalized = Boolean(doc.isClockedOut);
-    if (isFinalized && !isAdmin) {
-      return { success: false, error: 'Solo un administrador puede modificar un documento finalizado.' };
-    }
 
     // Resolve docType for pricing/tax logic.
     const dtRes: any = await amplifyClient.models.DocumentType.get({ documentTypeId: Number(doc.documentTypeId) } as any);

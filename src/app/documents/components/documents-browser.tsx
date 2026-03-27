@@ -1056,14 +1056,14 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                   <Button
                     variant="outline"
                     onClick={openEditDialog}
-                    disabled={!selectedDocumentId || !details || selectedIsFinalized}
+                    disabled={!selectedDocumentId || !details}
                   >
                     Modificar
                   </Button>
 
                   <Button variant="outline" asChild disabled={!selectedDocumentId}>
                     <Link href={selectedDocumentId ? `/documents/${selectedDocumentId}/edit` : '/documents'}>
-                      {selectedIsFinalized ? 'Corregir finalizado' : 'Editar pantalla completa'}
+                      Editar pantalla completa
                     </Link>
                   </Button>
 
@@ -1176,7 +1176,7 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                   <DialogHeader>
                     <DialogTitle>Modificar documento</DialogTitle>
                     <DialogDescription>
-                      Solo se modifican documentos NO finalizados (sin impacto en stock/kardex).
+                      La modificación aplica igual para documentos finalizados y no finalizados, manteniendo trazabilidad.
                     </DialogDescription>
                   </DialogHeader>
 
