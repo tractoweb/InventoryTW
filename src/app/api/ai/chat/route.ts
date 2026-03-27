@@ -710,20 +710,44 @@ function buildSystemPrompt(
     .join(' | ')
     .slice(0, 1200);
 
+  const dbSchema = `
+ESQUEMA DE BASE DE DATOS DISPONIBLE (InventoryTW):
+- Product: idProduct, name, code, plu, price, cost, markup, productGroupId, isEnabled, description, image
+- Stock: productId, warehouseId, quantity (consulta disponibilidad por producto/bodega)
+- Warehouse: idWarehouse, name (bodega/almacen)
+- ProductGroup: idProductGroup, name, parentGroupId, color (grupos de productos)
+- Document: documentId, number, date, documentTypeId, total, customerId, clientId, warehouseId, isClockedOut
+- DocumentItem: documentId, productId, quantity, price, discount (lineas de un documento)
+- Kardex: kardexId, productId, date, type (entrada/salida), quantity, balance, warehouseId, documentId (historial de movimientos)
+- Customer: idCustomer, name, taxNumber (proveedores)
+- Client: idClient, name, taxNumber (clientes finales de ventas)
+- DocumentType: documentTypeId, name, code, documentCategoryId, stockDirection (tipo de movimiento: entrada/salida/ajuste)
+- Barcode: productId, value (codigos de barra)
+- ProductComment: commentId, productId, comment (notas de productos)
+
+RELACIONES CLAVE PARA CONSULTAS:
+- Product + Stock: busca disponibilidad en bodega especifica (cantidad total = SUM(Stock.quantity) por producto/bodega)
+- Product + Kardex: historial completo de movimientos (compras/ventas/ajustes)
+- Document + DocumentItem: para revisar lineas y composicion de documentos
+- Document + Customer/Client: para datos del proveedor/cliente
+- Kardex + Warehouse: para rastrear movimientos por bodega y producto
+  `;
+
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
-    `Gestionas un inventario de ${totalProducts} productos.`,
+    `Gestionas un inventario de ${totalProducts} productos en multiples bodegas.`,
     `Contexto actual: modulo=${currentModule}, ruta=${currentPath}.`,
     'Responde en espanol natural, claro y concreto; evita sonar mecanico o excesivamente estructurado.',
     'Usa tono conversacional profesional. Solo usa listas/tablas si realmente mejoran la comprension.',
     'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
+    `DISPONIBILIDAD DE DATOS: ${dbSchema}`,
     'Si el usuario pregunta por lo que esta viendo en pantalla (ej: documento abierto), prioriza el contexto de pantalla provisto y explicalo de forma legible.',
     'Cuando el usuario pida editar/escribir datos, primero responde con un mini plan y preguntas de confirmacion (que, por que, alcance) antes de ejecutar.',
     'Si propones cambios, especifica exactamente que campos se tocaran y que campos NO se tocaran.',
     'Regla critica: si hay coincidencia exacta por codigo de producto o numero de documento, usa solo esa coincidencia como fuente principal.',
     'No mezcles datos de productos/documentos distintos en una misma respuesta.',
-    'No digas que no tienes acceso a base de datos; en su lugar indica si no hubo coincidencias en la consulta del backend.',
+    'Para contar productos totales, usa la lista de candidatos encontrados o responde que puedo verificar en el backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
     'Prioriza respuestas utiles, cortas y accionables.',
     pageSnapshot ? `Contexto visible actual de pantalla: ${pageSnapshot}` : '',

@@ -271,13 +271,11 @@ function MarkdownMessage({ content }: { content: string }) {
 function PayloadExtras({
   payload,
   onActionClick,
-  onModifyClick,
   activeActionId,
   doubleConfirmActionId,
 }: {
   payload?: AssistantPayload;
   onActionClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
-  onModifyClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
   activeActionId?: string | null;
   doubleConfirmActionId?: string | null;
 }) {
@@ -362,38 +360,23 @@ function PayloadExtras({
                     </Link>
                   )
                 )}
-                {(onActionClick || onModifyClick) && (a.execute?.operation || a.link?.url) ? (
-                  <div className="flex flex-wrap gap-1">
-                    {onModifyClick ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => onModifyClick(a)}
-                      >
-                        Modificar
-                      </Button>
-                    ) : null}
-                    {onActionClick ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={doubleConfirmActionId === a.id ? "destructive" : "secondary"}
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => onActionClick(a)}
-                        disabled={Boolean(activeActionId) && activeActionId !== a.id}
-                      >
-                        {activeActionId === a.id
-                          ? "Procesando…"
-                          : doubleConfirmActionId === a.id
-                            ? "Confirmar definitivamente"
-                            : a.execute?.operation
-                              ? "Aprobar y ejecutar"
-                              : "Ejecutar"}
-                      </Button>
-                    ) : null}
-                  </div>
+                {onActionClick && (a.execute?.operation || a.link?.url) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={doubleConfirmActionId === a.id ? "destructive" : "secondary"}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onActionClick(a)}
+                    disabled={Boolean(activeActionId) && activeActionId !== a.id}
+                  >
+                    {activeActionId === a.id
+                      ? "Procesando…"
+                      : doubleConfirmActionId === a.id
+                        ? "Confirmar definitivamente"
+                        : a.execute?.operation
+                          ? "Ejecutar"
+                          : "Ejecutar"}
+                  </Button>
                 ) : null}
               </li>
             ))}
@@ -409,13 +392,11 @@ function PayloadExtras({
 function MessageBubble({
   msg,
   onActionClick,
-  onModifyClick,
   activeActionId,
   doubleConfirmActionId,
 }: {
   msg: ChatMessage;
   onActionClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
-  onModifyClick?: (action: NonNullable<AssistantPayload["actions"]>[number]) => void;
   activeActionId?: string | null;
   doubleConfirmActionId?: string | null;
 }) {
@@ -457,7 +438,6 @@ function MessageBubble({
             <PayloadExtras
               payload={msg.payload}
               onActionClick={onActionClick}
-              onModifyClick={onModifyClick}
               activeActionId={activeActionId}
               doubleConfirmActionId={doubleConfirmActionId}
             />
@@ -631,15 +611,6 @@ export function ChatAIPanel() {
     [appendAssistantMessage, doubleConfirmActionId, setIsLoading]
   );
 
-  const handleModifyAction = React.useCallback(
-    (action: NonNullable<AssistantPayload["actions"]>[number]) => {
-      const operation = action.execute?.operation ? ` (${action.execute.operation})` : "";
-      setInput(`Quiero modificar esta acción${operation}: ${action.title}. Cambios solicitados:`);
-      setDoubleConfirmActionId(null);
-    },
-    [setInput]
-  );
-
   const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
     if (window.innerWidth < 768) return;
     e.preventDefault();
@@ -791,7 +762,6 @@ export function ChatAIPanel() {
                     key={msg.id}
                     msg={msg}
                     onActionClick={handlePayloadAction}
-                    onModifyClick={handleModifyAction}
                     activeActionId={activeActionId}
                     doubleConfirmActionId={doubleConfirmActionId}
                   />

@@ -218,13 +218,6 @@ export default function AILabPage() {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  function modifyProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
-    const operation = action.execute?.operation ? ` (${action.execute.operation})` : '';
-    setInput(`Quiero modificar esta accion${operation}: ${action.title}. Cambios solicitados:`);
-    setDoubleConfirmActionId(null);
-    textareaRef.current?.focus();
-  }
-
   async function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
     if (activeActionId && activeActionId !== action.id) return;
 
@@ -462,14 +455,6 @@ export default function AILabPage() {
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     <Button
                                       size="sm"
-                                      variant="ghost"
-                                      className="h-7 text-xs"
-                                      onClick={() => modifyProposedAction(a)}
-                                    >
-                                      Modificar
-                                    </Button>
-                                    <Button
-                                      size="sm"
                                       variant={waitingDouble ? 'destructive' : 'secondary'}
                                       className="h-7 text-xs"
                                       onClick={() => submitProposedAction(a)}
@@ -479,9 +464,7 @@ export default function AILabPage() {
                                         ? 'Procesando...'
                                         : waitingDouble
                                           ? 'Confirmar definitivamente'
-                                          : a.execute?.operation
-                                            ? 'Aprobar y ejecutar'
-                                            : 'Ejecutar'}
+                                          : 'Ejecutar'}
                                     </Button>
                                   </div>
                                 </div>
