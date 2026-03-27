@@ -581,7 +581,7 @@ function buildActionProposals(
     });
   }
 
-  if (firstWarehouse) {
+  if (firstWarehouse && /(bodega|almacen|almacén|warehouse)/i.test(q)) {
     actions.push({
       id: `open-warehouse-${firstWarehouse.id}`,
       kind: 'navigate',
@@ -595,7 +595,7 @@ function buildActionProposals(
     });
   }
 
-  if (firstKardex) {
+  if (firstKardex && /(kardex|movimiento|historial|entrada|salida)/i.test(q)) {
     actions.push({
       id: `open-kardex-${firstKardex.id}`,
       kind: 'navigate',
@@ -709,6 +709,35 @@ function buildActionProposals(
         operation: 'queryDB',
         params: { table: 'ProductTax', productId: firstProduct.id, limit: 10 },
       },
+    });
+  }
+
+  // ── Listados genéricos (sin producto/documento específico) ────────────────
+  // Extrae cualquier número mencionado en el mensaje (ej: "dame 37 productos", "los 5 primeros", "50 artículos")
+  const anyNumberMatch = /\b(\d{1,3})\b/.exec(message);
+  const inferredLimitFromMessage = anyNumberMatch ? Math.min(Math.max(parseInt(anyNumberMatch[1], 10), 1), 100) : 20;
+
+  const asksForProductList = /(listado|lista|primeros?|todos\s+los\s+producto|ver\s+product|dame.*product|muestra.*product|producto.*por\s+id|artículo|articulo)/i.test(q);
+  if (asksForProductList && products.length === 0) {
+    actions.push({
+      id: 'query-products-list',
+      kind: 'analysis',
+      title: `Consultar los ${inferredLimitFromMessage} primeros productos del catálogo`,
+      description: `Ejecuta la consulta real y muestra los primeros ${inferredLimitFromMessage} productos con ID, código, nombre y precio.`,
+      requiresConfirmation: false,
+      execute: { operation: 'queryDB', params: { table: 'Product', limit: inferredLimitFromMessage } },
+    });
+  }
+
+  const asksForDocumentList = /(listado|lista|primeros?|todos\s+los\s+documento|ver\s+documento|dame.*documento|muestra.*documento)/i.test(q);
+  if (asksForDocumentList && documents.length === 0) {
+    actions.push({
+      id: 'query-documents-list',
+      kind: 'analysis',
+      title: `Consultar los ${inferredLimitFromMessage} primeros documentos`,
+      description: `Ejecuta la consulta real y muestra los primeros ${inferredLimitFromMessage} documentos.`,
+      requiresConfirmation: false,
+      execute: { operation: 'queryDB', params: { table: 'Document', limit: inferredLimitFromMessage } },
     });
   }
 
@@ -983,6 +1012,8 @@ REGLAS PARA PROPONER ACCIONES:
     'No mezcles datos de productos/documentos distintos en una misma respuesta.',
     'Para contar productos totales, usa la lista de candidatos encontrados o responde que puedo verificar en el backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
+    'CRITICO: Cuando el usuario pida VER o LISTAR datos (productos, stock, kardex, etc.), NUNCA inventes resultados ni muestres un bloque JSON de parametros ni una tabla de "Resultado esperado" con datos ficticios. En su lugar, responde con UNA sola oracion indicando que se ejecutara la consulta real, y el boton de accion propuesto mostrara los datos reales al hacer clic.',
+    'CRITICO: Si planeas hacer una consulta queryDB, NO muestres el JSON de parametros al usuario. Solo di brevemente que vas a consultar esa informacion y deja que el boton la ejecute.',
     'Prioriza respuestas utiles, cortas y accionables.',
     pageSnapshot ? `Contexto visible actual de pantalla: ${pageSnapshot}` : '',
     productsInline ? `Productos candidatos encontrados: ${productsInline}` : '',
@@ -1119,11 +1150,14 @@ export async function POST(request: NextRequest) {
       const attachments = sanitizeAttachments(body?.attachments);
       const history = sanitizeMessages(body?.history);
 
+      const asksAboutWarehouse = /(bodega|almacen|almacén|warehouse)/i.test(message);
+      const asksAboutKardex = /(kardex|movimiento|historial|entrada|salida)/i.test(message);
+
       const [products, documents, warehouses, kardexEntries, webResults] = await Promise.all([
         fetchProductMatches(message),
         fetchDocumentMatches(message),
-        fetchWarehouseMatches(message),
-        fetchKardexMatches(message),
+        asksAboutWarehouse ? fetchWarehouseMatches(message) : Promise.resolve([]),
+        asksAboutKardex ? fetchKardexMatches(message) : Promise.resolve([]),
         searchWeb(message, Boolean(body?.enableWeb)),
       ]);
 
@@ -1148,11 +1182,15 @@ export async function POST(request: NextRequest) {
       for (const d of documents) {
         links.push({ label: `Documento ${d.number || d.id}`, url: `/documents/${d.id}/pdf` });
       }
-      for (const w of warehouses) {
-        links.push({ label: `Bodega ${w.name || w.id}`, url: `/stock?warehouseId=${w.id}` });
+      if (asksAboutWarehouse) {
+        for (const w of warehouses) {
+          links.push({ label: `Bodega ${w.name || w.id}`, url: `/stock?warehouseId=${w.id}` });
+        }
       }
-      for (const k of kardexEntries) {
-        links.push({ label: `Kardex #${k.id} (${k.type || 'mov'})`, url: '/kardex' });
+      if (asksAboutKardex) {
+        for (const k of kardexEntries) {
+          links.push({ label: `Kardex #${k.id} (${k.type || 'mov'})`, url: '/kardex' });
+        }
       }
       for (const w of webResults) {
         links.push({ label: `Web: ${w.title}`, url: w.url });
@@ -1172,14 +1210,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      if (warehouses.length === 0) {
+      if (asksAboutWarehouse && warehouses.length === 0) {
         links.push({
           label: `Revisar bodegas para "${message.slice(0, 40)}"`,
           url: '/warehouses',
         });
       }
 
-      if (kardexEntries.length === 0) {
+      if (asksAboutKardex && kardexEntries.length === 0) {
         links.push({
           label: `Revisar Kardex para "${message.slice(0, 40)}"`,
           url: '/kardex',
