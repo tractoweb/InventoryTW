@@ -23,7 +23,7 @@ import path from 'path';
 import { amplifyClient } from '@/lib/amplify-config';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 55;
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -64,6 +64,26 @@ type KardexMatch = {
   quantity: number;
   productId: number | null;
   warehouseId: number | null;
+
+type ToolQueryDBInput = {
+  table: string;
+  columns?: string[];
+  nameContains?: string;
+  codeContains?: string;
+  productId?: number;
+  warehouseId?: number;
+  documentId?: number;
+  customerId?: number;
+  clientId?: number;
+  documentTypeId?: number;
+  productGroupId?: number;
+  taxId?: number;
+  isEnabled?: boolean;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+};
 };
 
 type WebResult = {
@@ -524,6 +544,233 @@ async function searchWeb(query: string, enabled: boolean): Promise<WebResult[]> 
   }
 }
 
+// ── Bedrock tool_use: queryDB inline executor ────────────────────────────────
+
+const QUERY_ALLOWED_TABLES = new Set([
+  'Product', 'Stock', 'Kardex', 'Document', 'DocumentItem',
+  'Customer', 'Client', 'Warehouse', 'DocumentType', 'ProductGroup',
+  'Tax', 'Payment', 'Barcode', 'ProductTax', 'DocumentItemTax',
+]);
+const QUERY_EXCLUDE_KEYS = new Set(['__typename', 'createdAt', 'updatedAt', 'nextToken']);
+const QUERY_EXCLUDE_RELATIONS = new Set([
+  'productGroup', 'barcodes', 'stocks', 'stockControls', 'documentItems',
+  'comments', 'taxes', 'kardexEntries', 'kardexHistories', 'warehouse',
+  'product', 'document', 'customer', 'client', 'documentType', 'user',
+  'paymentType', 'tax', 'documentCategory', 'children', 'payments', 'auditLogs',
+]);
+
+function isGarbageValue(v: unknown): boolean {
+  if (typeof v === 'function') return true;
+  if (typeof v === 'string' && v.length > 20 &&
+      (v.startsWith('n=>') || v.startsWith('e=>') || v.includes('=>t['))) return true;
+  return false;
+}
+
+async function executeQueryDBToolInline(input: ToolQueryDBInput): Promise<{
+  ok: boolean; table?: AssistantTable; rowCount: number; message: string;
+}> {
+  if (!QUERY_ALLOWED_TABLES.has(input.table))
+    return { ok: false, rowCount: 0, message: `Tabla no permitida: ${input.table}` };
+
+  const limit = Math.min(Math.max(Number(input.limit ?? 20), 1), 100);
+  const clauses: any[] = [];
+  if (input.productId !== undefined)      clauses.push({ productId:      { eq: input.productId } });
+  if (input.warehouseId !== undefined)    clauses.push({ warehouseId:    { eq: input.warehouseId } });
+  if (input.documentId !== undefined)     clauses.push({ documentId:     { eq: input.documentId } });
+  if (input.customerId !== undefined)     clauses.push({ customerId:     { eq: input.customerId } });
+  if (input.clientId !== undefined)       clauses.push({ clientId:       { eq: input.clientId } });
+  if (input.documentTypeId !== undefined) clauses.push({ documentTypeId: { eq: input.documentTypeId } });
+  if (input.productGroupId !== undefined) clauses.push({ productGroupId: { eq: input.productGroupId } });
+  if (input.taxId !== undefined)          clauses.push({ taxId:          { eq: input.taxId } });
+  if (input.isEnabled !== undefined)      clauses.push({ isEnabled:      { eq: input.isEnabled } });
+  if (input.type)                         clauses.push({ type:           { eq: input.type } });
+  if (input.nameContains)                 clauses.push({ name:           { contains: input.nameContains } });
+  if (input.codeContains)                 clauses.push({ code:           { contains: input.codeContains } });
+  if (input.dateFrom && input.dateTo)     clauses.push({ date:           { between: [input.dateFrom, input.dateTo] } });
+  else if (input.dateFrom)               clauses.push({ date:           { ge: input.dateFrom } });
+  else if (input.dateTo)                 clauses.push({ date:           { le: input.dateTo } });
+
+  const filter = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses };
+  const model = (amplifyClient.models as any)[input.table];
+  if (!model) return { ok: false, rowCount: 0, message: `Modelo no disponible: ${input.table}` };
+
+  const res: any = await model.list({ ...(filter ? { filter } : {}), limit });
+  const rows: any[] = res?.data ?? [];
+  if (rows.length === 0)
+    return { ok: true, rowCount: 0, message: `Sin resultados en ${input.table} con los filtros aplicados.` };
+
+  let allColumns = Object.keys(rows[0]).filter((k) =>
+    !QUERY_EXCLUDE_KEYS.has(k) && !k.startsWith('_') &&
+    !QUERY_EXCLUDE_RELATIONS.has(k) && !isGarbageValue(rows[0][k])
+  );
+  if (input.columns?.length) {
+    const avail = new Set(allColumns);
+    const proj = input.columns.filter((c) => avail.has(c));
+    if (proj.length > 0) allColumns = proj;
+  }
+  const tableRows: Array<Array<string | number>> = rows.map((row: any) =>
+    allColumns.map((col) => {
+      const v = row[col];
+      if (v === null || v === undefined) return '-';
+      if (isGarbageValue(v)) return '-';
+      if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
+      return String(v);
+    })
+  );
+  return {
+    ok: true, rowCount: rows.length,
+    message: `${rows.length} registro(s) en ${input.table}.`,
+    table: { title: `${input.table} — ${rows.length} resultado(s)`, columns: allColumns, rows: tableRows },
+  };
+}
+
+const QUERY_DB_TOOL_SPEC = {
+  toolSpec: {
+    name: 'queryDB',
+    description:
+      'Consulta la base de datos real de InventoryTW. ' +
+      'ÚSALO SIEMPRE que el usuario pida ver, listar, buscar o consultar datos reales. ' +
+      'Usa columns[] para mostrar SOLO las columnas que el usuario necesita. ' +
+      'Usa nameContains para buscar por nombre parcial, codeContains para código parcial. ' +
+      'Columnas de Product: idProduct,name,code,plu,price,cost,markup,productGroupId,isEnabled,measurementUnit,lastPurchasePrice. ' +
+      'Columnas de Stock: productId,warehouseId,quantity. ' +
+      'Columnas de Kardex: kardexId,productId,warehouseId,date,type,quantity,balance,unitCost,totalCost,documentNumber,note. ' +
+      'Columnas de Document: documentId,number,date,total,customerId,clientId,warehouseId,documentTypeId,paidStatus,note. ' +
+      'Columnas de DocumentItem: documentItemId,documentId,productId,quantity,price,discount,total,productNameSnapshot,productCodeSnapshot. ' +
+      'Columnas de Customer: idCustomer,name,taxNumber,code,isEnabled. ' +
+      'Columnas de Client: idClient,name,taxNumber,email,phoneNumber,isEnabled. ' +
+      'Columnas de Warehouse: idWarehouse,name. ' +
+      'Columnas de ProductGroup: idProductGroup,name,parentGroupId. ' +
+      'Columnas de Payment: paymentId,documentId,paymentTypeId,amount,date.',
+    inputSchema: {
+      json: {
+        type: 'object' as const,
+        properties: {
+          table: {
+            type: 'string',
+            enum: ['Product','Stock','Kardex','Document','DocumentItem','Customer','Client',
+                   'Warehouse','DocumentType','ProductGroup','Tax','Payment','Barcode','ProductTax','DocumentItemTax'],
+            description: 'Tabla a consultar',
+          },
+          columns: { type: 'array', items: { type: 'string' }, description: 'Columnas a mostrar (solo las que pide el usuario)' },
+          nameContains: { type: 'string', description: 'Búsqueda parcial en campo name' },
+          codeContains: { type: 'string', description: 'Búsqueda parcial en campo code' },
+          productId:     { type: 'number', description: 'ID exacto de producto' },
+          warehouseId:   { type: 'number', description: 'ID de bodega' },
+          documentId:    { type: 'number', description: 'ID de documento' },
+          customerId:    { type: 'number', description: 'ID de proveedor/cliente' },
+          clientId:      { type: 'number', description: 'ID de cliente final' },
+          documentTypeId:  { type: 'number', description: 'ID de tipo de documento' },
+          productGroupId:  { type: 'number', description: 'ID de grupo de producto' },
+          taxId:           { type: 'number', description: 'ID de impuesto' },
+          isEnabled:       { type: 'boolean', description: 'true=activos, false=inactivos' },
+          type:            { type: 'string', description: 'Tipo en Kardex: ENTRADA, SALIDA o AJUSTE' },
+          dateFrom:        { type: 'string', description: 'Fecha desde YYYY-MM-DD' },
+          dateTo:          { type: 'string', description: 'Fecha hasta YYYY-MM-DD' },
+          limit:           { type: 'number', description: 'Filas a recuperar 1-100 (default 20)' },
+        },
+        required: ['table'],
+      },
+    },
+  },
+};
+
+async function invokeModelWithToolLoop(
+  messages: ChatMessage[],
+  context?: Record<string, unknown>,
+  dbContext?: { products: ProductMatch[]; documents: DocumentMatch[]; warehouses: WarehouseMatch[]; kardex: KardexMatch[] },
+  webResults?: WebResult[],
+  attachments?: IncomingAttachment[]
+): Promise<{ text: string; toolTables: AssistantTable[] }> {
+  const client = buildBedrockClient();
+  const modelId = readEnv('AI_MODEL_PRIMARY') ?? readEnv('AI_MODEL') ?? 'anthropic.claude-3-haiku-20240307-v1:0';
+  const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
+  const systemPrompt = buildSystemPrompt(context, dbContext, webResults);
+  const attachmentText = buildAttachmentText(attachments ?? []);
+  const toolTables: AssistantTable[] = [];
+  const imageAttachments = (attachments ?? []).filter((a) => a.kind === 'image' && a.dataUrl).slice(0, 2);
+  const inferConf = { maxTokens: Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1024 };
+
+  const bedrockMsgs: any[] = messages.map((m, idx) => {
+    const isLastUser = idx === messages.length - 1 && m.role === 'user';
+    const content: any[] = [{ text: m.content }];
+    if (isLastUser && attachmentText) content.push({ text: `Archivos adjuntos:\n${attachmentText}` });
+    if (isLastUser) {
+      for (const img of imageAttachments) {
+        const parsed = parseDataUrl(String(img.dataUrl));
+        if (!parsed) continue;
+        const format = imageFormatFromMime(parsed.mime);
+        if (!format) continue;
+        content.push({ image: { format, source: { bytes: parsed.bytes } } });
+      }
+    }
+    return { role: m.role, content };
+  });
+
+  // ── Primera llamada: Claude puede llamar queryDB ─────────────────────────
+  const cmd1 = new ConverseCommand({
+    modelId,
+    system: [{ text: systemPrompt }],
+    messages: bedrockMsgs as any,
+    toolConfig: { tools: [QUERY_DB_TOOL_SPEC as any] } as any,
+    inferenceConfig: inferConf,
+  });
+  const res1 = await client.send(cmd1);
+  const assistantContent1: any[] = res1.output?.message?.content ?? [];
+  const toolUseBlocks = assistantContent1.filter((b: any) => b.toolUse);
+
+  if (res1.stopReason === 'tool_use' && toolUseBlocks.length > 0) {
+    const toolResultBlocks: any[] = [];
+    for (const block of toolUseBlocks) {
+      const { toolUseId, name, input } = block.toolUse as {
+        toolUseId: string; name: string; input: ToolQueryDBInput;
+      };
+      if (name === 'queryDB') {
+        let resultText: string;
+        try {
+          const result = await executeQueryDBToolInline(input);
+          if (result.table) toolTables.push(result.table);
+          resultText = result.table
+            ? `[DATOS REALES de ${input.table}] ${result.message}\n` +
+              `Columnas: ${result.table.columns.join(', ')}\n` +
+              result.table.rows.map((r) =>
+                result.table!.columns.map((c, i) => `${c}=${r[i]}`).join(' | ')
+              ).join('\n')
+            : `[Sin resultados] ${result.message}`;
+        } catch (err: any) {
+          resultText = `Error en queryDB(${input.table}): ${err?.message ?? 'desconocido'}`;
+        }
+        toolResultBlocks.push({
+          toolResult: { toolUseId, content: [{ text: resultText }], status: 'success' },
+        });
+      }
+    }
+    if (toolResultBlocks.length > 0) {
+      // ── Segunda llamada: Claude recibe datos reales y redacta respuesta ──
+      const msgs2: any[] = [
+        ...bedrockMsgs,
+        { role: 'assistant', content: assistantContent1 },
+        { role: 'user', content: toolResultBlocks },
+      ];
+      const cmd2 = new ConverseCommand({
+        modelId, system: [{ text: systemPrompt }],
+        messages: msgs2, inferenceConfig: inferConf,
+      });
+      const res2 = await client.send(cmd2);
+      const text2 = (res2.output?.message?.content ?? [])
+        .map((p: any) => (typeof p.text === 'string' ? p.text : ''))
+        .join('').trim();
+      return { text: text2 || 'Consulta ejecutada.', toolTables };
+    }
+  }
+
+  // ── Sin tool_use: respuesta directa de texto ─────────────────────────────
+  const text = assistantContent1
+    .map((p: any) => (typeof p.text === 'string' ? p.text : ''))
+    .join('').trim();
+  return { text: text || '(sin respuesta)', toolTables };
+}
+
 function buildAttachmentText(attachments: IncomingAttachment[]): string {
   const parts: string[] = [];
   for (const a of attachments) {
@@ -610,141 +857,7 @@ function buildActionProposals(
   const asksForStock = /(stock|inventario|cantidad|existencia|disponib)/i.test(q);
   const asksForKardex = /(kardex|movimientos|historial|entradas|salidas)/i.test(q);
   const asksForDocItems = /(lineas|items|detalle.*documento|que tiene.*doc)/i.test(q);
-  const asksForPayments = /(pagos|abonos|pago.*documento)/i.test(q);
-  const asksForBarcodes = /(codigos de barra|barcode|codigo de barras)/i.test(q);
-  const asksForTaxes = /(impuesto|iva|tax)/i.test(q);
-
-  if (asksForStock && firstProduct) {
-    actions.push({
-      id: `query-stock-${firstProduct.id}`,
-      kind: 'analysis',
-      title: `Consultar stock de "${firstProduct.code || firstProduct.name}" por bodega`,
-      description: `Muestra la cantidad disponible en cada bodega para este producto.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'Stock', productId: firstProduct.id, limit: 20 },
-      },
-    });
-  }
-
-  if (asksForKardex && firstProduct) {
-    actions.push({
-      id: `query-kardex-product-${firstProduct.id}`,
-      kind: 'analysis',
-      title: `Ver historial Kardex de "${firstProduct.code || firstProduct.name}"`,
-      description: `Consulta todos los movimientos de inventario registrados para este producto.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'Kardex', productId: firstProduct.id, limit: 50 },
-      },
-    });
-  }
-
-  if (asksForKardex && firstWarehouse && !firstProduct) {
-    actions.push({
-      id: `query-kardex-warehouse-${firstWarehouse.id}`,
-      kind: 'analysis',
-      title: `Ver movimientos Kardex de bodega "${firstWarehouse.name}"`,
-      description: `Consulta los últimos movimientos de inventario en esta bodega.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'Kardex', warehouseId: firstWarehouse.id, limit: 50 },
-      },
-    });
-  }
-
-  if (asksForDocItems && firstDocument) {
-    actions.push({
-      id: `query-docitems-${firstDocument.id}`,
-      kind: 'analysis',
-      title: `Ver líneas del documento ${firstDocument.number || firstDocument.id}`,
-      description: `Muestra todos los productos, cantidades y precios del documento.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'DocumentItem', documentId: firstDocument.id, limit: 100 },
-      },
-    });
-  }
-
-  if (asksForPayments && firstDocument) {
-    actions.push({
-      id: `query-payments-${firstDocument.id}`,
-      kind: 'analysis',
-      title: `Ver pagos del documento ${firstDocument.number || firstDocument.id}`,
-      description: `Muestra los pagos registrados para este documento.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'Payment', documentId: firstDocument.id, limit: 50 },
-      },
-    });
-  }
-
-  if (asksForBarcodes && firstProduct) {
-    actions.push({
-      id: `query-barcodes-${firstProduct.id}`,
-      kind: 'analysis',
-      title: `Ver códigos de barra de "${firstProduct.code || firstProduct.name}"`,
-      description: `Lista todos los códigos de barra registrados para este producto.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'Barcode', productId: firstProduct.id, limit: 20 },
-      },
-    });
-  }
-
-  if (asksForTaxes && firstProduct) {
-    actions.push({
-      id: `query-taxes-${firstProduct.id}`,
-      kind: 'analysis',
-      title: `Ver impuestos de "${firstProduct.code || firstProduct.name}"`,
-      description: `Lista los impuestos vinculados a este producto.`,
-      requiresConfirmation: false,
-      execute: {
-        operation: 'queryDB',
-        params: { table: 'ProductTax', productId: firstProduct.id, limit: 10 },
-      },
-    });
-  }
-
-  // ── Listados genéricos (sin producto/documento específico) ────────────────
-  // Extrae cualquier número mencionado en el mensaje (ej: "dame 37 productos", "los 5 primeros", "50 artículos")
-  const anyNumberMatch = /\b(\d{1,3})\b/.exec(message);
-  const inferredLimitFromMessage = anyNumberMatch ? Math.min(Math.max(parseInt(anyNumberMatch[1], 10), 1), 100) : 20;
-
-  const asksForProductList = /(listado|lista|primeros?|todos\s+los\s+producto|ver\s+product|dame.*product|muestra.*product|producto.*por\s+id|artículo|articulo)/i.test(q);
-  if (asksForProductList && products.length === 0) {
-    actions.push({
-      id: 'query-products-list',
-      kind: 'analysis',
-      title: `Consultar los ${inferredLimitFromMessage} primeros productos del catálogo`,
-      description: `Ejecuta la consulta real y muestra los primeros ${inferredLimitFromMessage} productos con ID, código, nombre y precio.`,
-      requiresConfirmation: false,
-      execute: { operation: 'queryDB', params: { table: 'Product', limit: inferredLimitFromMessage } },
-    });
-  }
-
-  const asksForDocumentList = /(listado|lista|primeros?|todos\s+los\s+documento|ver\s+documento|dame.*documento|muestra.*documento)/i.test(q);
-  if (asksForDocumentList && documents.length === 0) {
-    actions.push({
-      id: 'query-documents-list',
-      kind: 'analysis',
-      title: `Consultar los ${inferredLimitFromMessage} primeros documentos`,
-      description: `Ejecuta la consulta real y muestra los primeros ${inferredLimitFromMessage} documentos.`,
-      requiresConfirmation: false,
-      execute: { operation: 'queryDB', params: { table: 'Document', limit: inferredLimitFromMessage } },
-    });
-  }
-
   // ── Etiquetas ─────────────────────────────────────────────────────────────
-  if (/(imprimir|etiqueta|zebra|label)/i.test(q) && firstProduct) {
-    const printableRef = encodeURIComponent(String(firstProduct.code || firstProduct.name));
-    actions.push({
       id: `print-label-${firstProduct.id}`,
       kind: 'navigate',
       title: `Preparar impresión de etiqueta: ${firstProduct.code || firstProduct.name}`,
@@ -1012,8 +1125,9 @@ REGLAS PARA PROPONER ACCIONES:
     'No mezcles datos de productos/documentos distintos en una misma respuesta.',
     'Para contar productos totales, usa la lista de candidatos encontrados o responde que puedo verificar en el backend.',
     'No inventes datos, stock, precios ni resultados de documentos.',
-    'CRITICO: Cuando el usuario pida VER o LISTAR datos (productos, stock, kardex, etc.), NUNCA inventes resultados ni muestres un bloque JSON de parametros ni una tabla de "Resultado esperado" con datos ficticios. En su lugar, responde con UNA sola oracion indicando que se ejecutara la consulta real, y el boton de accion propuesto mostrara los datos reales al hacer clic.',
-    'CRITICO: Si planeas hacer una consulta queryDB, NO muestres el JSON de parametros al usuario. Solo di brevemente que vas a consultar esa informacion y deja que el boton la ejecute.',
+    'CRITICO: Tienes acceso al tool "queryDB" para consultar la base de datos real. DEBES invocarlo cuando el usuario pida ver, listar, buscar o consultar datos (productos, stock, kardex, documentos, etc.). NO inventes resultados ni muestres datos de ejemplo.',
+    'CRITICO: Usa el parametro columns[] del tool para mostrar SOLO las columnas que el usuario solicito (ejemplo: si pide "id y nombre" usa columns:["idProduct","name"]). Si busca por texto parcial usa nameContains o codeContains.',
+    'CRITICO: Despues de recibir los resultados del tool, presenta los datos de forma clara. NO muestres los parametros internos del tool al usuario.',
     'Prioriza respuestas utiles, cortas y accionables.',
     pageSnapshot ? `Contexto visible actual de pantalla: ${pageSnapshot}` : '',
     productsInline ? `Productos candidatos encontrados: ${productsInline}` : '',
@@ -1161,12 +1275,12 @@ export async function POST(request: NextRequest) {
         searchWeb(message, Boolean(body?.enableWeb)),
       ]);
 
-      const messages: ChatMessage[] = [
+      const bedrockHistory: ChatMessage[] = [
         ...history,
         { role: 'user' as const, content: message.slice(0, 3000) },
       ].slice(-16);
-      const text = await invokeModel(
-        messages,
+      const { text, toolTables } = await invokeModelWithToolLoop(
+        bedrockHistory,
         context,
         { products, documents, warehouses, kardex: kardexEntries },
         webResults,
@@ -1224,36 +1338,38 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const tables: AssistantTable[] = [];
-      if (products.length > 0) {
-        tables.push({
-          title: 'Productos relacionados',
-          columns: ['ID', 'Codigo', 'Producto', 'Stock'],
-          rows: products.map((p) => [p.id, p.code || '-', p.name, p.stock ?? '-']),
-        });
-      }
-      if (documents.length > 0) {
-        tables.push({
-          title: 'Documentos relacionados',
-          columns: ['ID', 'Numero', 'Fecha', 'Total'],
-          rows: documents.map((d) => [d.id, d.number || '-', d.date || '-', d.total]),
-        });
-      }
-
-      if (warehouses.length > 0) {
-        tables.push({
-          title: 'Bodegas relacionadas',
-          columns: ['ID', 'Bodega'],
-          rows: warehouses.map((w) => [w.id, w.name || '-']),
-        });
-      }
-
-      if (kardexEntries.length > 0) {
-        tables.push({
-          title: 'Movimientos Kardex relacionados',
-          columns: ['ID', 'Tipo', 'Fecha', 'Cantidad', 'Producto', 'Bodega'],
-          rows: kardexEntries.map((k) => [k.id, k.type || '-', k.date || '-', k.quantity, k.productId ?? '-', k.warehouseId ?? '-']),
-        });
+      // Tool tables primero — contienen datos reales de la BD
+      const tables: AssistantTable[] = [...toolTables];
+      // Solo agregar tablas de contexto si no hubo tool_use (evita duplicar)
+      if (toolTables.length === 0) {
+        if (products.length > 0) {
+          tables.push({
+            title: 'Productos relacionados',
+            columns: ['ID', 'Codigo', 'Producto', 'Stock'],
+            rows: products.map((p) => [p.id, p.code || '-', p.name, p.stock ?? '-']),
+          });
+        }
+        if (documents.length > 0) {
+          tables.push({
+            title: 'Documentos relacionados',
+            columns: ['ID', 'Numero', 'Fecha', 'Total'],
+            rows: documents.map((d) => [d.id, d.number || '-', d.date || '-', d.total]),
+          });
+        }
+        if (warehouses.length > 0) {
+          tables.push({
+            title: 'Bodegas relacionadas',
+            columns: ['ID', 'Bodega'],
+            rows: warehouses.map((w) => [w.id, w.name || '-']),
+          });
+        }
+        if (kardexEntries.length > 0) {
+          tables.push({
+            title: 'Movimientos Kardex relacionados',
+            columns: ['ID', 'Tipo', 'Fecha', 'Cantidad', 'Producto', 'Bodega'],
+            rows: kardexEntries.map((k) => [k.id, k.type || '-', k.date || '-', k.quantity, k.productId ?? '-', k.warehouseId ?? '-']),
+          });
+        }
       }
 
       const actions = buildActionProposals(message, products, documents, warehouses, kardexEntries);

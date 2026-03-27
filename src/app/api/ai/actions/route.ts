@@ -48,6 +48,9 @@ type AllowedQueryTable = (typeof ALLOWED_QUERY_TABLES)[number];
 
 const QueryDBParams = z.object({
   table: z.enum(ALLOWED_QUERY_TABLES),
+  columns: z.array(z.string().trim().max(50)).max(15).optional(),
+  nameContains: z.string().trim().max(120).optional(),
+  codeContains: z.string().trim().max(80).optional(),
   productId: z.coerce.number().optional(),
   warehouseId: z.coerce.number().optional(),
   documentId: z.coerce.number().optional(),
@@ -120,7 +123,8 @@ export async function POST(request: NextRequest) {
       }
 
       const { table, limit, productId, warehouseId, documentId, customerId, clientId,
-              documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo } = validated.data;
+              documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo,
+              columns, nameContains, codeContains } = validated.data;
 
       const clauses: any[] = [];
       if (productId)       clauses.push({ productId:       { eq: productId } });
@@ -136,6 +140,8 @@ export async function POST(request: NextRequest) {
       if (dateFrom && dateTo)  clauses.push({ date: { between: [dateFrom, dateTo] } });
       else if (dateFrom)       clauses.push({ date: { ge: dateFrom } });
       else if (dateTo)         clauses.push({ date: { le: dateTo } });
+  if (nameContains) clauses.push({ name: { contains: nameContains } });
+  if (codeContains) clauses.push({ code: { contains: codeContains } });
 
       const filter = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses };
       const model = (amplifyClient.models as any)[table as string];
@@ -158,11 +164,28 @@ export async function POST(request: NextRequest) {
       }
 
       const EXCLUDE_KEYS = new Set(['__typename', 'createdAt', 'updatedAt', 'nextToken']);
-      const columns = Object.keys(rows[0]).filter((k) => !EXCLUDE_KEYS.has(k) && !k.startsWith('_'));
+      const EXCLUDE_RELATIONS = new Set([
+        'productGroup', 'barcodes', 'stocks', 'stockControls', 'documentItems',
+        'comments', 'taxes', 'kardexEntries', 'kardexHistories', 'warehouse',
+        'product', 'document', 'customer', 'client', 'documentType', 'user',
+        'paymentType', 'tax', 'documentCategory', 'children', 'payments', 'auditLogs',
+      ]);
+      const isGarbage = (v: unknown) =>
+        typeof v === 'function' ||
+        (typeof v === 'string' && v.length > 20 && (v.startsWith('n=>') || v.startsWith('e=>') || v.includes('=>t[')));
+      let allColumns = Object.keys(rows[0]).filter((k) =>
+        !EXCLUDE_KEYS.has(k) && !k.startsWith('_') && !EXCLUDE_RELATIONS.has(k) && !isGarbage(rows[0][k])
+      );
+      if (columns?.length) {
+        const avail = new Set(allColumns);
+        const proj = columns.filter((c) => avail.has(c));
+        if (proj.length > 0) allColumns = proj;
+      }
       const tableRows = rows.map((row: any) =>
-        columns.map((col) => {
+        allColumns.map((col) => {
           const v = row[col];
           if (v === null || v === undefined) return '-';
+          if (isGarbage(v)) return '-';
           if (typeof v === 'object') return JSON.stringify(v).slice(0, 80);
           return String(v);
         })
@@ -371,7 +394,7 @@ export async function POST(request: NextRequest) {
           operation,
           message: `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).`,
           result: { table, count: rows.length },
-          table: { title: `Resultados: ${table} (${rows.length} filas)`, columns, rows: tableRows },
+          table: { title: `Resultados: ${table} (${rows.length} filas)`, columns: allColumns, rows: tableRows },
           links: [],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
