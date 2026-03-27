@@ -16,7 +16,6 @@
  *   - Si el request incluye "messages" → stream text/plain (compatible con el panel)
  *   - Si el request incluye "message"  → JSON { response, model, timestamp }
  */
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { type NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -64,6 +63,7 @@ type KardexMatch = {
   quantity: number;
   productId: number | null;
   warehouseId: number | null;
+};
 
 type ToolQueryDBInput = {
   table: string;
@@ -83,7 +83,6 @@ type ToolQueryDBInput = {
   dateFrom?: string;
   dateTo?: string;
   limit?: number;
-};
 };
 
 type WebResult = {
@@ -683,6 +682,7 @@ async function invokeModelWithToolLoop(
   attachments?: IncomingAttachment[]
 ): Promise<{ text: string; toolTables: AssistantTable[] }> {
   const client = buildBedrockClient();
+  const { ConverseCommand } = loadBedrockSdk();
   const modelId = readEnv('AI_MODEL_PRIMARY') ?? readEnv('AI_MODEL') ?? 'anthropic.claude-3-haiku-20240307-v1:0';
   const maxTokens = Number(readEnv('AI_MAX_TOKENS') ?? '1024');
   const systemPrompt = buildSystemPrompt(context, dbContext, webResults);
@@ -857,7 +857,11 @@ function buildActionProposals(
   const asksForStock = /(stock|inventario|cantidad|existencia|disponib)/i.test(q);
   const asksForKardex = /(kardex|movimientos|historial|entradas|salidas)/i.test(q);
   const asksForDocItems = /(lineas|items|detalle.*documento|que tiene.*doc)/i.test(q);
+
   // ── Etiquetas ─────────────────────────────────────────────────────────────
+  if (/(imprimir|etiqueta|zebra|label)/i.test(q) && firstProduct) {
+    const printableRef = encodeURIComponent(String(firstProduct.code || firstProduct.name));
+    actions.push({
       id: `print-label-${firstProduct.id}`,
       kind: 'navigate',
       title: `Preparar impresión de etiqueta: ${firstProduct.code || firstProduct.name}`,
@@ -1138,7 +1142,26 @@ REGLAS PARA PROPONER ACCIONES:
   ].join('\n');
 }
 
-function buildBedrockClient(): BedrockRuntimeClient {
+function loadBedrockSdk(): {
+  BedrockRuntimeClient: new (input: Record<string, unknown>) => any;
+  ConverseCommand: new (input: Record<string, unknown>) => any;
+} {
+  try {
+    const req = eval('require') as (id: string) => any;
+    const sdkModuleName = ['@aws-sdk', 'client-bedrock-runtime'].join('/');
+    return req(sdkModuleName);
+  } catch {
+    throw Object.assign(
+      new Error(
+        'SDK de Bedrock no disponible en este entorno. ' +
+        'Verifica que el cliente runtime de Bedrock este instalado durante el build.'
+      ),
+      { errorType: 'MISSING_BEDROCK_SDK' }
+    );
+  }
+}
+
+function buildBedrockClient(): any {
   const accessKeyId = readEnv('BEDROCK_ACCESS_KEY_ID');
   const secretAccessKey = readEnv('BEDROCK_SECRET_ACCESS_KEY');
   const region = readEnv('AI_BEDROCK_REGION') ?? 'us-east-2';
@@ -1153,9 +1176,9 @@ function buildBedrockClient(): BedrockRuntimeClient {
     );
   }
 
+  const { BedrockRuntimeClient } = loadBedrockSdk();
   return new BedrockRuntimeClient({ region, credentials: { accessKeyId, secretAccessKey } });
 }
-
 async function invokeModel(
   messages: ChatMessage[],
   context?: Record<string, unknown>,
@@ -1169,6 +1192,7 @@ async function invokeModel(
   attachments?: IncomingAttachment[]
 ): Promise<string> {
   const client = buildBedrockClient();
+  const { ConverseCommand } = loadBedrockSdk();
   const primaryModelId =
     readEnv('AI_MODEL_PRIMARY') ??
     readEnv('AI_MODEL') ??

@@ -45,7 +45,8 @@ async function fileToDataUrl(file: File): Promise<string> {
 
 async function extractPdfText(file: File): Promise<string> {
   try {
-    const pdfjs: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const loadPdfJs = new Function('modulePath', 'return import(modulePath)') as (modulePath: string) => Promise<any>;
+    const pdfjs: any = await loadPdfJs('pdfjs-dist/legacy/build/pdf.mjs');
     const version = String(pdfjs?.version ?? '5.5.207');
     if (pdfjs?.GlobalWorkerOptions) {
       pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;

@@ -6,11 +6,31 @@
 
 
 import { Amplify } from 'aws-amplify';
-import amplifyconfig from '../../amplify_outputs.json';
 import { generateClient } from 'aws-amplify/api';
 import type { Schema } from '../../amplify/data/resource.ts';
 
-Amplify.configure(amplifyconfig);
+function loadAmplifyConfig(): Record<string, unknown> {
+  const fromGlobal = (globalThis as any)?.__AMPLIFY_CONFIG__;
+  if (fromGlobal && typeof fromGlobal === 'object') return fromGlobal as Record<string, unknown>;
+
+  if (typeof window === 'undefined') {
+    try {
+      const req = eval('require') as (id: string) => any;
+      const loaded = req('../../amplify_outputs.json');
+      const cfg = loaded?.default ?? loaded;
+      if (cfg && typeof cfg === 'object') return cfg as Record<string, unknown>;
+    } catch {
+      // Allow builds/environments where amplify_outputs.json is not present yet.
+    }
+  }
+
+  return {};
+}
+
+const amplifyconfig = loadAmplifyConfig();
+if (Object.keys(amplifyconfig).length > 0) {
+  Amplify.configure(amplifyconfig);
+}
 
 function safeJson(value: unknown, maxLen: number): string {
   try {
