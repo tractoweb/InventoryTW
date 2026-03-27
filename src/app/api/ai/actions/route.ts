@@ -6,9 +6,17 @@ import { amplifyClient } from '@/lib/amplify-config';
 import { requireSession } from '@/lib/session';
 import { adjustStock } from '@/actions/adjust-stock';
 import { createProductAction } from '@/actions/create-product';
-
+import { deleteProduct } from '@/actions/delete-product';
+import { updateDocumentMetadataAction } from '@/actions/update-document-metadata';
 const ExecuteSchema = z.object({
-  operation: z.enum(['adjustStock', 'createProduct']),
+  operation: z.enum([
+    'adjustStock',
+    'createProduct',
+    'queryDB',
+    'updateProduct',
+    'deleteProduct',
+    'updateDocumentMetadata',
+  ]),
   params: z.record(z.any()).default({}),
   confirmation: z.boolean().default(false),
   doubleConfirmation: z.boolean().default(false),
@@ -28,6 +36,56 @@ const CreateProductParams = z.object({
   price: z.coerce.number().min(0).optional(),
   productGroupId: z.coerce.number().min(1).optional(),
 });
+
+// ── Nuevas operaciones ────────────────────────────────────────────────────────
+
+const ALLOWED_QUERY_TABLES = [
+  'Product', 'Stock', 'Kardex', 'Document', 'DocumentItem',
+  'Customer', 'Client', 'Warehouse', 'DocumentType', 'ProductGroup',
+  'Tax', 'Payment', 'Barcode', 'ProductTax', 'DocumentItemTax',
+] as const;
+type AllowedQueryTable = (typeof ALLOWED_QUERY_TABLES)[number];
+
+const QueryDBParams = z.object({
+  table: z.enum(ALLOWED_QUERY_TABLES),
+  productId: z.coerce.number().optional(),
+  warehouseId: z.coerce.number().optional(),
+  documentId: z.coerce.number().optional(),
+  customerId: z.coerce.number().optional(),
+  clientId: z.coerce.number().optional(),
+  documentTypeId: z.coerce.number().optional(),
+  productGroupId: z.coerce.number().optional(),
+  taxId: z.coerce.number().optional(),
+  isEnabled: z.boolean().optional(),
+  type: z.string().trim().max(40).optional(),
+  dateFrom: z.string().trim().max(20).optional(),
+  dateTo: z.string().trim().max(20).optional(),
+  limit: z.coerce.number().min(1).max(100).default(50),
+});
+
+const UpdateProductParams = z.object({
+  productId: z.coerce.number().min(1),
+  name: z.string().trim().min(2).max(120).optional(),
+  code: z.string().trim().max(50).optional(),
+  price: z.coerce.number().min(0).optional(),
+  cost: z.coerce.number().min(0).optional(),
+  description: z.string().trim().max(500).optional(),
+  productGroupId: z.coerce.number().min(1).optional(),
+});
+
+const DeleteProductParams = z.object({
+  productId: z.coerce.number().min(1),
+});
+
+const UpdateDocumentMetadataParams = z.object({
+  documentId: z.coerce.number().min(1),
+  note: z.string().trim().max(500).optional(),
+  clientName: z.string().trim().max(120).optional(),
+  clientId: z.coerce.number().optional(),
+  customerId: z.coerce.number().optional(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function jsonError(error: string, status: number): Response {
   return new Response(JSON.stringify({ error }), {
@@ -52,6 +110,77 @@ export async function POST(request: NextRequest) {
 
     const { operation, params, confirmation, doubleConfirmation } = parsed.data;
 
+    // ── queryDB: solo lectura — no bloquear por AI_ENABLE_WRITE_ACTIONS ─────
+    if (operation === 'queryDB') {
+      await requireSession(ACCESS_LEVELS.CASHIER);
+
+      const validated = QueryDBParams.safeParse(params);
+      if (!validated.success) {
+        return jsonError('Parámetros inválidos para queryDB: ' + validated.error.issues.map((i) => i.message).join(', '), 400);
+      }
+
+      const { table, limit, productId, warehouseId, documentId, customerId, clientId,
+              documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo } = validated.data;
+
+      const clauses: any[] = [];
+      if (productId)       clauses.push({ productId:       { eq: productId } });
+      if (warehouseId)     clauses.push({ warehouseId:     { eq: warehouseId } });
+      if (documentId)      clauses.push({ documentId:      { eq: documentId } });
+      if (customerId)      clauses.push({ customerId:      { eq: customerId } });
+      if (clientId)        clauses.push({ clientId:        { eq: clientId } });
+      if (documentTypeId)  clauses.push({ documentTypeId:  { eq: documentTypeId } });
+      if (productGroupId)  clauses.push({ productGroupId:  { eq: productGroupId } });
+      if (taxId)           clauses.push({ taxId:           { eq: taxId } });
+      if (isEnabled !== undefined) clauses.push({ isEnabled: { eq: isEnabled } });
+      if (type)            clauses.push({ type:            { eq: type } });
+      if (dateFrom && dateTo)  clauses.push({ date: { between: [dateFrom, dateTo] } });
+      else if (dateFrom)       clauses.push({ date: { ge: dateFrom } });
+      else if (dateTo)         clauses.push({ date: { le: dateTo } });
+
+      const filter = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses };
+      const model = (amplifyClient.models as any)[table as string];
+      if (!model) return jsonError(`Tabla no disponible: ${table}`, 400);
+
+      const res: any = await model.list({ ...(filter ? { filter } : {}), limit } as any);
+      const rows: any[] = res?.data ?? [];
+
+      if (rows.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true, operation,
+            message: `✅ Consulta ejecutada en ${table}. No se encontraron registros con los filtros indicados.`,
+            result: { table, count: 0 },
+            table: { title: `Resultados: ${table}`, columns: ['mensaje'], rows: [['Sin resultados']] },
+            links: [],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const EXCLUDE_KEYS = new Set(['__typename', 'createdAt', 'updatedAt', 'nextToken']);
+      const columns = Object.keys(rows[0]).filter((k) => !EXCLUDE_KEYS.has(k) && !k.startsWith('_'));
+      const tableRows = rows.map((row: any) =>
+        columns.map((col) => {
+          const v = row[col];
+          if (v === null || v === undefined) return '-';
+          if (typeof v === 'object') return JSON.stringify(v).slice(0, 80);
+          return String(v);
+        })
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true, operation,
+          message: `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).`,
+          result: { table, count: rows.length },
+          table: { title: `Resultados: ${table} (${rows.length} filas)`, columns, rows: tableRows },
+          links: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── Operaciones de escritura: requieren AI_ENABLE_WRITE_ACTIONS ──────────
     if (!isWriteActionsEnabled()) {
       return jsonError('Las acciones de escritura IA están deshabilitadas por configuración (AI_ENABLE_WRITE_ACTIONS).', 403);
     }
@@ -169,6 +298,184 @@ export async function POST(request: NextRequest) {
             columns: ['ID', 'Código', 'Nombre'],
             rows: [[res.idProduct, validated.data.code ?? '-', validated.data.name]],
           },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── queryDB: lectura segura filtrada ────────────────────────────────────
+    if (operation === 'queryDB') {
+      await requireSession(ACCESS_LEVELS.CASHIER);
+
+      const validated = QueryDBParams.safeParse(params);
+      if (!validated.success) {
+        return jsonError('Parámetros inválidos para queryDB: ' + validated.error.issues.map((i) => i.message).join(', '), 400);
+      }
+
+      const { table, limit, productId, warehouseId, documentId, customerId, clientId,
+              documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo } = validated.data;
+
+      // Build filter clauses for the allowed fields
+      const clauses: any[] = [];
+      if (productId)       clauses.push({ productId:       { eq: productId } });
+      if (warehouseId)     clauses.push({ warehouseId:     { eq: warehouseId } });
+      if (documentId)      clauses.push({ documentId:      { eq: documentId } });
+      if (customerId)      clauses.push({ customerId:      { eq: customerId } });
+      if (clientId)        clauses.push({ clientId:        { eq: clientId } });
+      if (documentTypeId)  clauses.push({ documentTypeId:  { eq: documentTypeId } });
+      if (productGroupId)  clauses.push({ productGroupId:  { eq: productGroupId } });
+      if (taxId)           clauses.push({ taxId:           { eq: taxId } });
+      if (isEnabled !== undefined) clauses.push({ isEnabled: { eq: isEnabled } });
+      if (type)            clauses.push({ type:            { eq: type } });
+      if (dateFrom && dateTo)      clauses.push({ date: { between: [dateFrom, dateTo] } });
+      else if (dateFrom)           clauses.push({ date: { ge: dateFrom } });
+      else if (dateTo)             clauses.push({ date: { le: dateTo } });
+
+      const filter = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses };
+
+      const model = (amplifyClient.models as any)[table as string];
+      if (!model) return jsonError(`Tabla no disponible: ${table}`, 400);
+
+      const res: any = await model.list({ ...(filter ? { filter } : {}), limit } as any);
+      const rows: any[] = res?.data ?? [];
+
+      if (rows.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            operation,
+            message: `✅ Consulta ejecutada en ${table}. No se encontraron registros con los filtros indicados.`,
+            result: { table, count: 0, rows: [] },
+            table: { title: `Resultados: ${table}`, columns: ['mensaje'], rows: [['Sin resultados']] },
+            links: [],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Build columns from first row keys (excluding internal/relation fields)
+      const EXCLUDE_KEYS = new Set(['__typename', 'createdAt', 'updatedAt', 'nextToken']);
+      const columns = Object.keys(rows[0]).filter((k) => !EXCLUDE_KEYS.has(k) && !k.startsWith('_'));
+      const tableRows = rows.map((row: any) =>
+        columns.map((col) => {
+          const v = row[col];
+          if (v === null || v === undefined) return '-';
+          if (typeof v === 'object') return JSON.stringify(v).slice(0, 80);
+          return String(v);
+        })
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          operation,
+          message: `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).`,
+          result: { table, count: rows.length },
+          table: { title: `Resultados: ${table} (${rows.length} filas)`, columns, rows: tableRows },
+          links: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── updateProduct: edición de campos básicos de un producto ─────────────
+    if (operation === 'updateProduct') {
+      await requireSession(ACCESS_LEVELS.ADMIN);
+      const validated = UpdateProductParams.safeParse(params);
+      if (!validated.success) {
+        return jsonError('Parámetros inválidos para updateProduct', 400);
+      }
+
+      const { productId, name, code, price, cost, description, productGroupId } = validated.data;
+
+      const existing: any = await amplifyClient.models.Product.get({ idProduct: productId } as any);
+      const product: any = existing?.data;
+      if (!product) return jsonError(`Producto ${productId} no encontrado`, 404);
+
+      const patch: any = { idProduct: productId };
+      const changed: string[] = [];
+      if (name !== undefined)           { patch.name = name;                         changed.push(`nombre: "${name}"`); }
+      if (code !== undefined)           { patch.code = code;                         changed.push(`código: "${code}"`); }
+      if (price !== undefined)          { patch.price = price;                       changed.push(`precio: ${price}`); }
+      if (cost !== undefined)           { patch.cost = cost;                         changed.push(`costo: ${cost}`); }
+      if (description !== undefined)    { patch.description = description;           changed.push(`descripción actualizada`); }
+      if (productGroupId !== undefined) { patch.productGroupId = productGroupId;     changed.push(`grupo: ${productGroupId}`); }
+
+      if (changed.length === 0) return jsonError('No se especificaron campos a actualizar', 400);
+
+      const updated: any = await amplifyClient.models.Product.update(patch as any);
+      if (!updated?.data) return jsonError('No se pudo actualizar el producto', 500);
+
+      const productLabel = String(updated.data.code ?? updated.data.name ?? productId);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          operation,
+          message: `✅ Producto actualizado: ${productLabel}. Cambios: ${changed.join(', ')}.`,
+          result: { productId, changes: changed },
+          links: [
+            { label: 'Ver en Inventario', url: `/inventory?q=${encodeURIComponent(productLabel)}` },
+          ],
+          table: {
+            title: 'Campo(s) modificado(s)',
+            columns: ['Campo', 'Nuevo valor'],
+            rows: Object.entries(patch)
+              .filter(([k]) => k !== 'idProduct')
+              .map(([k, v]) => [k, String(v)]),
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── deleteProduct: desactivación (soft-delete) ───────────────────────────
+    if (operation === 'deleteProduct') {
+      await requireSession(ACCESS_LEVELS.ADMIN);
+      if (!doubleConfirmation) return jsonError('Desactivar un producto requiere doble confirmación', 400);
+
+      const validated = DeleteProductParams.safeParse(params);
+      if (!validated.success) return jsonError('Parámetros inválidos para deleteProduct', 400);
+
+      const res = await deleteProduct(validated.data.productId);
+      if (!res.success) return jsonError(String(res.error ?? 'No se pudo desactivar el producto'), 400);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          operation,
+          message: `✅ Producto ID ${validated.data.productId} desactivado. Permanece en la base de datos para trazabilidad pero no aparecerá en listados.`,
+          result: { productId: validated.data.productId },
+          links: [{ label: 'Ver productos desactivados', url: '/inventory?tab=deleted' }],
+          table: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── updateDocumentMetadata: nota, cliente, proveedor de un documento ─────
+    if (operation === 'updateDocumentMetadata') {
+      const validated = UpdateDocumentMetadataParams.safeParse(params);
+      if (!validated.success) return jsonError('Parámetros inválidos para updateDocumentMetadata', 400);
+
+      const res = await updateDocumentMetadataAction(validated.data);
+      if (!res.success) return jsonError(String(res.error ?? 'No se pudo actualizar el documento'), 400);
+
+      const changed: string[] = [];
+      if (validated.data.note !== undefined)       changed.push('nota');
+      if (validated.data.clientName !== undefined) changed.push('nombre de cliente');
+      if (validated.data.clientId !== undefined)   changed.push('cliente vinculado');
+      if (validated.data.customerId !== undefined) changed.push('proveedor vinculado');
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          operation,
+          message: `✅ Documento ${validated.data.documentId} actualizado. Campos modificados: ${changed.join(', ')}.`,
+          result: { documentId: validated.data.documentId, changes: changed },
+          links: [
+            { label: `Ver documento ${validated.data.documentId}`, url: `/documents/${validated.data.documentId}/pdf` },
+          ],
+          table: null,
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );

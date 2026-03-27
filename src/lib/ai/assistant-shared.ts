@@ -19,7 +19,13 @@ export type AssistantPayload = {
     requiresDoubleConfirmation?: boolean;
     link?: { label: string; url: string };
     execute?: {
-      operation: 'adjustStock' | 'createProduct';
+      operation:
+        | 'adjustStock'
+        | 'createProduct'
+        | 'queryDB'
+        | 'updateProduct'
+        | 'deleteProduct'
+        | 'updateDocumentMetadata';
       params: Record<string, unknown>;
     };
   }>;
@@ -120,7 +126,13 @@ export async function sendAssistantMessage(input: {
 }
 
 export async function executeAssistantAction(input: {
-  operation: 'adjustStock' | 'createProduct';
+  operation:
+    | 'adjustStock'
+    | 'createProduct'
+    | 'queryDB'
+    | 'updateProduct'
+    | 'deleteProduct'
+    | 'updateDocumentMetadata';
   params: Record<string, unknown>;
   confirmation: boolean;
   doubleConfirmation?: boolean;

@@ -92,7 +92,13 @@ type ActionProposal = {
   requiresDoubleConfirmation?: boolean;
   link?: AssistantLink;
   execute?: {
-    operation: 'adjustStock' | 'createProduct';
+    operation:
+      | 'adjustStock'
+      | 'createProduct'
+      | 'queryDB'
+      | 'updateProduct'
+      | 'deleteProduct'
+      | 'updateDocumentMetadata';
     params: Record<string, unknown>;
   };
 };
@@ -596,13 +602,117 @@ function buildActionProposals(
       title: `Abrir kardex relacionado #${firstKardex.id}`,
       description: 'Navegar al modulo Kardex para revisar movimientos asociados.',
       requiresConfirmation: false,
-      link: {
-        label: 'Ver modulo Kardex',
-        url: '/kardex',
+      link: { label: 'Ver modulo Kardex', url: '/kardex' },
+    });
+  }
+
+  // ── Consultas de lectura (queryDB) ───────────────────────────────────────
+  const asksForStock = /(stock|inventario|cantidad|existencia|disponib)/i.test(q);
+  const asksForKardex = /(kardex|movimientos|historial|entradas|salidas)/i.test(q);
+  const asksForDocItems = /(lineas|items|detalle.*documento|que tiene.*doc)/i.test(q);
+  const asksForPayments = /(pagos|abonos|pago.*documento)/i.test(q);
+  const asksForBarcodes = /(codigos de barra|barcode|codigo de barras)/i.test(q);
+  const asksForTaxes = /(impuesto|iva|tax)/i.test(q);
+
+  if (asksForStock && firstProduct) {
+    actions.push({
+      id: `query-stock-${firstProduct.id}`,
+      kind: 'analysis',
+      title: `Consultar stock de "${firstProduct.code || firstProduct.name}" por bodega`,
+      description: `Muestra la cantidad disponible en cada bodega para este producto.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'Stock', productId: firstProduct.id, limit: 20 },
       },
     });
   }
 
+  if (asksForKardex && firstProduct) {
+    actions.push({
+      id: `query-kardex-product-${firstProduct.id}`,
+      kind: 'analysis',
+      title: `Ver historial Kardex de "${firstProduct.code || firstProduct.name}"`,
+      description: `Consulta todos los movimientos de inventario registrados para este producto.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'Kardex', productId: firstProduct.id, limit: 50 },
+      },
+    });
+  }
+
+  if (asksForKardex && firstWarehouse && !firstProduct) {
+    actions.push({
+      id: `query-kardex-warehouse-${firstWarehouse.id}`,
+      kind: 'analysis',
+      title: `Ver movimientos Kardex de bodega "${firstWarehouse.name}"`,
+      description: `Consulta los últimos movimientos de inventario en esta bodega.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'Kardex', warehouseId: firstWarehouse.id, limit: 50 },
+      },
+    });
+  }
+
+  if (asksForDocItems && firstDocument) {
+    actions.push({
+      id: `query-docitems-${firstDocument.id}`,
+      kind: 'analysis',
+      title: `Ver líneas del documento ${firstDocument.number || firstDocument.id}`,
+      description: `Muestra todos los productos, cantidades y precios del documento.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'DocumentItem', documentId: firstDocument.id, limit: 100 },
+      },
+    });
+  }
+
+  if (asksForPayments && firstDocument) {
+    actions.push({
+      id: `query-payments-${firstDocument.id}`,
+      kind: 'analysis',
+      title: `Ver pagos del documento ${firstDocument.number || firstDocument.id}`,
+      description: `Muestra los pagos registrados para este documento.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'Payment', documentId: firstDocument.id, limit: 50 },
+      },
+    });
+  }
+
+  if (asksForBarcodes && firstProduct) {
+    actions.push({
+      id: `query-barcodes-${firstProduct.id}`,
+      kind: 'analysis',
+      title: `Ver códigos de barra de "${firstProduct.code || firstProduct.name}"`,
+      description: `Lista todos los códigos de barra registrados para este producto.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'Barcode', productId: firstProduct.id, limit: 20 },
+      },
+    });
+  }
+
+  if (asksForTaxes && firstProduct) {
+    actions.push({
+      id: `query-taxes-${firstProduct.id}`,
+      kind: 'analysis',
+      title: `Ver impuestos de "${firstProduct.code || firstProduct.name}"`,
+      description: `Lista los impuestos vinculados a este producto.`,
+      requiresConfirmation: false,
+      execute: {
+        operation: 'queryDB',
+        params: { table: 'ProductTax', productId: firstProduct.id, limit: 10 },
+      },
+    });
+  }
+
+  // ── Etiquetas ─────────────────────────────────────────────────────────────
   if (/(imprimir|etiqueta|zebra|label)/i.test(q) && firstProduct) {
     const printableRef = encodeURIComponent(String(firstProduct.code || firstProduct.name));
     actions.push({
@@ -618,52 +728,81 @@ function buildActionProposals(
     });
   }
 
-  if (/(crear|agregar).*(producto|documento|stock)/i.test(q)) {
+  // ── Escritura ─────────────────────────────────────────────────────────────
+  if (/(crear|agregar|nuevo)\s+(producto|articulo)/i.test(q)) {
     actions.push({
-      id: 'propose-create',
+      id: 'propose-create-product',
       kind: 'write',
-      title: 'Proponer creación de registro',
-      description: 'Antes de escribir datos en el sistema, se pedirá confirmación explícita del usuario.',
+      title: 'Crear nuevo producto',
+      description: 'Antes de crear el registro, confirma nombre, código, precio y grupo de producto.',
       requiresConfirmation: true,
       requiresDoubleConfirmation: true,
       execute: {
         operation: 'createProduct',
+        params: { name: `Nuevo producto IA (${new Date().toISOString().slice(0, 10)})` },
+      },
+    });
+  }
+
+  if (/(editar|modificar|cambiar|actualizar).*(producto|precio|costo|nombre)/i.test(q) && firstProduct) {
+    actions.push({
+      id: `propose-update-product-${firstProduct.id}`,
+      kind: 'write',
+      title: `Modificar producto "${firstProduct.code || firstProduct.name}"`,
+      description: 'La IA preparará un parche con solo los campos que mencionaste. Se pedirá confirmación.',
+      requiresConfirmation: true,
+      execute: {
+        operation: 'updateProduct',
+        params: { productId: firstProduct.id },
+      },
+    });
+  }
+
+  if (/(ajustar|corregir|actualizar)\s+stock/i.test(q) && firstProduct) {
+    actions.push({
+      id: `propose-adjust-stock-${firstProduct.id}`,
+      kind: 'write',
+      title: `Ajustar stock de "${firstProduct.code || firstProduct.name}"`,
+      description: 'Ajuste absoluto de inventario. Se pedirá confirmación con la cantidad nueva.',
+      requiresConfirmation: true,
+      execute: {
+        operation: 'adjustStock',
         params: {
-          name: `Nuevo producto IA (${new Date().toISOString().slice(0, 10)})`,
+          productId: firstProduct.id,
+          warehouseId: firstWarehouse?.id ?? 1,
+          quantity: firstProduct.stock ?? 0,
+          reason: 'Ajuste asistido por IA (requiere validación humana)',
         },
       },
     });
   }
 
-  if (/(editar|modificar|ajustar|actualizar)/i.test(q)) {
+  if (/(eliminar|borrar|desactivar|anular)\s+(el\s+)?(producto|articulo)/i.test(q) && firstProduct) {
     actions.push({
-      id: 'propose-update',
+      id: `propose-delete-product-${firstProduct.id}`,
       kind: 'write',
-      title: 'Proponer modificación de datos',
-      description: 'La IA puede preparar cambios sugeridos y aplicarlos solo con aprobación del usuario.',
+      title: `Desactivar producto "${firstProduct.code || firstProduct.name}"`,
+      description: 'El producto quedará inactivo. No se elimina físicamente — permanece en kardex e historial.',
       requiresConfirmation: true,
-      execute: firstProduct
-        ? {
-            operation: 'adjustStock',
-            params: {
-              productId: firstProduct.id,
-              warehouseId: 1,
-              quantity: firstProduct.stock ?? 0,
-              reason: 'Ajuste asistido por IA (requiere validación humana)',
-            },
-          }
-        : undefined,
+      requiresDoubleConfirmation: true,
+      execute: {
+        operation: 'deleteProduct',
+        params: { productId: firstProduct.id },
+      },
     });
   }
 
-  if (/(eliminar|borrar|anular)/i.test(q)) {
+  if (/(editar|modificar|actualizar).*(nota|comentario|cliente).*documento|documento.*(nota|cliente)/i.test(q) && firstDocument) {
     actions.push({
-      id: 'propose-delete',
+      id: `propose-update-doc-${firstDocument.id}`,
       kind: 'write',
-      title: 'Proponer eliminación/anulación',
-      description: 'Las acciones destructivas requieren doble confirmación.',
+      title: `Editar metadatos del documento ${firstDocument.number || firstDocument.id}`,
+      description: 'Permite actualizar nota, nombre de cliente o vínculos de cliente/proveedor del documento.',
       requiresConfirmation: true,
-      requiresDoubleConfirmation: true,
+      execute: {
+        operation: 'updateDocumentMetadata',
+        params: { documentId: firstDocument.id },
+      },
     });
   }
 
@@ -711,27 +850,121 @@ function buildSystemPrompt(
     .slice(0, 1200);
 
   const dbSchema = `
-ESQUEMA DE BASE DE DATOS DISPONIBLE (InventoryTW):
-- Product: idProduct, name, code, plu, price, cost, markup, productGroupId, isEnabled, description, image
-- Stock: productId, warehouseId, quantity (consulta disponibilidad por producto/bodega)
-- Warehouse: idWarehouse, name (bodega/almacen)
-- ProductGroup: idProductGroup, name, parentGroupId, color (grupos de productos)
-- Document: documentId, number, date, documentTypeId, total, customerId, clientId, warehouseId, isClockedOut
-- DocumentItem: documentId, productId, quantity, price, discount (lineas de un documento)
-- Kardex: kardexId, productId, date, type (entrada/salida), quantity, balance, warehouseId, documentId (historial de movimientos)
-- Customer: idCustomer, name, taxNumber (proveedores)
-- Client: idClient, name, taxNumber (clientes finales de ventas)
-- DocumentType: documentTypeId, name, code, documentCategoryId, stockDirection (tipo de movimiento: entrada/salida/ajuste)
-- Barcode: productId, value (codigos de barra)
-- ProductComment: commentId, productId, comment (notas de productos)
+ESQUEMA DE BASE DE DATOS (InventoryTW — AWS DynamoDB via Amplify):
+Tablas principales y sus campos clave:
+- Product: idProduct, name, code, plu, price, cost, markup, productGroupId, isEnabled, measurementUnit, description, isService, lastPurchasePrice
+- Stock: productId (FK→Product), warehouseId (FK→Warehouse), quantity [CLAVE COMPUESTA productId+warehouseId]
+- Warehouse: idWarehouse, name
+- ProductGroup: idProductGroup, name, parentGroupId, color, rank
+- Barcode: productId (FK→Product), value [CLAVE COMPUESTA productId+value]
+- ProductTax: productId (FK→Product), taxId (FK→Tax) [tabla de relacion N:N]
+- Tax: idTax, name, rate, code, isFixed, isEnabled
+- StockControl: stockControlId, productId, reorderPoint, preferredQuantity, isLowStockWarningEnabled, lowStockWarningQuantity
+- Kardex: kardexId, productId (FK→Product), warehouseId (FK→Warehouse), documentId (FK→Document), documentItemId, date, type (ENTRADA/SALIDA/AJUSTE), quantity, balance, unitCost, totalCost, unitPrice, documentNumber note
+  GSI disponibles: listKardexByProductId(productId), listKardexByWarehouseId(warehouseId), listKardexByDocumentId(documentId)
+- KardexHistory: kardexHistoryId, kardexId, productId, previousBalance, newBalance, modifiedBy, modifiedDate, reason
+- Document: documentId, number, date, total, userId (FK→User), customerId (FK→Customer), clientId (FK→Client), warehouseId (FK→Warehouse), documentTypeId (FK→DocumentType), paidStatus, note, dueDate, discount, isClockedOut
+- DocumentItem: documentItemId, documentId (FK→Document), productId (FK→Product), quantity, price, discount, total, productNameSnapshot, productCodeSnapshot
+- DocumentItemTax: documentItemId (FK→DocumentItem), taxId (FK→Tax), amount
+- DocumentType: documentTypeId, name, code, documentCategoryId, warehouseId, stockDirection (1=ENTRADA, -1=SALIDA, 0=NINGUNO)
+- DocumentCategory: idDocumentCategory, name
+- Customer: idCustomer, name, taxNumber, code, isEnabled, isSupplier, isCustomer (usado para PROVEEDORES en InventoryTW)
+- Client: idClient, name, taxNumber, email, phoneNumber, isEnabled (usado para CLIENTES finales de ventas)
+- Payment: paymentId, documentId (FK→Document), paymentTypeId (FK→PaymentType), amount, date, userId
+- PaymentType: paymentTypeId, name, code, isFiscal, isEnabled
+- AuditLog: logId, userId, action, tableName, recordId, oldValues, newValues, timestamp
+- Counter: name, value (secuencias autoincrement)
+- ApplicationSettings: companyId, organizationName, taxPercentage, currencySymbol, allowNegativeStock, defaultWarehouseId
+- PrintLabelRequest: requestId, requestedAt, status (PENDING/DONE)
+- PrintLabelRequestItem: requestItemId, requestId, productId, qty, name, primaryBarcode
 
-RELACIONES CLAVE PARA CONSULTAS:
-- Product + Stock: busca disponibilidad en bodega especifica (cantidad total = SUM(Stock.quantity) por producto/bodega)
-- Product + Kardex: historial completo de movimientos (compras/ventas/ajustes)
-- Document + DocumentItem: para revisar lineas y composicion de documentos
-- Document + Customer/Client: para datos del proveedor/cliente
-- Kardex + Warehouse: para rastrear movimientos por bodega y producto
-  `;
+RELACIONES CLAVE:
+- Un Product pertenece a un ProductGroup (productGroupId)
+- Stock une Product + Warehouse (clave compuesta); SUM(Stock.quantity) por productId = stock total del producto
+- Un Document tiene muchos DocumentItems; cada item apunta a un Product
+- Kardex registra cada movimiento de inventario: ENTRADA (compra), SALIDA (venta), AJUSTE
+- Customer = proveedores; Client = clientes finales de venta
+- DocumentType.stockDirection define si un doc suma (1), resta (-1) o no afecta (0) el stock
+`;
+
+  const operationsDoc = `
+OPERACIONES DISPONIBLES QUE PUEDES PROPONER (via campo "execute" en las acciones):
+
+=== LECTURA (kind:"analysis", requiresConfirmation:false) ===
+operation: "queryDB"
+  Ejecuta una consulta filtrada sobre cualquier tabla. Devuelve los datos como tabla.
+  Params: {
+    table: "Product"|"Stock"|"Kardex"|"Document"|"DocumentItem"|"Customer"|"Client"|
+           "Warehouse"|"DocumentType"|"ProductGroup"|"Tax"|"Payment"|"Barcode"|"ProductTax"|"DocumentItemTax",
+    productId?: number,       // filtra por productId en Stock, Kardex, DocumentItem, Barcode, ProductTax
+    warehouseId?: number,     // filtra por warehouseId en Stock, Kardex, Document
+    documentId?: number,      // filtra por documentId en DocumentItem, Payment, Kardex
+    customerId?: number,      // filtra por customerId en Document
+    clientId?: number,        // filtra por clientId en Document
+    documentTypeId?: number,  // filtra por documentTypeId en Document
+    productGroupId?: number,  // filtra por productGroupId en Product
+    taxId?: number,           // filtra por taxId en ProductTax, DocumentItemTax
+    isEnabled?: boolean,      // filtra por isEnabled en Product, Customer
+    type?: string,            // filtra por type en Kardex (ej: "ENTRADA", "SALIDA", "AJUSTE")
+    dateFrom?: string,        // ej: "2026-01-01" — aplica a date en Kardex y Document
+    dateTo?: string,          // ej: "2026-03-31"
+    limit?: number            // 1-100, default 50
+  }
+  Ejemplos de uso:
+    Ver stock de producto 123: { table:"Stock", productId:123 }
+    Ver kardex de producto 45, solo entradas: { table:"Kardex", productId:45, type:"ENTRADA", limit:20 }
+    Ver kardex de bodega 2 en enero 2026: { table:"Kardex", warehouseId:2, dateFrom:"2026-01-01", dateTo:"2026-01-31" }
+    Ver documentos de cliente 7: { table:"Document", clientId:7, limit:20 }
+    Ver items de documento 500: { table:"DocumentItem", documentId:500 }
+    Ver todos los productos del grupo 3: { table:"Product", productGroupId:3, limit:100 }
+    Ver pagos de documento 200: { table:"Payment", documentId:200 }
+    Ver codigos de barra del producto 10: { table:"Barcode", productId:10 }
+    Ver impuestos del producto 10: { table:"ProductTax", productId:10 }
+    Ver todos los tipos de documento: { table:"DocumentType", limit:50 }
+
+=== ESCRITURA (requieren AI_ENABLE_WRITE_ACTIONS=true en servidor) ===
+
+operation: "adjustStock" (kind:"write", requiresConfirmation:true)
+  Ajusta el stock absoluto de un producto en una bodega.
+  Params: { productId:number, warehouseId:number, quantity:number, reason?:string }
+  Nivel de acceso requerido: CASHIER (nivel 0+)
+  Ejemplo: { productId:123, warehouseId:1, quantity:50, reason:"Conteo físico marzo 2026" }
+
+operation: "createProduct" (kind:"write", requiresDoubleConfirmation:true)
+  Crea un nuevo producto en el catálogo.
+  Params: { name:string, code?:string, cost?:number, price?:number, productGroupId?:number }
+  Nivel de acceso requerido: ADMIN (nivel 1+)
+  Ejemplo: { name:"Filtro Aceite XYZ", code:"FILT-XYZ", cost:15000, price:25000, productGroupId:3 }
+
+operation: "updateProduct" (kind:"write", requiresConfirmation:true)
+  Actualiza campos específicos de un producto existente.
+  Params: { productId:number, name?:string, code?:string, price?:number, cost?:number, description?:string, productGroupId?:number }
+  Nivel de acceso requerido: ADMIN (nivel 1+)
+  Ejemplo: { productId:456, price:32000, cost:18000 }
+  IMPORTANTE: Solo envía los campos que deben cambiar. Los demás permanecen intactos.
+
+operation: "deleteProduct" (kind:"write", requiresDoubleConfirmation:true)
+  Desactiva (soft-delete) un producto. Permanece en historial/kardex pero desaparece de listados activos.
+  Params: { productId:number }
+  Nivel de acceso requerido: ADMIN (nivel 1+)
+
+operation: "updateDocumentMetadata" (kind:"write", requiresConfirmation:true)
+  Actualiza metadatos de un documento (nota, nombre de cliente, vínculos de cliente/proveedor).
+  Params: { documentId:number, note?:string, clientName?:string, clientId?:number, customerId?:number }
+  Nivel de acceso requerido: CASHIER (nivel 0+)
+  Ejemplo: { documentId:300, note:"Entregado el 15 de marzo 2026" }
+
+REGLAS PARA PROPONER ACCIONES:
+1. Si el usuario pide VER datos específicos que el contexto actual no cubre completamente → propón queryDB
+2. Si pide MODIFICAR precio/costo/nombre de un producto → propón updateProduct (solo los campos mencionados)
+3. Si pide DESACTIVAR o ELIMINAR un producto → propón deleteProduct (siempre doble confirmación)
+4. Si pide AJUSTAR o CORREGIR stock → propón adjustStock con la cantidad nueva exacta
+5. Si pide CREAR un producto → propón createProduct (siempre doble confirmación)
+6. Si pide EDITAR nota o cliente de un documento → propón updateDocumentMetadata
+7. SIEMPRE explica en lenguaje claro QUÉ va a hacer la acción ANTES de permitir ejecutarla
+8. Para escribir datos, usa requiresConfirmation:true. Para borrar/crear, requiresDoubleConfirmation:true
+9. Nunca inventes IDs. Solo usa IDs que aparezcan en el contexto provisto o que el usuario mencione explícitamente
+`;
 
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
@@ -741,7 +974,8 @@ RELACIONES CLAVE PARA CONSULTAS:
     'Usa tono conversacional profesional. Solo usa listas/tablas si realmente mejoran la comprension.',
     'Puedes usar el contexto de base de datos y resultados web provistos por el backend.',
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
-    `DISPONIBILIDAD DE DATOS: ${dbSchema}`,
+    dbSchema,
+    operationsDoc,
     'Si el usuario pregunta por lo que esta viendo en pantalla (ej: documento abierto), prioriza el contexto de pantalla provisto y explicalo de forma legible.',
     'Cuando el usuario pida editar/escribir datos, primero responde con un mini plan y preguntas de confirmacion (que, por que, alcance) antes de ejecutar.',
     'Si propones cambios, especifica exactamente que campos se tocaran y que campos NO se tocaran.',
@@ -756,7 +990,7 @@ RELACIONES CLAVE PARA CONSULTAS:
     warehousesInline ? `Bodegas candidatas encontradas: ${warehousesInline}` : '',
     kardexInline ? `Movimientos kardex candidatos: ${kardexInline}` : '',
     webInline ? `Resultados web sugeridos: ${webInline}` : '',
-  ].join(' ');
+  ].join('\n');
 }
 
 function buildBedrockClient(): BedrockRuntimeClient {
