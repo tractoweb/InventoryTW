@@ -755,6 +755,7 @@ async function invokeModelWithToolLoop(
       const cmd2 = new ConverseCommand({
         modelId, system: [{ text: systemPrompt }],
         messages: msgs2, inferenceConfig: inferConf,
+        toolConfig: { tools: [QUERY_DB_TOOL_SPEC as any] } as any,
       });
       const res2 = await client.send(cmd2);
       const text2 = (res2.output?.message?.content ?? [])

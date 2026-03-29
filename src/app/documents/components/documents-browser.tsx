@@ -754,6 +754,9 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
           <Button asChild>
             <Link href="/documents/new">Agregar</Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link href="/documents/compra-venta">Compra/Venta sin inventario</Link>
+          </Button>
           <Button variant="outline" onClick={refreshDocs} disabled={loadingDocs}>
             Refrescar
           </Button>
@@ -1053,17 +1056,9 @@ export function DocumentsBrowser({ initialDocumentId }: { initialDocumentId?: nu
                     </Button>
                   ) : null}
 
-                  <Button
-                    variant="outline"
-                    onClick={openEditDialog}
-                    disabled={!selectedDocumentId || !details}
-                  >
-                    Modificar
-                  </Button>
-
                   <Button variant="outline" asChild disabled={!selectedDocumentId}>
                     <Link href={selectedDocumentId ? `/documents/${selectedDocumentId}/edit` : '/documents'}>
-                      Editar pantalla completa
+                      Editar documento
                     </Link>
                   </Button>
 

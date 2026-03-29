@@ -61,6 +61,9 @@ import { searchCustomersAction, type CustomerSearchResult } from '@/actions/sear
 import { getProductGroups, type ProductGroup } from '@/actions/get-product-groups';
 import { getCurrencies, type CurrencyListItem } from '@/actions/get-currencies';
 import { createProductsFromDocumentLinesAction } from '@/actions/create-products-from-document-lines';
+import { updateDocumentItemsAction } from '@/actions/update-document-items';
+import { updateDocumentHeaderAction } from '@/actions/update-document-header';
+import type { DocumentDetails } from '@/actions/get-document-details';
 import { parseDecimalLooseOptional } from "@/lib/parse-decimal";
 
 import {
@@ -104,6 +107,7 @@ type DraftProduct = {
 
 type DraftItem = {
   lineId: string;
+  documentItemId?: number;
   productId: number | null;
   productLabel: string;
   draftProduct?: DraftProduct;
@@ -115,7 +119,71 @@ type DraftItem = {
   purchaseReference: string;
   warehouseReference: string;
   updateProductPrice: boolean;
+  remove?: boolean;
 };
+
+interface NewDocumentFormProps {
+  mode?: 'create' | 'edit';
+  documentToEdit?: DocumentDetails;
+}
+
+function todayYmd(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parsePriceUpdateFlags(rawInternalNote: unknown): Set<number> {
+  if (typeof rawInternalNote !== 'string') return new Set<number>();
+  const trimmed = rawInternalNote.trim();
+  if (!trimmed.startsWith('{')) return new Set<number>();
+
+  try {
+    const obj = JSON.parse(trimmed) as any;
+    const flags = obj?.priceUpdate?.documentItemFlags;
+    if (!flags || typeof flags !== 'object') return new Set<number>();
+
+    const ids = Object.entries(flags)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([id]) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+
+    return new Set<number>(ids);
+  } catch {
+    return new Set<number>();
+  }
+}
+
+function buildInitialItems(documentToEdit?: DocumentDetails): DraftItem[] {
+  if (!documentToEdit) return [];
+
+  const lineInputs = documentToEdit.liquidation?.lineInputs ?? [];
+  const updateFlags = parsePriceUpdateFlags(documentToEdit.internalnote);
+
+  return (documentToEdit.items ?? []).map((item, idx) => {
+    const line = lineInputs[idx];
+    const productLabel = item.productcode ? `${item.productname} (${item.productcode})` : item.productname;
+    const fallbackTotalCost = Math.max(0, Number(item.price ?? 0) * Number(item.quantity ?? 0));
+
+    return {
+      lineId: newLineId(),
+      documentItemId: Number(item.id),
+      productId: Number(item.productid),
+      productLabel,
+      quantity: Number(item.quantity ?? 0) || 0,
+      totalCost: Number(line?.totalCost ?? fallbackTotalCost) || 0,
+      discountPercentage: Number(line?.discountPercentage ?? 0) || 0,
+      marginPercentage: Number(line?.marginPercentage ?? 0) || 0,
+      freightId: String(line?.freightId ?? '1'),
+      purchaseReference: String(line?.purchaseReference ?? item.productcode ?? ''),
+      warehouseReference: String(line?.warehouseReference ?? ''),
+      updateProductPrice: updateFlags.has(Number(item.id)),
+      remove: false,
+    };
+  });
+}
 
 function formatMoney(amount: number) {
   const n = Number(amount ?? 0);
@@ -135,7 +203,10 @@ function newLineId() {
   }
 }
 
-export function NewDocumentForm() {
+export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocumentFormProps) {
+  const isEditMode = mode === 'edit' && Boolean(documentToEdit?.id);
+  const editDocumentId = isEditMode ? Number(documentToEdit?.id) : null;
+  const isFinalizedEdit = isEditMode && Boolean(documentToEdit?.isclockedout);
   const { toast } = useToast();
   const submitLockRef = React.useRef(false);
 
@@ -161,9 +232,15 @@ export function NewDocumentForm() {
   const [warehouses, setWarehousesState] = React.useState<SelectOption[]>([]);
   const [documentTypes, setDocumentTypesState] = React.useState<SelectOption[]>([]);
 
-  const [warehouseId, setWarehouseId] = React.useState<number | ''>('');
-  const [documentTypeId, setDocumentTypeId] = React.useState<number | ''>('');
-  const [customerId, setCustomerId] = React.useState<number | ''>('');
+  const [warehouseId, setWarehouseId] = React.useState<number | ''>(
+    isEditMode && documentToEdit?.warehouseid ? Number(documentToEdit.warehouseid) : ''
+  );
+  const [documentTypeId, setDocumentTypeId] = React.useState<number | ''>(
+    isEditMode && documentToEdit?.documenttypeid ? Number(documentToEdit.documenttypeid) : ''
+  );
+  const [customerId, setCustomerId] = React.useState<number | ''>(
+    isEditMode && documentToEdit?.customerid ? Number(documentToEdit.customerid) : ''
+  );
 
   // Supplier search dialog
   const [supplierDialogOpen, setSupplierDialogOpen] = React.useState(false);
@@ -171,27 +248,35 @@ export function NewDocumentForm() {
   const [supplierResults, setSupplierResults] = React.useState<CustomerSearchResult[]>([]);
   const [supplierSearching, setSupplierSearching] = React.useState(false);
 
-  const [date, setDate] = React.useState(() => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  });
+  const [date, setDate] = React.useState(() => (isEditMode ? String(documentToEdit?.date ?? todayYmd()) : todayYmd()));
 
-  const [referenceDocumentNumber, setReferenceDocumentNumber] = React.useState('');
-  const [note, setNote] = React.useState('');
+  const [referenceDocumentNumber, setReferenceDocumentNumber] = React.useState(
+    isEditMode ? String(documentToEdit?.referencedocumentnumber ?? '') : ''
+  );
+  const [note, setNote] = React.useState(isEditMode ? String(documentToEdit?.note ?? '') : '');
 
   // Payment status (0=pending/unpaid, 2=paid)
-  const [paidStatus, setPaidStatus] = React.useState<0 | 2>(2);
+  const [paidStatus, setPaidStatus] = React.useState<0 | 2>(
+    isEditMode && Number(documentToEdit?.paidstatus) === 0 ? 0 : 2
+  );
 
-  const [items, setItems] = React.useState<DraftItem[]>([]);
+  const [items, setItems] = React.useState<DraftItem[]>(() => buildInitialItems(documentToEdit));
 
   // Liquidación: configuración global (basada en la calculadora)
-  const [ivaPercentage, setIvaPercentage] = React.useState<number | ''>(19);
-  const [ivaIncludedInCost, setIvaIncludedInCost] = React.useState(false);
-  const [discountsEnabled, setDiscountsEnabled] = React.useState(true);
-  const [globalMargin, setGlobalMargin] = React.useState<number | ''>(40);
+  const [ivaPercentage, setIvaPercentage] = React.useState<number | ''>(
+    isEditMode ? Number(documentToEdit?.liquidation?.config?.ivaPercentage ?? 19) : 19
+  );
+  const [ivaIncludedInCost, setIvaIncludedInCost] = React.useState(
+    isEditMode ? Boolean(documentToEdit?.liquidation?.config?.ivaIncludedInCost) : false
+  );
+  const [discountsEnabled, setDiscountsEnabled] = React.useState(
+    isEditMode ? Boolean(documentToEdit?.liquidation?.config?.discountsEnabled ?? true) : true
+  );
+  const [globalMargin, setGlobalMargin] = React.useState<number | ''>(() => {
+    if (!isEditMode) return 40;
+    const firstLine = documentToEdit?.liquidation?.lineInputs?.[0];
+    return Number(firstLine?.marginPercentage ?? 40);
+  });
 
   const [ivaPercentageText, setIvaPercentageText] = React.useState<string>(toUserDecimalText(ivaPercentage));
   const ivaFocusedRef = React.useRef(false);
@@ -199,10 +284,16 @@ export function NewDocumentForm() {
   const [globalMarginText, setGlobalMarginText] = React.useState<string>(toUserDecimalText(globalMargin));
   const globalMarginFocusedRef = React.useRef(false);
 
-  const [useMultipleFreights, setUseMultipleFreights] = React.useState(false);
-  const [freightRates, setFreightRates] = React.useState<LiquidationFreightRate[]>([
-    { id: '1', name: 'Flete 1', cost: 0 },
-  ]);
+  const [useMultipleFreights, setUseMultipleFreights] = React.useState(
+    isEditMode ? Boolean(documentToEdit?.liquidation?.config?.useMultipleFreights) : false
+  );
+  const [freightRates, setFreightRates] = React.useState<LiquidationFreightRate[]>(() => {
+    const fromDoc = documentToEdit?.liquidation?.config?.freightRates ?? [];
+    if (isEditMode && fromDoc.length > 0) {
+      return fromDoc.map((f) => ({ id: String(f.id), name: String(f.name), cost: Number(f.cost ?? 0) || 0 }));
+    }
+    return [{ id: '1', name: 'Flete 1', cost: 0 }];
+  });
 
   const [editingFreightId, setEditingFreightId] = React.useState<string | null>(null);
   const [editingFreightCostText, setEditingFreightCostText] = React.useState<string>('');
@@ -265,8 +356,13 @@ export function NewDocumentForm() {
     [discountsEnabled, freightRates, ivaIncludedInCost, ivaPercentage, useMultipleFreights]
   );
 
+  const activeItems = React.useMemo(
+    () => items.filter((it) => !it.remove),
+    [items]
+  );
+
   const liquidation = React.useMemo(() => {
-    const lines: LiquidationLineInput[] = items.map((it, idx) => ({
+    const lines: LiquidationLineInput[] = activeItems.map((it, idx) => ({
       id: it.lineId,
       productId: typeof it.productId === 'number' ? it.productId : undefined,
       name: it.productLabel,
@@ -279,7 +375,15 @@ export function NewDocumentForm() {
       freightId: it.freightId,
     }));
     return computeLiquidation(liquidationConfig, lines);
-  }, [items, liquidationConfig]);
+  }, [activeItems, liquidationConfig]);
+
+  const liquidationByLineId = React.useMemo(() => {
+    const map = new Map<string, (typeof liquidation.lines)[number]>();
+    activeItems.forEach((it, idx) => {
+      map.set(it.lineId, liquidation.lines[idx]);
+    });
+    return map;
+  }, [activeItems, liquidation.lines]);
 
   React.useEffect(() => {
     async function boot() {
@@ -309,10 +413,15 @@ export function NewDocumentForm() {
           (wh.data ?? []).map((w: any) => ({ value: Number(w.idWarehouse), label: String(w.name) }))
         );
 
-        // This screen is the purchase liquidation flow; only show Purchase document types.
-        // (Avoid confusion when multiple "Compra"-like types exist or misconfigured directions.)
-        const purchaseTypes = (dt.data ?? []).filter((d: any) => Number(d?.documentCategoryId ?? 0) === 1);
-        const raw = (purchaseTypes.length ? purchaseTypes : (dt.data ?? []))
+        // In create mode prioritize purchase types; in edit mode keep all enabled types.
+        const sourceTypes = isEditMode
+          ? (dt.data ?? [])
+          : (() => {
+              const purchaseTypes = (dt.data ?? []).filter((d: any) => Number(d?.documentCategoryId ?? 0) === 1);
+              return purchaseTypes.length ? purchaseTypes : (dt.data ?? []);
+            })();
+
+        const raw = sourceTypes
           .filter((d: any) => d?.isEnabled !== false)
           .map((d: any) => {
             const base = String(d?.name ?? '').trim();
@@ -340,7 +449,7 @@ export function NewDocumentForm() {
           });
 
         setDocumentTypesState(options);
-        if (documentTypeId === '' && options.length === 1) {
+        if (!isEditMode && documentTypeId === '' && options.length === 1) {
           setDocumentTypeId(options[0].value);
         }
       } catch (e: any) {
@@ -351,7 +460,7 @@ export function NewDocumentForm() {
     }
 
     boot();
-  }, [toast, documentTypeId]);
+  }, [toast, documentTypeId, isEditMode]);
 
   async function retryFinalizeExisting(): Promise<void> {
     const documentId = resultDocumentId;
@@ -409,6 +518,7 @@ export function NewDocumentForm() {
       ...prev,
       {
         lineId: newLineId(),
+        documentItemId: undefined,
         productId: p.idProduct,
         productLabel: label,
         quantity: 1,
@@ -419,6 +529,7 @@ export function NewDocumentForm() {
         purchaseReference: p.code ? String(p.code) : '',
         warehouseReference: '',
         updateProductPrice: false,
+        remove: false,
       },
     ]);
     setProductDialogOpen(false);
@@ -433,6 +544,7 @@ export function NewDocumentForm() {
       ...prev,
       {
         lineId: newLineId(),
+        documentItemId: undefined,
         productId: null,
         productLabel: `${label} (nuevo)`,
         draftProduct: p,
@@ -444,6 +556,7 @@ export function NewDocumentForm() {
         purchaseReference: p.code ? String(p.code) : '',
         warehouseReference: '',
         updateProductPrice: false,
+        remove: false,
       },
     ]);
 
@@ -458,7 +571,16 @@ export function NewDocumentForm() {
   }
 
   function removeItem(idx: number) {
-    setItems((prev) => prev.filter((_, i) => i !== idx));
+    setItems((prev) => {
+      const target = prev[idx];
+      if (!target) return prev;
+
+      if (isEditMode && Number(target.documentItemId) > 0) {
+        return prev.map((it, i) => (i === idx ? { ...it, remove: !it.remove } : it));
+      }
+
+      return prev.filter((_, i) => i !== idx);
+    });
   }
 
   function updateFreightRate(id: string, patch: Partial<LiquidationFreightRate>) {
@@ -561,11 +683,11 @@ export function NewDocumentForm() {
     }
 
     submitLockRef.current = true;
-    setSaving(false);
-    setFinalizing(true);
+    setSaving(isEditMode);
+    setFinalizing(!isEditMode);
 
     const progress = toast({
-      title: 'Finalizando…',
+      title: isEditMode ? 'Guardando cambios…' : 'Finalizando…',
       description: 'Preparando datos…',
     });
 
@@ -576,7 +698,7 @@ export function NewDocumentForm() {
       if (!warehouseId || !documentTypeId) {
         throw new Error('Selecciona Almacén y Tipo de documento.');
       }
-      if (items.length === 0) {
+      if (activeItems.length === 0) {
         throw new Error('Agrega al menos 1 item.');
       }
 
@@ -588,7 +710,7 @@ export function NewDocumentForm() {
       } = { created: [], existing: [] };
 
       // Create any draft products right before saving/finalizing.
-      const draftToCreate = items
+      const draftToCreate = activeItems
         .map((it, idx) => ({ it, idx }))
         .filter(({ it }) => typeof it.productId !== 'number' && it.draftProduct);
 
@@ -654,7 +776,9 @@ export function NewDocumentForm() {
         });
       }
 
-      if (resolvedItems.some((it) => typeof it.productId !== 'number' || it.productId <= 0)) {
+      const resolvedActiveItems = resolvedItems.filter((it) => !it.remove);
+
+      if (resolvedActiveItems.some((it) => typeof it.productId !== 'number' || it.productId <= 0)) {
         throw new Error('Hay productos pendientes sin ID. Revisa los ítems antes de guardar.');
       }
 
@@ -665,7 +789,7 @@ export function NewDocumentForm() {
           ...productsMeta.existing.map((p) => p.lineId),
         ]);
 
-        for (const it of resolvedItems) {
+        for (const it of resolvedActiveItems) {
           if (typeof it.productId !== 'number' || it.productId <= 0) continue;
           if (seenLineIds.has(it.lineId)) continue;
           productsMeta.existing.push({
@@ -676,30 +800,123 @@ export function NewDocumentForm() {
         }
       }
 
-      const liquidationSnapshot = {
-        version: 1,
-        config: {
-          ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
-          ivaIncludedInCost,
-          discountsEnabled,
-          useMultipleFreights,
-          freightRates,
-        },
-        lineInputs: resolvedItems.map((it, idx) => ({
-          id: String(idx + 1),
-          productId: it.productId ?? undefined,
-          name: it.productLabel,
-          purchaseReference: it.purchaseReference,
-          warehouseReference: it.warehouseReference,
-          quantity: it.quantity,
-          totalCost: it.totalCost,
-          discountPercentage: it.discountPercentage,
-          marginPercentage: it.marginPercentage,
-          freightId: it.freightId,
-          updateProductPrice: Boolean(it.updateProductPrice),
-        })),
-        totals: liquidation.totals,
-      };
+      const liquidationLineInputs = resolvedActiveItems.map((it, idx) => ({
+        id: String(idx + 1),
+        productId: it.productId ?? undefined,
+        name: it.productLabel,
+        purchaseReference: it.purchaseReference,
+        warehouseReference: it.warehouseReference,
+        quantity: it.quantity,
+        totalCost: it.totalCost,
+        discountPercentage: it.discountPercentage,
+        marginPercentage: it.marginPercentage,
+        freightId: it.freightId,
+        updateProductPrice: Boolean(it.updateProductPrice),
+      }));
+
+      const mergedInternalNote = (() => {
+        const raw = documentToEdit?.internalnote;
+        let parsed: any = {};
+        if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+          try {
+            parsed = JSON.parse(raw);
+          } catch {
+            parsed = {};
+          }
+        }
+
+        return {
+          ...parsed,
+          liquidation: {
+            version: 1,
+            config: {
+              ivaPercentage: typeof ivaPercentage === 'number' ? ivaPercentage : 0,
+              ivaIncludedInCost,
+              discountsEnabled,
+              useMultipleFreights,
+              freightRates,
+            },
+            lineInputs: liquidationLineInputs,
+            totals: liquidation.totals,
+          },
+          products: productsMeta,
+        };
+      })();
+
+      if (isEditMode && editDocumentId) {
+        (progress as any).update({
+          title: 'Actualizando documento…',
+          description: 'Guardando encabezado e ítems…',
+        });
+
+        const headerRes = await updateDocumentHeaderAction({
+          documentId: Number(editDocumentId),
+          userId: Number(documentToEdit?.userid ?? 1),
+          customerId: typeof customerId === 'number' ? Number(customerId) : undefined,
+          warehouseId: Number(warehouseId),
+          documentTypeId: Number(documentTypeId),
+          date,
+          paidStatus,
+          referenceDocumentNumber: referenceDocumentNumber || undefined,
+          note: note || undefined,
+          internalNote: JSON.stringify(mergedInternalNote),
+        });
+
+        if (!headerRes.success) {
+          throw new Error(headerRes.error || 'No se pudo actualizar el encabezado');
+        }
+
+        const itemPayload = [
+          ...resolvedActiveItems.map((it, idx) => {
+            const base = {
+              quantity: Number(it.quantity) || 0,
+              price: Number(liqLines[idx]?.unitFinalCost ?? 0) || 0,
+              updateProductPrice: Boolean(it.updateProductPrice),
+            };
+
+            if (Number(it.documentItemId) > 0) {
+              return {
+                documentItemId: Number(it.documentItemId),
+                ...base,
+              };
+            }
+
+            return {
+              productId: Number(it.productId ?? 0),
+              ...base,
+            };
+          }),
+          ...resolvedItems
+            .filter((it) => it.remove && Number(it.documentItemId) > 0)
+            .map((it) => ({
+              documentItemId: Number(it.documentItemId),
+              quantity: 0,
+              price: 0,
+              remove: true,
+              updateProductPrice: false,
+            })),
+        ];
+
+        const itemsRes = await updateDocumentItemsAction({
+          documentId: Number(editDocumentId),
+          items: itemPayload,
+        });
+
+        if (!itemsRes.success) {
+          throw new Error(itemsRes.error || 'No se pudieron actualizar los ítems');
+        }
+
+        setItems((prev) => prev.filter((it) => !it.remove));
+
+        (progress as any).dismiss?.();
+        setResultKind('finalized');
+        setResultDocumentId(Number(editDocumentId));
+        setResultDocumentNumber(documentToEdit?.number ?? null);
+        setResultTitle('Documento actualizado');
+        setResultDescription('Se guardaron los cambios del encabezado, liquidación e ítems.');
+        setResultOpen(true);
+        return;
+      }
 
       (progress as any).update({
         title: 'Creando documento…',
@@ -715,11 +932,8 @@ export function NewDocumentForm() {
         paidStatus,
         referenceDocumentNumber: referenceDocumentNumber || undefined,
         note: note || undefined,
-        internalNote: JSON.stringify({
-          liquidation: liquidationSnapshot,
-          products: productsMeta,
-        }),
-        items: resolvedItems.map((it, idx) => ({
+        internalNote: JSON.stringify(mergedInternalNote),
+        items: resolvedActiveItems.map((it, idx) => ({
           productId: Number(it.productId ?? 0),
           quantity: it.quantity,
           price: liqLines[idx]?.unitFinalCost ?? 0,
@@ -781,6 +995,10 @@ export function NewDocumentForm() {
   }
 
   function requestSave() {
+    if (isEditMode) {
+      handleSave();
+      return;
+    }
     setConfirmOpen(true);
   }
 
@@ -842,8 +1060,14 @@ export function NewDocumentForm() {
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nuevo documento</h1>
-          <p className="text-muted-foreground">Entrada (compra) / Salida (venta). Al confirmar, el documento se finaliza con impacto en Stock y Kardex.</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isEditMode ? `Editar documento #${documentToEdit?.number ?? ''}` : 'Nuevo documento'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isEditMode
+              ? 'Edita encabezado, liquidación e ítems del documento con trazabilidad completa.'
+              : 'Entrada (compra) / Salida (venta). Al confirmar, el documento se finaliza con impacto en Stock y Kardex.'}
+          </p>
         </div>
         <Button asChild variant="outline">
           <Link href="/documents">Volver</Link>
@@ -853,7 +1077,10 @@ export function NewDocumentForm() {
       <Card>
         <CardHeader>
           <CardTitle>Encabezado</CardTitle>
-          <CardDescription>Selecciona almacén, tipo, proveedor y fecha.</CardDescription>
+          <CardDescription>
+            {isEditMode ? 'Actualiza almacén, tipo, proveedor, fecha y metadatos.' : 'Selecciona almacén, tipo, proveedor y fecha.'}
+            {isFinalizedEdit ? ' En documentos finalizados, almacén y tipo se mantienen bloqueados para proteger la trazabilidad de stock.' : ''}
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
@@ -862,7 +1089,7 @@ export function NewDocumentForm() {
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value ? Number(e.target.value) : '')}
-              disabled={loading}
+              disabled={loading || isFinalizedEdit}
             >
               <option value="">Selecciona…</option>
               {warehouses.map((w) => (
@@ -879,7 +1106,7 @@ export function NewDocumentForm() {
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               value={documentTypeId}
               onChange={(e) => setDocumentTypeId(e.target.value ? Number(e.target.value) : '')}
-              disabled={loading}
+              disabled={loading || isFinalizedEdit}
             >
               <option value="">Selecciona…</option>
               {documentTypes.map((d) => (
@@ -1128,12 +1355,15 @@ export function NewDocumentForm() {
                 </TableHeader>
                 <TableBody>
                   {items.map((it, idx) => {
-                    const li = liquidation.lines[idx];
+                    const li = liquidationByLineId.get(it.lineId);
                     return (
-                      <TableRow key={it.lineId}>
+                      <TableRow key={it.lineId} className={it.remove ? 'opacity-50' : undefined}>
                         <TableCell className="font-medium">
                           <div className="flex flex-col">
                             <span>{it.productLabel}</span>
+                            {it.remove ? (
+                              <span className="text-xs text-destructive">Marcado para eliminar al guardar</span>
+                            ) : null}
                             {typeof it.productId !== 'number' ? (
                               <span className="text-xs text-muted-foreground">Pendiente: se creará al confirmar</span>
                             ) : null}
@@ -1314,7 +1544,7 @@ export function NewDocumentForm() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => removeItem(idx)}>
-                            Quitar
+                            {it.remove ? 'Restaurar' : 'Quitar'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1333,7 +1563,7 @@ export function NewDocumentForm() {
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button onClick={() => requestSave()} disabled={saving || finalizing || loading}>
-              {finalizing ? 'Finalizando…' : 'Finalizar (Stock + Kardex)'}
+              {isEditMode ? (saving ? 'Guardando…' : 'Guardar cambios') : (finalizing ? 'Finalizando…' : 'Finalizar (Stock + Kardex)')}
             </Button>
           </div>
         </CardContent>
@@ -1353,7 +1583,7 @@ export function NewDocumentForm() {
           <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
             <div className="flex items-center justify-between gap-4">
               <div className="text-muted-foreground">Items</div>
-              <div className="font-medium">{items.length}</div>
+              <div className="font-medium">{activeItems.length}</div>
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="text-muted-foreground">Costo final</div>

@@ -70,6 +70,7 @@ const menuGroups: MenuGroup[] = [
     icon: Receipt,
     items: [
       { href: "/documents", label: "Documentos", icon: Receipt },
+      { href: "/documents/compra-venta", label: "Compra/Venta sin stock", icon: ArrowUpRight },
       { href: "/pos/salidas", label: "POS · Salidas", icon: ArrowUpRight },
       { href: "/pos/registro-ventas", label: "Registro de vendidos", icon: History },
       { href: "/clients", label: "Clientes", icon: Users },

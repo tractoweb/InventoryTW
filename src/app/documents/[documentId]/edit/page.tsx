@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-import { EditDocumentClient } from './components/edit-document-client';
 import { getDocumentDetails } from '@/actions/get-document-details';
+import { NewDocumentForm } from '@/app/documents/new/components/new-document-form';
 
 interface PageProps {
   params: Promise<{ documentId: string }>;
@@ -22,5 +22,5 @@ export default async function EditDocumentPage(props: PageProps) {
 
   const doc = docRes.data;
 
-  return <EditDocumentClient document={doc} />;
+  return <NewDocumentForm mode="edit" documentToEdit={doc} />;
 }

@@ -10,11 +10,17 @@ import { documentTypeLabelEs } from "@/lib/document-type-label";
 type DocumentHeader = {
   id: number;
   number: string;
+  userid: number;
+  customerid: number | null;
+  clientid: number | null;
   date: string;
   stockdate?: string;
   isclockedout: boolean;
   total: number;
   paidstatus: number;
+  documenttypeid: number;
+  warehouseid: number;
+  referencedocumentnumber: string | null;
   warehousename: string;
   documenttypename: string;
   documenttypecode?: string | null;
@@ -60,6 +66,7 @@ export type DocumentDetails = DocumentHeader & {
   };
   liquidation?: {
     config: LiquidationConfig;
+    lineInputs: LiquidationLineInput[];
     result: LiquidationResult;
   };
 };
@@ -366,11 +373,20 @@ export async function getDocumentDetails(documentId: number) {
     const data: DocumentDetails = {
       id: Number(doc.documentId),
       number: String(doc.number ?? ""),
+      userid: Number(doc.userId ?? 0),
+      customerid: doc.customerId !== undefined && doc.customerId !== null ? Number(doc.customerId) : null,
+      clientid: doc.clientId !== undefined && doc.clientId !== null ? Number(doc.clientId) : null,
       date: String(doc.date ?? ""),
       stockdate: doc.stockDate ? String(doc.stockDate) : undefined,
       isclockedout: Boolean(doc.isClockedOut),
       total: Number(doc.total ?? 0),
       paidstatus: Number(doc.paidStatus ?? 0),
+      documenttypeid: Number(doc.documentTypeId ?? 0),
+      warehouseid: Number(doc.warehouseId ?? 0),
+      referencedocumentnumber:
+        doc.referenceDocumentNumber !== undefined && doc.referenceDocumentNumber !== null
+          ? String(doc.referenceDocumentNumber)
+          : null,
       warehousename: String(warehouse?.name ?? ""),
       documenttypename: documentTypeLabelEs({
         name: documentType?.name ?? null,
@@ -392,6 +408,7 @@ export async function getDocumentDetails(documentId: number) {
       posSaleTotals,
       liquidation: {
         config,
+        lineInputs,
         result: liquidationResult,
       },
     };
