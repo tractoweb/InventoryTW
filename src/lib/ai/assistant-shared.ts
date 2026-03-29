@@ -30,7 +30,16 @@ export type AssistantPayload = {
     };
   }>;
   sources?: Array<{ title: string; url: string; snippet: string }>;
-  contextEcho?: { currentModule: string; currentPath: string; productsFound: number; documentsFound: number };
+  contextEcho?: {
+    currentModule: string;
+    currentPath: string;
+    productsFound: number;
+    documentsFound: number;
+    warehousesFound?: number;
+    kardexFound?: number;
+    resolvedProduct?: { id: number; code: string; name: string } | null;
+    resolvedDocument?: { id: number; number: string } | null;
+  };
 };
 
 export type AssistantMessage = {

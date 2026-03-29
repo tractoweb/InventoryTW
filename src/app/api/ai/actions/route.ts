@@ -4,10 +4,12 @@ import { NextRequest } from 'next/server';
 import { ACCESS_LEVELS } from '@/lib/amplify-config';
 import { amplifyClient } from '@/lib/amplify-config';
 import { requireSession } from '@/lib/session';
+import { getCurrentSession } from '@/lib/session';
 import { adjustStock } from '@/actions/adjust-stock';
 import { createProductAction } from '@/actions/create-product';
 import { deleteProduct } from '@/actions/delete-product';
 import { updateDocumentMetadataAction } from '@/actions/update-document-metadata';
+import { writeAuditLog } from '@/services/audit-log-service';
 const ExecuteSchema = z.object({
   operation: z.enum([
     'adjustStock',
@@ -63,6 +65,8 @@ const QueryDBParams = z.object({
   type: z.string().trim().max(40).optional(),
   dateFrom: z.string().trim().max(20).optional(),
   dateTo: z.string().trim().max(20).optional(),
+  nextToken: z.string().trim().max(400).optional(),
+  all: z.boolean().optional(),
   limit: z.coerce.number().min(1).max(100).default(50),
 });
 
@@ -103,6 +107,43 @@ function isWriteActionsEnabled(): boolean {
   return v === '1' || v === 'true' || v === 'yes';
 }
 
+function wantsAllRows(input: { all?: boolean; nameContains?: string; codeContains?: string }): boolean {
+  if (input.all) return true;
+  const name = String(input.nameContains ?? '').trim().toLowerCase();
+  const code = String(input.codeContains ?? '').trim().toLowerCase();
+  return name === '*' || name === 'all' || code === '*' || code === 'all';
+}
+
+async function writeAiActionAudit(input: {
+  tableName: string;
+  recordId: number;
+  action: string;
+  oldValues?: unknown;
+  newValues?: unknown;
+}): Promise<void> {
+  try {
+    const sessionRes = await getCurrentSession();
+    const userId = Number(sessionRes?.data?.userId ?? 0);
+    if (!Number.isFinite(userId) || userId <= 0) return;
+
+    await writeAuditLog({
+      userId,
+      action: input.action,
+      tableName: input.tableName,
+      recordId: input.recordId,
+      oldValues: input.oldValues,
+      newValues: {
+        source: 'AI_ASSISTANT',
+        updatedVia: 'IA',
+        updatedAt: new Date().toISOString(),
+        ...(typeof input.newValues === 'object' && input.newValues ? (input.newValues as Record<string, unknown>) : {}),
+      },
+    });
+  } catch {
+    // best-effort only
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const raw = await request.json();
@@ -122,9 +163,9 @@ export async function POST(request: NextRequest) {
         return jsonError('Parámetros inválidos para queryDB: ' + validated.error.issues.map((i) => i.message).join(', '), 400);
       }
 
-      const { table, limit, productId, warehouseId, documentId, customerId, clientId,
+            const { table, limit, productId, warehouseId, documentId, customerId, clientId,
               documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo,
-              columns, nameContains, codeContains } = validated.data;
+              columns, nameContains, codeContains, nextToken, all } = validated.data;
 
       const clauses: any[] = [];
       if (productId)       clauses.push({ productId:       { eq: productId } });
@@ -147,15 +188,36 @@ export async function POST(request: NextRequest) {
       const model = (amplifyClient.models as any)[table as string];
       if (!model) return jsonError(`Tabla no disponible: ${table}`, 400);
 
-      const res: any = await model.list({ ...(filter ? { filter } : {}), limit } as any);
-      const rows: any[] = res?.data ?? [];
+      const includeAll = wantsAllRows({ all, nameContains, codeContains });
+      const rows: any[] = [];
+      let pageToken: string | null | undefined = nextToken ?? undefined;
+
+      if (includeAll) {
+        const perPage = 200;
+        const maxRows = 5000;
+        const maxPages = 50;
+        let pages = 0;
+
+        do {
+          const res: any = await model.list({ ...(filter ? { filter } : {}), limit: perPage, nextToken: pageToken } as any);
+          rows.push(...((res?.data ?? []) as any[]));
+          pageToken = res?.nextToken;
+          pages++;
+          if (rows.length >= maxRows) break;
+          if (pages >= maxPages) break;
+        } while (pageToken);
+      } else {
+        const res: any = await model.list({ ...(filter ? { filter } : {}), limit, nextToken: pageToken } as any);
+        rows.push(...((res?.data ?? []) as any[]));
+        pageToken = res?.nextToken;
+      }
 
       if (rows.length === 0) {
         return new Response(
           JSON.stringify({
             success: true, operation,
             message: `✅ Consulta ejecutada en ${table}. No se encontraron registros con los filtros indicados.`,
-            result: { table, count: 0 },
+            result: { table, count: 0, nextToken: null, allLoaded: true },
             table: { title: `Resultados: ${table}`, columns: ['mensaje'], rows: [['Sin resultados']] },
             links: [],
           }),
@@ -194,8 +256,10 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({
           success: true, operation,
-          message: `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).`,
-          result: { table, count: rows.length },
+          message: includeAll
+            ? `✅ Consulta en ${table}: ${rows.length} registro(s) cargados (modo all/*).`
+            : `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).${pageToken ? ' Hay más resultados disponibles con nextToken.' : ''}`,
+          result: { table, count: rows.length, nextToken: pageToken ?? null, allLoaded: includeAll && !pageToken },
           table: { title: `Resultados: ${table} (${rows.length} filas)`, columns, rows: tableRows },
           links: [],
         }),
@@ -234,6 +298,19 @@ export async function POST(request: NextRequest) {
       const productRes = await amplifyClient.models.Product.get({ idProduct: validated.data.productId } as any);
       const product: any = productRes?.data;
       const productLabel = String(product?.code ?? product?.name ?? validated.data.productId);
+
+      void writeAiActionAudit({
+        tableName: 'Product',
+        recordId: Number(validated.data.productId),
+        action: 'AI_STOCK_ADJUST',
+        newValues: {
+          warehouseId: validated.data.warehouseId,
+          previousQuantity: res.previousQuantity,
+          newQuantity: res.newQuantity,
+          difference: res.difference,
+          reason: validated.data.reason ?? 'Ajuste IA',
+        },
+      });
 
       return new Response(
         JSON.stringify({
@@ -326,81 +403,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── queryDB: lectura segura filtrada ────────────────────────────────────
-    if (operation === 'queryDB') {
-      await requireSession(ACCESS_LEVELS.CASHIER);
-
-      const validated = QueryDBParams.safeParse(params);
-      if (!validated.success) {
-        return jsonError('Parámetros inválidos para queryDB: ' + validated.error.issues.map((i) => i.message).join(', '), 400);
-      }
-
-      const { table, limit, productId, warehouseId, documentId, customerId, clientId,
-              documentTypeId, productGroupId, taxId, isEnabled, type, dateFrom, dateTo } = validated.data;
-
-      // Build filter clauses for the allowed fields
-      const clauses: any[] = [];
-      if (productId)       clauses.push({ productId:       { eq: productId } });
-      if (warehouseId)     clauses.push({ warehouseId:     { eq: warehouseId } });
-      if (documentId)      clauses.push({ documentId:      { eq: documentId } });
-      if (customerId)      clauses.push({ customerId:      { eq: customerId } });
-      if (clientId)        clauses.push({ clientId:        { eq: clientId } });
-      if (documentTypeId)  clauses.push({ documentTypeId:  { eq: documentTypeId } });
-      if (productGroupId)  clauses.push({ productGroupId:  { eq: productGroupId } });
-      if (taxId)           clauses.push({ taxId:           { eq: taxId } });
-      if (isEnabled !== undefined) clauses.push({ isEnabled: { eq: isEnabled } });
-      if (type)            clauses.push({ type:            { eq: type } });
-      if (dateFrom && dateTo)      clauses.push({ date: { between: [dateFrom, dateTo] } });
-      else if (dateFrom)           clauses.push({ date: { ge: dateFrom } });
-      else if (dateTo)             clauses.push({ date: { le: dateTo } });
-
-      const filter = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : { and: clauses };
-
-      const model = (amplifyClient.models as any)[table as string];
-      if (!model) return jsonError(`Tabla no disponible: ${table}`, 400);
-
-      const res: any = await model.list({ ...(filter ? { filter } : {}), limit } as any);
-      const rows: any[] = res?.data ?? [];
-
-      if (rows.length === 0) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            operation,
-            message: `✅ Consulta ejecutada en ${table}. No se encontraron registros con los filtros indicados.`,
-            result: { table, count: 0, rows: [] },
-            table: { title: `Resultados: ${table}`, columns: ['mensaje'], rows: [['Sin resultados']] },
-            links: [],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Build columns from first row keys (excluding internal/relation fields)
-      const EXCLUDE_KEYS = new Set(['__typename', 'createdAt', 'updatedAt', 'nextToken']);
-      const columns = Object.keys(rows[0]).filter((k) => !EXCLUDE_KEYS.has(k) && !k.startsWith('_'));
-      const tableRows = rows.map((row: any) =>
-        columns.map((col) => {
-          const v = row[col];
-          if (v === null || v === undefined) return '-';
-          if (typeof v === 'object') return JSON.stringify(v).slice(0, 80);
-          return String(v);
-        })
-      );
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          operation,
-          message: `✅ Consulta en ${table}: ${rows.length} registro(s) encontrado(s).`,
-          result: { table, count: rows.length },
-          table: { title: `Resultados: ${table} (${rows.length} filas)`, columns: allColumns, rows: tableRows },
-          links: [],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     // ── updateProduct: edición de campos básicos de un producto ─────────────
     if (operation === 'updateProduct') {
       await requireSession(ACCESS_LEVELS.ADMIN);
@@ -428,6 +430,24 @@ export async function POST(request: NextRequest) {
 
       const updated: any = await amplifyClient.models.Product.update(patch as any);
       if (!updated?.data) return jsonError('No se pudo actualizar el producto', 500);
+
+      void writeAiActionAudit({
+        tableName: 'Product',
+        recordId: Number(productId),
+        action: 'AI_UPDATE',
+        oldValues: {
+          name: product?.name,
+          code: product?.code,
+          price: product?.price,
+          cost: product?.cost,
+          description: product?.description,
+          productGroupId: product?.productGroupId,
+        },
+        newValues: {
+          changed,
+          patch: Object.fromEntries(Object.entries(patch).filter(([k]) => k !== 'idProduct')),
+        },
+      });
 
       const productLabel = String(updated.data.code ?? updated.data.name ?? productId);
       return new Response(
@@ -488,6 +508,19 @@ export async function POST(request: NextRequest) {
       if (validated.data.clientName !== undefined) changed.push('nombre de cliente');
       if (validated.data.clientId !== undefined)   changed.push('cliente vinculado');
       if (validated.data.customerId !== undefined) changed.push('proveedor vinculado');
+
+      void writeAiActionAudit({
+        tableName: 'Document',
+        recordId: Number(validated.data.documentId),
+        action: 'AI_UPDATE',
+        newValues: {
+          changed,
+          note: validated.data.note,
+          clientName: validated.data.clientName,
+          clientId: validated.data.clientId,
+          customerId: validated.data.customerId,
+        },
+      });
 
       return new Response(
         JSON.stringify({

@@ -40,6 +40,7 @@ import { getProductGroups } from "@/actions/get-product-groups";
 import { updateProductGroupAction } from "@/actions/update-product-group";
 import { deleteProductGroupAction } from "@/actions/delete-product-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -183,7 +184,12 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
     const hasQuery = q.length > 0;
 
     return (rows ?? []).filter((r) => {
-      if (selectedGroupId && r.productGroupId !== selectedGroupId) return false;
+      if (
+        selectedGroupId !== null &&
+        Number(r.productGroupId ?? 0) !== Number(selectedGroupId)
+      ) {
+        return false;
+      }
       if (!hasQuery) return true;
 
       const idText = String(r.id);
@@ -200,8 +206,12 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
   const selectedGroupProductsCount = React.useMemo(() => {
     if (!selectedGroupId) return 0;
-    return rows.filter((r) => Number(r.productGroupId) === Number(selectedGroupId)).length;
+    return rows.filter((r) => Number(r.productGroupId ?? 0) === Number(selectedGroupId)).length;
   }, [rows, selectedGroupId]);
+
+  const sortedGroupsForSelect = React.useMemo(() => {
+    return [...(productGroupsState ?? [])].sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+  }, [productGroupsState]);
 
   function resetGroupForm() {
     setCreateGroupName("");
@@ -653,7 +663,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem
-                onClick={() => {
+                onSelect={() => {
                   openCreateGroupDialog();
                   setCreateGroupOpen(true);
                 }}
@@ -662,13 +672,13 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
                 Nuevo grupo
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => selectedGroup && openEditGroupDialog(selectedGroup)}
+                onSelect={() => selectedGroup && openEditGroupDialog(selectedGroup)}
                 disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
               >
                 Editar grupo
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={handleDeleteSelectedGroup}
+                onSelect={handleDeleteSelectedGroup}
                 disabled={!selectedGroup || createGroupLoading || deleteGroupLoading}
                 className="text-destructive focus:text-destructive"
               >
@@ -676,6 +686,30 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Select
+            value={selectedGroupId ? String(selectedGroupId) : "all"}
+            onValueChange={(value) => {
+              if (value === "all") {
+                setSelectedGroupId(null);
+                return;
+              }
+              const next = Number(value);
+              setSelectedGroupId(Number.isFinite(next) ? next : null);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[240px]" aria-label="Filtrar por grupo">
+              <SelectValue placeholder="Filtrar por grupo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los grupos</SelectItem>
+              {sortedGroupsForSelect.map((g) => (
+                <SelectItem key={g.id} value={String(g.id)}>
+                  {g.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Input
             placeholder="Buscar productos (nombre, código o barcode)…"

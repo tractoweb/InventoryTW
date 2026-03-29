@@ -65,9 +65,19 @@ type KardexMatch = {
   warehouseId: number | null;
 };
 
+type ConversationMemory = {
+  lastProductId?: number;
+  lastProductCode?: string;
+  lastProductName?: string;
+  lastDocumentId?: number;
+  lastDocumentNumber?: string;
+};
+
 type ToolQueryDBInput = {
   table: string;
   columns?: string[];
+  all?: boolean;
+  nextToken?: string;
   nameContains?: string;
   codeContains?: string;
   productId?: number;
@@ -220,6 +230,64 @@ function extractDocumentNumberCandidates(query: string): string[] {
   return Array.from(out).slice(0, 8);
 }
 
+function extractNumericIdCandidates(query: string): number[] {
+  const raw = String(query ?? '');
+  const rx = /\b\d{1,8}\b/g;
+  const out = new Set<number>();
+  let m: RegExpExecArray | null;
+  while ((m = rx.exec(raw)) !== null) {
+    const n = Number(m[0]);
+    if (Number.isFinite(n) && n > 0) out.add(n);
+  }
+  return Array.from(out).slice(0, 8);
+}
+
+function readConversationMemory(context?: Record<string, unknown>): ConversationMemory {
+  const raw = context?.conversationMemory;
+  if (!raw || typeof raw !== 'object') return {};
+  const m = raw as Record<string, unknown>;
+  const lastProductId = asNumber(m.lastProductId) ?? undefined;
+  const lastDocumentId = asNumber(m.lastDocumentId) ?? undefined;
+  const lastProductCode = typeof m.lastProductCode === 'string' ? m.lastProductCode.trim() : undefined;
+  const lastProductName = typeof m.lastProductName === 'string' ? m.lastProductName.trim() : undefined;
+  const lastDocumentNumber = typeof m.lastDocumentNumber === 'string' ? m.lastDocumentNumber.trim() : undefined;
+  return { lastProductId, lastProductCode, lastProductName, lastDocumentId, lastDocumentNumber };
+}
+
+function shouldCarryConversationEntity(message: string): boolean {
+  const q = normalizeSearch(message);
+  if (!q) return false;
+  // Follow-up intent without a fresh explicit product/document reference.
+  return /(precio|precios|costo|costos|documento|documentos|historial|kardex|stock|existencia|cuanto|cuánto|detalle|detalles|ese|esa|ese producto|de ese|de ese producto)/i.test(q);
+}
+
+function buildProductLookupQuery(message: string, memory: ConversationMemory): string {
+  const base = String(message ?? '').trim();
+  const hasRef = extractReferenceCandidates(base).length > 0;
+  const hasId = extractNumericIdCandidates(base).length > 0;
+  if (hasRef || hasId || !shouldCarryConversationEntity(base)) return base;
+
+  const memoryAnchor = memory.lastProductCode || memory.lastProductName || (memory.lastProductId ? String(memory.lastProductId) : '');
+  if (!memoryAnchor) return base;
+  return `${base} ${memoryAnchor}`;
+}
+
+function buildDocumentLookupQuery(message: string, memory: ConversationMemory): string {
+  const base = String(message ?? '').trim();
+  const hasDocRef = extractDocumentNumberCandidates(base).length > 0;
+  const hasId = extractNumericIdCandidates(base).length > 0;
+  if (hasDocRef || hasId || !shouldCarryConversationEntity(base)) return base;
+
+  const memoryAnchor =
+    memory.lastDocumentNumber ||
+    (memory.lastDocumentId ? String(memory.lastDocumentId) : '') ||
+    memory.lastProductCode ||
+    memory.lastProductName ||
+    (memory.lastProductId ? String(memory.lastProductId) : '');
+  if (!memoryAnchor) return base;
+  return `${base} ${memoryAnchor}`;
+}
+
 function tokenizeSearch(v: unknown): string[] {
   return normalizeSearch(v)
     .split(' ')
@@ -258,7 +326,9 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
   const normalized = normalizeSearch(query);
   const tokens = tokenizeSearch(query);
   const refCandidates = extractReferenceCandidates(query);
+  const idCandidates = extractNumericIdCandidates(query);
   const explicitRefSearch = refCandidates.length > 0;
+  const explicitIdSearch = idCandidates.length > 0;
   try {
     const rows: any[] = [];
     let nextToken: string | null | undefined = undefined;
@@ -311,7 +381,8 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
     const scored = normalized.length >= 2
       ? projected
           .map((p) => {
-            const haystack = normalizeSearch(`${p.code} ${p.name} ${p.description}`);
+            const idText = String(p.id ?? '');
+            const haystack = normalizeSearch(`${idText} ${p.code} ${p.name} ${p.description}`);
             const full = normalized && haystack.includes(normalized) ? 3 : 0;
             const tokenScore = tokens.reduce((acc, t) => acc + (haystack.includes(t) ? 1 : 0), 0);
 
@@ -322,16 +393,24 @@ async function fetchProductMatches(query: string): Promise<ProductMatch[]> {
               else if (p.normalizedCode.includes(ref) || ref.includes(p.normalizedCode)) refScore = Math.max(refScore, 80);
             }
 
-            return { ...p, score: full + tokenScore + refScore, refScore };
+            let idScore = 0;
+            for (const idc of idCandidates) {
+              if (!p.id) continue;
+              if (Number(p.id) === Number(idc)) idScore = Math.max(idScore, 240);
+              else if (idText.includes(String(idc))) idScore = Math.max(idScore, 45);
+            }
+
+            return { ...p, score: full + tokenScore + refScore + idScore, refScore, idScore };
           })
           .filter((p) => p.id && p.score > 0)
           .sort((a, b) => b.score - a.score)
       : projected.filter((p) => p.id).map((p) => ({ ...p, score: 1, refScore: 0 }));
 
-    const bestExact = explicitRefSearch ? scored.filter((p) => p.refScore >= 200) : [];
-    const filtered = bestExact.length > 0 ? bestExact : scored;
+    const bestExactRef = explicitRefSearch ? scored.filter((p) => p.refScore >= 200) : [];
+    const bestExactId = explicitIdSearch ? scored.filter((p) => (p as any).idScore >= 240) : [];
+    const filtered = bestExactId.length > 0 ? bestExactId : (bestExactRef.length > 0 ? bestExactRef : scored);
 
-    const minScore = explicitRefSearch ? 8 : 1;
+    const minScore = explicitIdSearch ? 20 : explicitRefSearch ? 8 : 1;
 
     const matches = filtered
       .filter((p) => (p.score ?? 0) >= minScore)
@@ -349,9 +428,11 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
   const tokens = tokenizeSearch(query);
   const docCandidates = extractDocumentNumberCandidates(query);
   const refCandidates = extractReferenceCandidates(query);
+  const idCandidates = extractNumericIdCandidates(query);
   const explicitDocSearch = docCandidates.length > 0;
+  const explicitIdSearch = idCandidates.length > 0;
   const asksForDocuments = /(documento|documentos|doc\b|factura|boleta|comprobante|numero de documento|nro\b)/i.test(query);
-  if (!asksForDocuments && !explicitDocSearch) return [];
+  if (!asksForDocuments && !explicitDocSearch && !explicitIdSearch) return [];
 
   try {
     const rows: any[] = [];
@@ -396,16 +477,23 @@ async function fetchDocumentMatches(query: string): Promise<DocumentMatch[]> {
               else if (d.normalizedNumber.includes(ref) || ref.includes(d.normalizedNumber)) exactDocScore = Math.max(exactDocScore, 40);
             }
 
-            return { ...d, score: fullNumber + fullNote + tokenScore + exactDocScore, exactDocScore };
+            let idScore = 0;
+            for (const idc of idCandidates) {
+              if (!d.id) continue;
+              if (Number(d.id) === Number(idc)) idScore = Math.max(idScore, 210);
+            }
+
+            return { ...d, score: fullNumber + fullNote + tokenScore + exactDocScore + idScore, exactDocScore, idScore };
           })
           .filter((d) => d.id && d.score > 0)
           .sort((a, b) => b.score - a.score)
       : projected.filter((d) => d.id).map((d) => ({ ...d, score: 1, exactDocScore: 0 }));
 
     const exactDocs = explicitDocSearch ? scored.filter((d) => d.exactDocScore >= 200) : [];
-    const filtered = exactDocs.length > 0 ? exactDocs : scored;
+    const exactIds = explicitIdSearch ? scored.filter((d) => (d as any).idScore >= 210) : [];
+    const filtered = exactIds.length > 0 ? exactIds : (exactDocs.length > 0 ? exactDocs : scored);
 
-    const minScore = explicitDocSearch ? 10 : 2;
+    const minScore = explicitIdSearch ? 20 : explicitDocSearch ? 10 : 2;
 
     const matches = filtered
       .filter((d) => (d.score ?? 0) >= minScore)
@@ -566,12 +654,18 @@ function isGarbageValue(v: unknown): boolean {
 }
 
 async function executeQueryDBToolInline(input: ToolQueryDBInput): Promise<{
-  ok: boolean; table?: AssistantTable; rowCount: number; message: string;
+  ok: boolean; table?: AssistantTable; rowCount: number; message: string; nextToken?: string | null;
 }> {
   if (!QUERY_ALLOWED_TABLES.has(input.table))
     return { ok: false, rowCount: 0, message: `Tabla no permitida: ${input.table}` };
 
-  const limit = Math.min(Math.max(Number(input.limit ?? 20), 1), 100);
+  const limit = Math.min(Math.max(Number(input.limit ?? 20), 1), 200);
+  const wantsAll =
+    Boolean(input.all) ||
+    String(input.nameContains ?? '').trim().toLowerCase() === '*' ||
+    String(input.nameContains ?? '').trim().toLowerCase() === 'all' ||
+    String(input.codeContains ?? '').trim().toLowerCase() === '*' ||
+    String(input.codeContains ?? '').trim().toLowerCase() === 'all';
   const clauses: any[] = [];
   if (input.productId !== undefined)      clauses.push({ productId:      { eq: input.productId } });
   if (input.warehouseId !== undefined)    clauses.push({ warehouseId:    { eq: input.warehouseId } });
@@ -593,10 +687,28 @@ async function executeQueryDBToolInline(input: ToolQueryDBInput): Promise<{
   const model = (amplifyClient.models as any)[input.table];
   if (!model) return { ok: false, rowCount: 0, message: `Modelo no disponible: ${input.table}` };
 
-  const res: any = await model.list({ ...(filter ? { filter } : {}), limit });
-  const rows: any[] = res?.data ?? [];
+  const rows: any[] = [];
+  let nextToken: string | null | undefined = input.nextToken ? String(input.nextToken) : undefined;
+  if (wantsAll) {
+    const perPage = 200;
+    const maxRows = 5000;
+    const maxPages = 50;
+    let pages = 0;
+    do {
+      const res: any = await model.list({ ...(filter ? { filter } : {}), limit: perPage, nextToken } as any);
+      rows.push(...((res?.data ?? []) as any[]));
+      nextToken = res?.nextToken;
+      pages++;
+      if (rows.length >= maxRows) break;
+      if (pages >= maxPages) break;
+    } while (nextToken);
+  } else {
+    const res: any = await model.list({ ...(filter ? { filter } : {}), limit, nextToken } as any);
+    rows.push(...((res?.data ?? []) as any[]));
+    nextToken = res?.nextToken;
+  }
   if (rows.length === 0)
-    return { ok: true, rowCount: 0, message: `Sin resultados en ${input.table} con los filtros aplicados.` };
+    return { ok: true, rowCount: 0, message: `Sin resultados en ${input.table} con los filtros aplicados.`, nextToken: null };
 
   let allColumns = Object.keys(rows[0]).filter((k) =>
     !QUERY_EXCLUDE_KEYS.has(k) && !k.startsWith('_') &&
@@ -618,7 +730,10 @@ async function executeQueryDBToolInline(input: ToolQueryDBInput): Promise<{
   );
   return {
     ok: true, rowCount: rows.length,
-    message: `${rows.length} registro(s) en ${input.table}.`,
+    message: wantsAll
+      ? `${rows.length} registro(s) en ${input.table} (modo all/*).`
+      : `${rows.length} registro(s) en ${input.table}.${nextToken ? ' Hay más resultados disponibles con nextToken.' : ''}`,
+    nextToken: nextToken ?? null,
     table: { title: `${input.table} — ${rows.length} resultado(s)`, columns: allColumns, rows: tableRows },
   };
 }
@@ -652,6 +767,8 @@ const QUERY_DB_TOOL_SPEC = {
             description: 'Tabla a consultar',
           },
           columns: { type: 'array', items: { type: 'string' }, description: 'Columnas a mostrar (solo las que pide el usuario)' },
+          all: { type: 'boolean', description: 'Si true o si nameContains/codeContains es "*" o "all", carga todos los resultados (con salvaguardas).' },
+          nextToken: { type: 'string', description: 'Token de paginacion para continuar resultados de una consulta anterior.' },
           nameContains: { type: 'string', description: 'Búsqueda parcial en campo name' },
           codeContains: { type: 'string', description: 'Búsqueda parcial en campo code' },
           productId:     { type: 'number', description: 'ID exacto de producto' },
@@ -733,6 +850,7 @@ async function invokeModelWithToolLoop(
           resultText = result.table
             ? `[DATOS REALES de ${input.table}] ${result.message}\n` +
               `Columnas: ${result.table.columns.join(', ')}\n` +
+              `${result.nextToken ? `nextToken: ${result.nextToken}\n` : ''}` +
               result.table.rows.map((r) =>
                 result.table!.columns.map((c, i) => `${c}=${r[i]}`).join(' | ')
               ).join('\n')
@@ -1055,7 +1173,9 @@ operation: "queryDB"
     type?: string,            // filtra por type en Kardex (ej: "ENTRADA", "SALIDA", "AJUSTE")
     dateFrom?: string,        // ej: "2026-01-01" — aplica a date en Kardex y Document
     dateTo?: string,          // ej: "2026-03-31"
-    limit?: number            // 1-100, default 50
+    all?: boolean,            // true para intentar traer todo (tambien acepta nameContains:"*" o "all")
+    nextToken?: string,       // token para pedir pagina siguiente cuando exista
+    limit?: number            // 1-200, default 50
   }
   Ejemplos de uso:
     Ver stock de producto 123: { table:"Stock", productId:123 }
@@ -1113,6 +1233,160 @@ REGLAS PARA PROPONER ACCIONES:
 9. Nunca inventes IDs. Solo usa IDs que aparezcan en el contexto provisto o que el usuario mencione explícitamente
 `;
 
+  const conversationMemory = readConversationMemory(context);
+  const conversationUseCases = `
+CASOS DE USO OPERATIVOS (OBLIGATORIOS):
+
+BLOQUE A - IDENTIFICACION DE ENTIDAD
+- Si el usuario pide "producto 227" o "id 227", busca por ID exacto antes de descartar.
+- Si el usuario pide "documento 150" o "doc 150", intenta ID exacto de documento.
+- Si el usuario pide referencia/codigo (ej: 3409164M1'EAT), prioriza coincidencia exacta de codigo normalizado.
+- Si el usuario escribe codigo con guiones, apostrofes o espacios, normaliza y compara sin signos.
+- Si el usuario mezcla nombre y codigo, favorece coincidencia exacta de codigo sobre nombre parcial.
+- Si hay multiples coincidencias por nombre, no adivines: muestra lista corta y pide elegir.
+- Si hay una sola coincidencia exacta, responde directo sin pedir confirmacion extra.
+- Si una coincidencia exacta compite con varias parciales, usa la exacta como fuente principal.
+
+BLOQUE B - SEGUIMIENTO Y MEMORIA CONVERSACIONAL
+- Si luego pide "dame precios y documentos", conserva la entidad del turno previo.
+- Si luego pide "y el historial", interpreta historial de la misma entidad previa.
+- Si luego pide "y de ese", "de ese producto", "de ese documento", reutiliza memoria reciente.
+- Si hay contexto arrastrado, explicita: "tomando el producto previo X".
+- Si el usuario cambia de entidad en el mismo mensaje, pide desambiguacion antes de mezclar.
+- Si el usuario pregunta "y en otra bodega", conserva producto y cambia solo bodega.
+- Si el usuario pregunta "y del mes pasado", conserva entidad y agrega rango de fechas.
+- Si el usuario vuelve a preguntar por "precios", conserva producto actual hasta que diga otro.
+
+BLOQUE C - CONSULTAS DE PRODUCTO
+- Si el usuario dice "aumenta", "disminuye", "suma", "resta" o "actualiza" stock, confirmar SOLO esa accion puntual.
+- Si el usuario pide cambiar precio y luego stock, manejar por pasos: confirmar/ejecutar precio primero, luego confirmar stock.
+- "Dame detalles del producto X": devolver id, code, name, group, price, cost, stock total.
+- "Solo precio": devolver price y moneda.
+- "Solo costo": devolver cost y ultimo costo si existe.
+- "Margen": devolver markup si existe; si no existe, calcular con price/cost cuando sea posible.
+- "Ubicacion": devolver measurementUnit y stock por bodega si aplica.
+- "Codigo de barras": consultar Barcode por productId.
+- "Impuestos del producto": consultar ProductTax y Tax.
+- "Esta activo?": devolver isEnabled.
+- "Es servicio?": devolver isService cuando exista.
+- "Ultima compra": usar lastPurchasePrice y documentos relacionados si existen.
+
+BLOQUE D - CONSULTAS DE STOCK
+- "Cuanto stock hay": consultar Stock por productId y sumar total.
+- "Stock por bodega": mostrar tabla warehouseId + quantity.
+- "Stock en bodega 2": filtrar por productId + warehouseId.
+- "Productos sin stock": consultar Stock y detectar quantity <= 0.
+- "Stock negativo": detectar quantity < 0 y advertir riesgo operativo.
+- "Bajo minimo": usar StockControl cuando exista configuracion.
+- "Comparar dos bodegas": misma entidad, dos warehouseId.
+- "Top faltantes": usar queryDB y responder tabla corta accionable.
+
+BLOQUE E - CONSULTAS DE KARDEX
+- "Kardex del producto": consultar Kardex por productId.
+- "Ultimos movimientos": ordenar por fecha descendente.
+- "Solo entradas": filtrar type=ENTRADA.
+- "Solo salidas": filtrar type=SALIDA.
+- "Solo ajustes": filtrar type=AJUSTE.
+- "Entre fechas": aplicar dateFrom/dateTo.
+- "Kardex por bodega": filtrar warehouseId.
+- "Documento origen del movimiento": incluir documentId/documentNumber.
+- "Balance despues de cada movimiento": incluir balance si existe.
+- "Costo total movido": usar totalCost cuando exista.
+
+BLOQUE F - CONSULTAS DE DOCUMENTOS
+- "Documentos del producto": consultar DocumentItem por productId y enlazar Document.
+- "Ultimo documento": usar fecha mas reciente.
+- "Ultimos 5 documentos": limitar y ordenar desc.
+- "Documentos por numero": match exacto de number normalizado.
+- "Documentos por cliente": filtrar clientId en Document.
+- "Documentos por proveedor": filtrar customerId en Document.
+- "Documentos por tipo": filtrar documentTypeId o codigo de tipo.
+- "Documentos por bodega": filtrar warehouseId.
+- "Documentos pendientes": usar paidStatus cuando aplique.
+- "Total facturado periodo": agrupar por rango de fechas.
+
+BLOQUE G - CLIENTES Y PROVEEDORES
+- Si dice "cliente" en ventas, usar tabla Client.
+- Si dice "proveedor" en compras, usar tabla Customer.
+- Si hay ambiguedad cliente/proveedor, preguntar una sola vez y continuar.
+- "Buscar por NIT": filtrar taxNumber.
+- "Buscar por nombre": usar nameContains.
+- "Mostrar activos": filtrar isEnabled=true.
+- "Datos de contacto": devolver email/phone en Client si existen.
+
+BLOQUE H - PRECIOS, COSTOS Y RENTABILIDAD
+- "Precio de venta": Product.price.
+- "Costo": Product.cost.
+- "Markup": Product.markup.
+- "Ultimo costo de compra": Product.lastPurchasePrice.
+- "Margen estimado": si hay price y cost, informar diferencia y porcentaje aproximado.
+- "Precio sugerido por documento": si esta en historial, mostrarlo con fecha.
+- "Comparar precio vs costo": tabla simple con diferencia.
+- "Productos sin precio": detectar price nulo o 0.
+- "Productos sin costo": detectar cost nulo o 0.
+
+BLOQUE I - CONSULTAS COMPUESTAS (MULTIPASO)
+- "Dame precio, costo, stock y ultimos documentos": resolver todo para la misma entidad.
+- "Dame productos del grupo X con stock y precio": Product + Stock + columnas minimas.
+- "Dame ventas y compras del producto": DocumentType + DocumentItem + Document.
+- "Dame movimientos y documentos del mes": Kardex + Document por rango.
+- "Dame top productos mas vendidos": DocumentItem en docs de salida.
+- "Dame top compras": DocumentItem en docs de entrada.
+- "Dame resumen por bodega": Stock/Kardex agregados por warehouse.
+- "Dame trazabilidad completa": Product + Kardex + DocumentItem + Document.
+
+BLOQUE J - MANEJO DE AMBIGUEDAD Y ERRORES
+- Si no hay datos reales, dilo claro y sugiere siguiente consulta concreta.
+- Nunca cambies de entidad en mitad de la respuesta sin avisar.
+- Nunca responder "no existe" sin intentar queryDB cuando hay ID/codigo explicito.
+- Si queryDB no devuelve filas, ofrecer alternativas: buscar por nombre parcial o revisar formato de codigo.
+- Si el usuario comete typo probable, sugerir 2-5 coincidencias cercanas.
+- Si hay dos productos con codigos parecidos, mostrar ambos y pedir confirmacion.
+- Si la busqueda por referencia no tiene match exacto, listar referencias cercanas para que el usuario elija la correcta.
+- Si la busqueda por nombre es amplia (ej: "rodamiento"), mostrar lista de coincidencias y pedir seleccion antes de editar stock/campos.
+- Si la solicitud es demasiado amplia, entregar resumen corto + opcion de profundizar.
+- Si faltan parametros para accion de escritura, pedir exactamente los faltantes.
+
+BLOQUE K - REGLAS DE PRESENTACION
+- No mostrar parametros internos del tool al usuario final.
+- Mostrar tablas cortas, utiles y con columnas relevantes.
+- Si pide "solo" un dato, responder solo ese dato + contexto minimo.
+- Si pide comparacion, responder en formato de tabla.
+- Si pide explicacion, responder en texto claro y accionable.
+- Si hay evidencia parcial, etiquetar como "estimado" y no como definitivo.
+- Si el usuario pide "all" o "*", cargar el total de resultados (con salvaguardas) y mostrarlos en tabla scrolleable/paginable.
+- Si hay mas resultados de los mostrados, informar explicitamente que existe siguiente pagina con nextToken.
+
+BLOQUE N - CONFIRMACION SIN BOMBARDEO
+- Nunca hagas preguntas de operaciones que el usuario no pidio.
+- Pide confirmacion solo de la accion especifica solicitada en ese turno.
+- Evita encadenar confirmaciones de acciones no solicitadas.
+- Mantener dialogo simple: una confirmacion por accion, en orden de solicitud.
+
+BLOQUE L - REGLAS DE SEGURIDAD OPERATIVA
+- Nunca inventes IDs ni numeros de documento.
+- Nunca inventes stock, precio, costo o pagos.
+- Para operaciones de escritura, mantener confirmaciones requeridas.
+- Para desactivar/eliminar/crear, mantener doble confirmacion.
+- Si la peticion viola alcance o permisos, explicar y ofrecer alternativa de lectura.
+
+BLOQUE M - EJEMPLOS DE FOLLOW-UP QUE DEBES RESOLVER BIEN
+- Turno 1: "producto id 227" -> Turno 2: "dame precios y documentos".
+- Turno 1: "referencia 3409164M1'EAT" -> Turno 2: "y su kardex".
+- Turno 1: "doc 2026-100-000163" -> Turno 2: "y sus items".
+- Turno 1: "stock del producto 260" -> Turno 2: "en bodega 2".
+- Turno 1: "dame el costo" -> Turno 2: "y margen" (misma entidad).
+- Turno 1: "busca por nombre empaque culata" -> Turno 2: "abre el primero y dame documentos".
+`;
+
+  const memoryInline = [
+    conversationMemory.lastProductId ? `productoId=${conversationMemory.lastProductId}` : '',
+    conversationMemory.lastProductCode ? `productoCodigo=${conversationMemory.lastProductCode}` : '',
+    conversationMemory.lastProductName ? `productoNombre=${conversationMemory.lastProductName}` : '',
+    conversationMemory.lastDocumentId ? `documentoId=${conversationMemory.lastDocumentId}` : '',
+    conversationMemory.lastDocumentNumber ? `documentoNumero=${conversationMemory.lastDocumentNumber}` : '',
+  ].filter(Boolean).join(' | ');
+
   return [
     'Eres el asistente interno de TRACTO AGRICOLA dentro del sistema InventoryTW.',
     `Gestionas un inventario de ${totalProducts} productos en multiples bodegas.`,
@@ -1123,6 +1397,7 @@ REGLAS PARA PROPONER ACCIONES:
     'Ayuda con inventario, productos, grupos, documentos, compras, ventas, kardex y operacion del sistema.',
     dbSchema,
     operationsDoc,
+    conversationUseCases,
     'Si el usuario pregunta por lo que esta viendo en pantalla (ej: documento abierto), prioriza el contexto de pantalla provisto y explicalo de forma legible.',
     'Cuando el usuario pida editar/escribir datos, primero responde con un mini plan y preguntas de confirmacion (que, por que, alcance) antes de ejecutar.',
     'Si propones cambios, especifica exactamente que campos se tocaran y que campos NO se tocaran.',
@@ -1140,6 +1415,7 @@ REGLAS PARA PROPONER ACCIONES:
     warehousesInline ? `Bodegas candidatas encontradas: ${warehousesInline}` : '',
     kardexInline ? `Movimientos kardex candidatos: ${kardexInline}` : '',
     webInline ? `Resultados web sugeridos: ${webInline}` : '',
+    memoryInline ? `Memoria conversacional reciente: ${memoryInline}` : '',
   ].join('\n');
 }
 
@@ -1286,15 +1562,19 @@ export async function POST(request: NextRequest) {
       if (!message) return errorResponse('El mensaje está vacío', 'EMPTY_MESSAGE', 400);
 
       const context = (typeof body?.context === 'object' && body?.context) ? body.context as Record<string, unknown> : {};
+      const conversationMemory = readConversationMemory(context);
       const attachments = sanitizeAttachments(body?.attachments);
       const history = sanitizeMessages(body?.history);
+
+      const productLookupQuery = buildProductLookupQuery(message, conversationMemory);
+      const documentLookupQuery = buildDocumentLookupQuery(message, conversationMemory);
 
       const asksAboutWarehouse = /(bodega|almacen|almacén|warehouse)/i.test(message);
       const asksAboutKardex = /(kardex|movimiento|historial|entrada|salida)/i.test(message);
 
       const [products, documents, warehouses, kardexEntries, webResults] = await Promise.all([
-        fetchProductMatches(message),
-        fetchDocumentMatches(message),
+        fetchProductMatches(productLookupQuery),
+        fetchDocumentMatches(documentLookupQuery),
         asksAboutWarehouse ? fetchWarehouseMatches(message) : Promise.resolve([]),
         asksAboutKardex ? fetchKardexMatches(message) : Promise.resolve([]),
         searchWeb(message, Boolean(body?.enableWeb)),
@@ -1415,6 +1695,19 @@ export async function POST(request: NextRequest) {
             documentsFound: documents.length,
             warehousesFound: warehouses.length,
             kardexFound: kardexEntries.length,
+            resolvedProduct: products[0]
+              ? {
+                  id: products[0].id,
+                  code: products[0].code,
+                  name: products[0].name,
+                }
+              : null,
+            resolvedDocument: documents[0]
+              ? {
+                  id: documents[0].id,
+                  number: documents[0].number,
+                }
+              : null,
           },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }

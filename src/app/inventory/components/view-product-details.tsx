@@ -144,6 +144,14 @@ export function ViewProductDetails({ productId }: ViewProductDetailsProps) {
                     {renderDetail("Descripción", details.description)}
                     {renderDetail("Categoría (Grupo)", details.productgroupname)}
                     {renderDetail("Color", details.color)}
+                    {details.aiupdatedat ? (
+                        <div className="rounded-md border border-amber-300/60 bg-amber-50/50 p-3">
+                            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Actualizado vía IA</div>
+                            {renderDetail("Fecha", fmtDocDate(details.aiupdatedat))}
+                            {renderDetail("Acción", details.aiupdateaction ?? "AI_UPDATE")}
+                            {details.aiupdatesummary ? renderDetail("Detalle", details.aiupdatesummary) : null}
+                        </div>
+                    ) : null}
                 </div>
                 <div className="space-y-3">
                     <h3 className="font-semibold text-lg border-b pb-2">Precio y Costo</h3>

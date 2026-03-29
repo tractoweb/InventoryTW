@@ -25,6 +25,14 @@ type Message = {
   payload?: AssistantPayload;
 };
 
+type ConversationMemory = {
+  lastProductId?: number;
+  lastProductCode?: string;
+  lastProductName?: string;
+  lastDocumentId?: number;
+  lastDocumentNumber?: string;
+};
+
 const TEXT_FILE_EXTENSIONS = ['.txt', '.md', '.csv', '.json', '.tsv', '.log'];
 
 function inferKind(file: File): AssistantAttachment['kind'] {
@@ -88,6 +96,7 @@ export default function AILabPage() {
   const [attachments, setAttachments] = React.useState<AssistantAttachment[]>([]);
   const [doubleConfirmActionId, setDoubleConfirmActionId] = React.useState<string | null>(null);
   const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
+  const [conversationMemory, setConversationMemory] = React.useState<ConversationMemory>({});
 
   const pathname = usePathname();
   const safePathname = pathname ?? '/';
@@ -128,7 +137,7 @@ export default function AILabPage() {
         history,
         attachments,
         enableWeb,
-        context: buildAssistantContext(safePathname),
+        context: buildAssistantContext(safePathname, { conversationMemory }),
       });
 
       if (!result.ok) {
@@ -143,6 +152,27 @@ export default function AILabPage() {
       }
 
       const data = result.data;
+
+      const resolvedProduct = data.contextEcho?.resolvedProduct;
+      const resolvedDocument = data.contextEcho?.resolvedDocument;
+      if (resolvedProduct || resolvedDocument) {
+        setConversationMemory((prev) => ({
+          ...prev,
+          ...(resolvedProduct
+            ? {
+                lastProductId: Number(resolvedProduct.id),
+                lastProductCode: String(resolvedProduct.code ?? ''),
+                lastProductName: String(resolvedProduct.name ?? ''),
+              }
+            : {}),
+          ...(resolvedDocument
+            ? {
+                lastDocumentId: Number(resolvedDocument.id),
+                lastDocumentNumber: String(resolvedDocument.number ?? ''),
+              }
+            : {}),
+        }));
+      }
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -321,6 +351,7 @@ export default function AILabPage() {
               onClick={() => {
                 setMessages([]);
                 setDoubleConfirmActionId(null);
+                setConversationMemory({});
               }}
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -386,7 +417,7 @@ export default function AILabPage() {
                         )}
 
                         {msg.payload?.tables?.map((t, idx) => (
-                          <div key={`table-${idx}`} className="overflow-auto rounded-xl border bg-background p-2 text-foreground">
+                          <div key={`table-${idx}`} className="max-h-[420px] overflow-auto rounded-xl border bg-background p-2 text-foreground">
                             <p className="mb-2 text-xs font-semibold">{t.title}</p>
                             <table className="w-full border-collapse text-xs">
                               <thead>

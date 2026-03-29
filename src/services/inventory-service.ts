@@ -168,6 +168,11 @@ export async function getProductDetails(productId: string): Promise<{
     };
     productPriceMatchesLatestDocument?: boolean;
   };
+  aiUpdate?: {
+    updatedAt?: string | null;
+    action?: string | null;
+    summary?: string | null;
+  };
   // Back-compat flattened fields used by existing UI
   id?: number;
   name?: string;
@@ -194,6 +199,9 @@ export async function getProductDetails(productId: string): Promise<{
   islowstockwarningenabled?: boolean;
   datecreated?: string | null;
   dateupdated?: string | null;
+  aiupdatedat?: string | null;
+  aiupdateaction?: string | null;
+  aiupdatesummary?: string | null;
   error?: string;
 }> {
   try {
@@ -591,6 +599,67 @@ export async function getProductDetails(productId: string): Promise<{
       }
     }
 
+    let aiUpdate: { updatedAt?: string | null; action?: string | null; summary?: string | null } | undefined;
+    try {
+      const candidateLogs: any[] = [];
+      let nextToken: string | null | undefined = undefined;
+      const maxPages = 8;
+      const pageLimit = 150;
+      let page = 0;
+
+      do {
+        const res: any = await amplifyClient.models.AuditLog.list({
+          filter: { recordId: { eq: Number(productId) } },
+          limit: pageLimit,
+          nextToken,
+        } as any);
+        candidateLogs.push(...((res?.data ?? []) as any[]));
+        nextToken = res?.nextToken;
+        page++;
+        if (page >= maxPages) break;
+      } while (nextToken);
+
+      const aiLogs = candidateLogs
+        .filter((l: any) => String(l?.tableName ?? '') === 'Product')
+        .map((l: any) => {
+          let parsedNewValues: any = null;
+          try {
+            parsedNewValues = l?.newValues ? JSON.parse(String(l.newValues)) : null;
+          } catch {
+            parsedNewValues = null;
+          }
+
+          const isAi =
+            String(parsedNewValues?.source ?? '').toUpperCase() === 'AI_ASSISTANT' ||
+            String(parsedNewValues?.updatedVia ?? '').toUpperCase() === 'IA' ||
+            /AI_/i.test(String(l?.action ?? ''));
+
+          return {
+            action: String(l?.action ?? ''),
+            timestamp: l?.timestamp ? String(l.timestamp) : null,
+            summary:
+              typeof parsedNewValues?.summary === 'string'
+                ? parsedNewValues.summary
+                : Array.isArray(parsedNewValues?.changed)
+                  ? parsedNewValues.changed.join(', ')
+                  : null,
+            isAi,
+          };
+        })
+        .filter((l: any) => l.isAi)
+        .sort((a: any, b: any) => String(b.timestamp ?? '').localeCompare(String(a.timestamp ?? '')));
+
+      if (aiLogs.length > 0) {
+        aiUpdate = {
+          updatedAt: aiLogs[0].timestamp,
+          action: aiLogs[0].action || null,
+          summary: aiLogs[0].summary || null,
+        };
+      }
+    } catch {
+      // best-effort metadata only
+    }
+
     return {
       success: true,
       product: productPlain,
@@ -615,6 +684,7 @@ export async function getProductDetails(productId: string): Promise<{
           : undefined,
         productPriceMatchesLatestDocument: typeof priceMatchesLatest === 'boolean' ? priceMatchesLatest : undefined,
       },
+      aiUpdate,
       id: productPlain.idProduct,
       name: productPlain.name,
       code: productPlain.code,
@@ -640,6 +710,9 @@ export async function getProductDetails(productId: string): Promise<{
       islowstockwarningenabled: Boolean(defaultStockControl?.isLowStockWarningEnabled ?? true),
       datecreated: productPlain.createdAt ?? null,
       dateupdated: productPlain.updatedAt ?? null,
+      aiupdatedat: aiUpdate?.updatedAt ?? null,
+      aiupdateaction: aiUpdate?.action ?? null,
+      aiupdatesummary: aiUpdate?.summary ?? null,
     };
   } catch (error) {
     return {
