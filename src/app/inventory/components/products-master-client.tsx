@@ -31,7 +31,7 @@ import { ViewProductDetails } from "./view-product-details";
 import { EditProductForm } from "./edit-product-form";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
-import { MoreHorizontal, ScanLine } from "lucide-react";
+import { Download, MoreHorizontal, ScanLine } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
@@ -41,6 +41,7 @@ import { updateProductGroupAction } from "@/actions/update-product-group";
 import { deleteProductGroupAction } from "@/actions/delete-product-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ExportInventoryDialog } from "./export-inventory-dialog";
 
 export type ProductsMasterTableRow = ProductsMasterRow & {
   productGroupName?: string | null;
@@ -91,6 +92,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
 
   const [groupsOpen, setGroupsOpen] = React.useState(false);
   const [scanOpen, setScanOpen] = React.useState(false);
+  const [exportOpen, setExportOpen] = React.useState(false);
 
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
   const [groupFormMode, setGroupFormMode] = React.useState<"create" | "edit">("create");
@@ -754,24 +756,31 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
           ) : null}
         </div>
 
-        <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
-          <DialogTrigger asChild>
-            <Button>Nuevo producto</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Añadir nuevo producto</DialogTitle>
-              <DialogDescription>Completa los detalles para añadir un nuevo producto al catálogo.</DialogDescription>
-            </DialogHeader>
-              <AddProductForm
-                setOpen={setAddModalOpen}
-                productGroups={productGroupsState || []}
-                warehouses={warehouses}
-                taxes={taxes}
-                currentUserName={currentUserName}
-              />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setExportOpen(true)}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+
+          <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button>Nuevo producto</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Añadir nuevo producto</DialogTitle>
+                <DialogDescription>Completa los detalles para añadir un nuevo producto al catálogo.</DialogDescription>
+              </DialogHeader>
+                <AddProductForm
+                  setOpen={setAddModalOpen}
+                  productGroups={productGroupsState || []}
+                  warehouses={warehouses}
+                  taxes={taxes}
+                  currentUserName={currentUserName}
+                />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="text-sm text-muted-foreground text-center">
@@ -851,6 +860,17 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
             });
           })();
         }}
+      />
+
+      <ExportInventoryDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        filteredRows={filteredRows}
+        allRows={rows}
+        productGroups={productGroupsState}
+        warehouses={warehouses}
+        currentQuery={String(query ?? "").trim()}
+        currentGroupName={selectedGroup?.name ? String(selectedGroup.name) : null}
       />
     </div>
   );

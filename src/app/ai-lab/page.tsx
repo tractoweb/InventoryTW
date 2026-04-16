@@ -7,6 +7,7 @@ import { Bot, Send, Loader2, User, RotateCcw, Sparkles, Paperclip, Globe, Extern
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import {
   buildAssistantContext,
   executeAssistantAction,
@@ -32,6 +33,27 @@ type ConversationMemory = {
   lastDocumentId?: number;
   lastDocumentNumber?: string;
 };
+
+type ActionType = NonNullable<AssistantPayload['actions']>[number];
+type ActionDraftMap = Record<string, Record<string, unknown>>;
+
+function normalizeConfirmationText(value: string): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function isAffirmativeText(value: string): boolean {
+  const t = normalizeConfirmationText(value);
+  return ['si', 's', 'yes', 'ok', 'dale', 'confirmo', 'confirmar', 'hazlo', 'ejecuta', 'procede'].includes(t);
+}
+
+function isNegativeText(value: string): boolean {
+  const t = normalizeConfirmationText(value);
+  return ['no', 'n', 'cancelar', 'detener', 'anular', 'negar', 'rechazo'].includes(t);
+}
 
 const TEXT_FILE_EXTENSIONS = ['.txt', '.md', '.csv', '.json', '.tsv', '.log'];
 
@@ -96,6 +118,8 @@ export default function AILabPage() {
   const [attachments, setAttachments] = React.useState<AssistantAttachment[]>([]);
   const [doubleConfirmActionId, setDoubleConfirmActionId] = React.useState<string | null>(null);
   const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
+  const [confirmActionId, setConfirmActionId] = React.useState<string | null>(null);
+  const [actionDrafts, setActionDrafts] = React.useState<ActionDraftMap>({});
   const [conversationMemory, setConversationMemory] = React.useState<ConversationMemory>({});
 
   const pathname = usePathname();
@@ -105,6 +129,67 @@ export default function AILabPage() {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  function findActionById(actionId: string | null): ActionType | null {
+    if (!actionId) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'assistant') continue;
+      const match = (msg.payload?.actions ?? []).find((a) => a.id === actionId);
+      if (match) return match;
+    }
+    return null;
+  }
+
+  function getLastPendingWriteAction() {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'assistant') continue;
+      const actions = msg.payload?.actions ?? [];
+      const writeActions = actions.filter((a) => a.kind === 'write' && a.requiresConfirmation && a.execute?.operation);
+      if (writeActions.length === 1) return writeActions[0];
+      if (writeActions.length > 1) return null;
+    }
+    return null;
+  }
+
+  function makeDefaultDraft(action: ActionType): Record<string, unknown> {
+    const params = { ...(action.execute?.params ?? {}) };
+    const op = action.execute?.operation;
+    if (op === 'adjustStock' && params.reason === undefined) params.reason = '';
+    return params;
+  }
+
+  function startConfirmation(action: ActionType) {
+    setConfirmActionId(action.id);
+    setActionDrafts((prev) => ({
+      ...prev,
+      [action.id]: prev[action.id] ?? makeDefaultDraft(action),
+    }));
+  }
+
+  function updateDraft(actionId: string, key: string, value: unknown) {
+    setActionDrafts((prev) => ({
+      ...prev,
+      [actionId]: {
+        ...(prev[actionId] ?? {}),
+        [key]: value,
+      },
+    }));
+  }
+
+  function cancelConfirmation(action: ActionType) {
+    setConfirmActionId(null);
+    setDoubleConfirmActionId(null);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `a-cancel-ui-${Date.now()}`,
+        role: 'assistant',
+        content: `Acción cancelada: ${action.title}.`,
+      },
+    ]);
+  }
+
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -112,6 +197,50 @@ export default function AILabPage() {
   async function sendMessage(text?: string) {
     const message = (text ?? input).trim();
     if (!message || loading) return;
+
+    const pendingAction = findActionById(confirmActionId) ?? getLastPendingWriteAction();
+    const isYes = isAffirmativeText(message);
+    const isNo = isNegativeText(message);
+
+    if ((isYes || isNo) && pendingAction) {
+      const userMsg: Message = {
+        id: `u-${Date.now()}`,
+        role: 'user',
+        content: message,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput('');
+      setAttachments([]);
+
+      if (isNo) {
+        setDoubleConfirmActionId(null);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-cancel-${Date.now()}`,
+            role: 'assistant',
+            content: `Entendido. Cancelé la acción: ${pendingAction.title}.`,
+          },
+        ]);
+        return;
+      }
+
+      if (pendingAction.requiresDoubleConfirmation && doubleConfirmActionId !== pendingAction.id) {
+        setDoubleConfirmActionId(pendingAction.id);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-double-${Date.now()}`,
+            role: 'assistant',
+            content: `Confirmación final requerida para: ${pendingAction.title}. Responde "sí" nuevamente para ejecutar o "no" para cancelar.`,
+          },
+        ]);
+        return;
+      }
+
+      await submitProposedAction(pendingAction, actionDrafts[pendingAction.id]);
+      return;
+    }
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -249,7 +378,7 @@ export default function AILabPage() {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  async function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number]) {
+  async function submitProposedAction(action: NonNullable<AssistantPayload['actions']>[number], paramsOverride?: Record<string, unknown>) {
     if (activeActionId && activeActionId !== action.id) return;
 
     if (action.link?.url) {
@@ -277,7 +406,7 @@ export default function AILabPage() {
       try {
         const result = await executeAssistantAction({
           operation: action.execute.operation,
-          params: action.execute.params,
+          params: paramsOverride ?? action.execute.params,
           confirmation: true,
           doubleConfirmation: Boolean(action.requiresDoubleConfirmation),
         });
@@ -312,6 +441,8 @@ export default function AILabPage() {
             },
           },
         ]);
+        setConfirmActionId(null);
+        setDoubleConfirmActionId(null);
       } finally {
         setActiveActionId(null);
         setLoading(false);
@@ -468,6 +599,9 @@ export default function AILabPage() {
                             <p className="text-xs font-semibold">Acciones sugeridas (requieren aprobacion)</p>
                             {msg.payload.actions.map((a) => {
                               const waitingDouble = doubleConfirmActionId === a.id && a.requiresDoubleConfirmation;
+                              const isWriteAction = a.kind === 'write' && Boolean(a.execute?.operation);
+                              const isConfirming = confirmActionId === a.id && isWriteAction;
+                              const draft = actionDrafts[a.id] ?? makeDefaultDraft(a);
                               return (
                                 <div key={a.id} className="rounded border bg-white p-2 shadow-sm">
                                   <div className="mb-1 flex items-center justify-between gap-2">
@@ -489,16 +623,117 @@ export default function AILabPage() {
                                       size="sm"
                                       variant={waitingDouble ? 'destructive' : 'secondary'}
                                       className="h-7 text-xs"
-                                      onClick={() => submitProposedAction(a)}
+                                      onClick={() => {
+                                        if (isWriteAction) {
+                                          if (!isConfirming) {
+                                            startConfirmation(a);
+                                            return;
+                                          }
+                                          void submitProposedAction(a, draft);
+                                          return;
+                                        }
+                                        void submitProposedAction(a);
+                                      }}
                                       disabled={Boolean(activeActionId) && activeActionId !== a.id}
                                     >
                                       {activeActionId === a.id
                                         ? 'Procesando...'
                                         : waitingDouble
                                           ? 'Confirmar definitivamente'
-                                          : 'Ejecutar'}
+                                          : isWriteAction
+                                            ? (isConfirming ? 'Sí, ejecutar' : 'Preparar acción')
+                                            : 'Ejecutar'}
                                     </Button>
+                                    {isWriteAction && isConfirming && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs"
+                                        onClick={() => cancelConfirmation(a)}
+                                        disabled={Boolean(activeActionId) && activeActionId !== a.id}
+                                      >
+                                        No, cancelar
+                                      </Button>
+                                    )}
                                   </div>
+
+                                  {isWriteAction && isConfirming && (
+                                    <div className="mt-2 space-y-2 rounded-md border bg-muted/30 p-2">
+                                      <div className="text-xs font-medium text-muted-foreground">Confirmación de acción</div>
+
+                                      {a.execute?.operation === 'adjustStock' && (
+                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">ID Producto</label>
+                                            <Input
+                                              value={String(draft.productId ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'productId', Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="numeric"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">Bodega</label>
+                                            <Input
+                                              value={String(draft.warehouseId ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'warehouseId', Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="numeric"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">Cantidad final</label>
+                                            <Input
+                                              value={String(draft.quantity ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'quantity', Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="numeric"
+                                            />
+                                          </div>
+                                          <div className="sm:col-span-3">
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">Razón (opcional)</label>
+                                            <Input
+                                              value={String(draft.reason ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'reason', e.target.value)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {a.execute?.operation === 'updateProduct' && (
+                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">ID Producto</label>
+                                            <Input
+                                              value={String(draft.productId ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'productId', Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="numeric"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">Precio (opcional)</label>
+                                            <Input
+                                              value={String(draft.price ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'price', e.target.value === '' ? undefined : Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="decimal"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="mb-1 block text-[11px] text-muted-foreground">Costo (opcional)</label>
+                                            <Input
+                                              value={String(draft.cost ?? '')}
+                                              onChange={(e) => updateDraft(a.id, 'cost', e.target.value === '' ? undefined : Number(e.target.value || 0))}
+                                              className="h-8 text-xs"
+                                              inputMode="decimal"
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
