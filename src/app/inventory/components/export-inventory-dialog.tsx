@@ -2,8 +2,9 @@
 
 import * as React from "react";
 
-import { ArrowDown, ArrowUp, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Database, Download } from "lucide-react";
 
+import { exportAllDbAction } from "@/actions/export-all-db";
 import { getCustomers, type CustomerListItem } from "@/actions/get-customers";
 import { getExportProductContext } from "@/actions/get-export-product-context";
 import { getExportStockDetails } from "@/actions/get-export-stock-details";
@@ -20,8 +21,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { buildInventoryCsv, buildInventoryPdf, buildInventoryXml } from "@/lib/export-formatters";
 import {
+  buildInventoryCsv,
+  buildInventoryJson,
+  buildInventoryPdf,
+  buildInventoryWorkbook,
+  buildInventoryXml,
+  buildRecordsCsv,
+  buildRecordsXml,
+} from "@/lib/export-formatters";
+import {
+  type CsvDelimiter,
   DEFAULT_INVENTORY_EXPORT_FIELDS,
   INVENTORY_EXPORT_FIELDS,
   type ExportFormat,
@@ -135,6 +145,9 @@ export function ExportInventoryDialog({
   const [createdFrom, setCreatedFrom] = React.useState("");
   const [createdTo, setCreatedTo] = React.useState("");
   const [createdYear, setCreatedYear] = React.useState("");
+  const [csvDelimiter, setCsvDelimiter] = React.useState<CsvDelimiter>(";");
+  const [isExportingDb, setIsExportingDb] = React.useState(false);
+  const [fullDbFormat, setFullDbFormat] = React.useState<Extract<ExportFormat, "csv" | "xml" | "json">>("json");
 
   React.useEffect(() => {
     if (!open) return;
@@ -306,17 +319,23 @@ export function ExportInventoryDialog({
       ]
         .filter(Boolean)
         .join(" · ");
+      const exportMetadata = { scopeLabel, filterLabel };
 
       if (format === "csv") {
-        downloadBlob(buildInventoryCsv(exportRows, selectedFieldDefinitions), `inventario-${scope}-${stamp}.csv`);
+        downloadBlob(buildInventoryCsv(sourceRows, selectedFieldDefinitions, { delimiter: csvDelimiter, decimalSeparator: csvDelimiter === ";" ? "," : "." }), `inventario-${scope}-${stamp}.csv`);
       } else if (format === "xml") {
         downloadBlob(
-          buildInventoryXml(exportRows, selectedFieldDefinitions, { scopeLabel, filterLabel }),
+          buildInventoryXml(sourceRows, selectedFieldDefinitions, exportMetadata),
           `inventario-${scope}-${stamp}.xml`
         );
+      } else if (format === "json") {
+        downloadBlob(buildInventoryJson(sourceRows, selectedFieldDefinitions, exportMetadata), `inventario-${scope}-${stamp}.json`);
+      } else if (format === "xlsx") {
+        const workbookBlob = await buildInventoryWorkbook(sourceRows, selectedFieldDefinitions);
+        downloadBlob(workbookBlob, `inventario-${scope}-${stamp}.xlsx`);
       } else {
         const subtitle = `${scopeLabel}${filterLabel ? ` · ${filterLabel}` : ""}`;
-        const pdfBlob = await buildInventoryPdf(exportRows, selectedFieldDefinitions, "Exportación de inventario", subtitle);
+        const pdfBlob = await buildInventoryPdf(sourceRows, selectedFieldDefinitions, "Exportación de inventario", subtitle);
         downloadBlob(pdfBlob, `inventario-${scope}-${stamp}.pdf`);
       }
 
@@ -329,13 +348,51 @@ export function ExportInventoryDialog({
     }
   }
 
+  async function handleExportAllDb() {
+    setIsExportingDb(true);
+    try {
+      const result = await exportAllDbAction();
+      if (result.error || !result.data) {
+        toast({ variant: "destructive", title: "No se pudo exportar la base", description: result.error ?? "Error desconocido" });
+        return;
+      }
+
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const generatedAt = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+
+      zip.file("metadata.json", JSON.stringify(result.meta ?? {}, null, 2));
+
+      for (const [tableName, rawRows] of Object.entries(result.data)) {
+        const rows = Array.isArray(rawRows) ? (rawRows as Record<string, unknown>[]) : [];
+        if (fullDbFormat === "json") {
+          zip.file(`${tableName}.json`, JSON.stringify(rows, null, 2));
+        } else if (fullDbFormat === "csv") {
+          const blob = buildRecordsCsv(rows, { delimiter: csvDelimiter, decimalSeparator: csvDelimiter === ";" ? "," : "." });
+          zip.file(`${tableName}.csv`, await blob.text());
+        } else {
+          const blob = buildRecordsXml(tableName, rows);
+          zip.file(`${tableName}.xml`, await blob.text());
+        }
+      }
+
+      const zipped = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipped, `inventorytw-db-${fullDbFormat}-${generatedAt}.zip`);
+      toast({ title: "Exportación completa generada", description: `Se exportaron ${Object.keys(result.data).length} tablas.` });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Falló la exportación completa", description: error?.message ?? "Error desconocido" });
+    } finally {
+      setIsExportingDb(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-y-auto overscroll-y-contain">
         <DialogHeader>
           <DialogTitle>Exportar inventario</DialogTitle>
           <DialogDescription>
-            Elige el formato, el alcance y el orden de los campos. Puedes exportar solo lo filtrado o toda la base del maestro.
+            Elige el formato, el alcance y el orden de los campos. También puedes exportar toda la base del sistema en un ZIP por tablas.
           </DialogDescription>
         </DialogHeader>
 
@@ -376,6 +433,44 @@ export function ExportInventoryDialog({
                     <label className="flex items-center gap-2 rounded-md border p-3">
                       <RadioGroupItem value="pdf" id="export-format-pdf" />
                       <span>PDF</span>
+                    </label>
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value="xlsx" id="export-format-xlsx" />
+                      <span>Excel</span>
+                    </label>
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value="json" id="export-format-json" />
+                      <span>JSON</span>
+                    </label>
+                  </RadioGroup>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Opciones CSV</CardTitle>
+                <CardDescription>Define el carácter separador para que Excel lo abra correctamente en tu entorno.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Separador de celdas</Label>
+                  <RadioGroup value={csvDelimiter} onValueChange={(value) => setCsvDelimiter(value as CsvDelimiter)} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value=";" id="csv-delimiter-semicolon" />
+                      <span>Punto y coma</span>
+                    </label>
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value="," id="csv-delimiter-comma" />
+                      <span>Coma</span>
+                    </label>
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value="|" id="csv-delimiter-pipe" />
+                      <span>Pipe</span>
+                    </label>
+                    <label className="flex items-center gap-2 rounded-md border p-3">
+                      <RadioGroupItem value="\t" id="csv-delimiter-tab" />
+                      <span>Tab</span>
                     </label>
                   </RadioGroup>
                 </div>
@@ -461,7 +556,7 @@ export function ExportInventoryDialog({
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Campos disponibles</CardTitle>
-                <CardDescription>Los básicos cubren nombre, referencia, colocación, grupos y precios. Los de stock agregan existencias.</CardDescription>
+                <CardDescription>Los básicos cubren nombre, referencia, colocación, grupos y precios. Los ampliados agregan fechas, proveedor y documentos.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[320px] pr-4">
@@ -504,7 +599,7 @@ export function ExportInventoryDialog({
           <Card className="min-h-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Orden de columnas</CardTitle>
-              <CardDescription>Este orden se respeta en CSV, XML y PDF.</CardDescription>
+              <CardDescription>Este orden se respeta en CSV, XML, JSON, PDF y Excel.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <ScrollArea className="h-[430px] pr-4">
@@ -556,6 +651,37 @@ export function ExportInventoryDialog({
                 <Download className="mr-2 h-4 w-4" />
                 {isExporting ? "Generando exportación…" : `Descargar ${format.toUpperCase()}`}
               </Button>
+
+              <Separator />
+
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <div>
+                  <div className="text-sm font-medium">Exportar toda la DB</div>
+                  <div className="text-xs text-muted-foreground">
+                    Extrae todas las tablas del sistema en un archivo comprimido. Prioriza JSON, pero también soporta CSV y XML por tabla.
+                  </div>
+                </div>
+
+                <RadioGroup value={fullDbFormat} onValueChange={(value) => setFullDbFormat(value as Extract<ExportFormat, "csv" | "xml" | "json">)} className="grid grid-cols-3 gap-2">
+                  <label className="flex items-center gap-2 rounded-md border p-3">
+                    <RadioGroupItem value="json" id="full-db-format-json" />
+                    <span>JSON</span>
+                  </label>
+                  <label className="flex items-center gap-2 rounded-md border p-3">
+                    <RadioGroupItem value="csv" id="full-db-format-csv" />
+                    <span>CSV</span>
+                  </label>
+                  <label className="flex items-center gap-2 rounded-md border p-3">
+                    <RadioGroupItem value="xml" id="full-db-format-xml" />
+                    <span>XML</span>
+                  </label>
+                </RadioGroup>
+
+                <Button type="button" variant="secondary" className="w-full" onClick={handleExportAllDb} disabled={isExportingDb}>
+                  <Database className="mr-2 h-4 w-4" />
+                  {isExportingDb ? "Empaquetando toda la base…" : `Exportar toda la DB (${fullDbFormat.toUpperCase()})`}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

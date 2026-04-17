@@ -1,4 +1,6 @@
-export type ExportFormat = "csv" | "xml" | "pdf";
+export type ExportFormat = "csv" | "xml" | "pdf" | "xlsx" | "json";
+
+export type CsvDelimiter = ";" | "," | "\t" | "|";
 
 export type ExportScope = "filtered" | "all";
 
