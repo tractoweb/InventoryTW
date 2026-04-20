@@ -46,6 +46,30 @@ async function getSupplierProductIds(supplierId: number, maxDocs: number, maxIte
   return out;
 }
 
+export async function getSupplierProductIdsAction(
+  supplierId: number,
+  opts?: { maxDocs?: number; maxItems?: number }
+): Promise<{ data: number[]; error?: string }> {
+  noStore();
+
+  try {
+    const normalizedSupplierId = Number(supplierId);
+    if (!Number.isFinite(normalizedSupplierId) || normalizedSupplierId <= 0) {
+      return { data: [] };
+    }
+
+    const supplierSet = await getSupplierProductIds(
+      normalizedSupplierId,
+      Math.max(1, Math.trunc(Number(opts?.maxDocs ?? 15))),
+      Math.max(1, Math.trunc(Number(opts?.maxItems ?? 500)))
+    );
+
+    return { data: Array.from(supplierSet) };
+  } catch (e) {
+    return { data: [], error: formatAmplifyError(e) };
+  }
+}
+
 export async function searchProductsAction(
   query: string,
   limit: number = 30,

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useProductsCatalog } from '@/components/catalog/products-catalog-provider';
 
 import {
   Table,
@@ -52,7 +53,7 @@ import {
 
 import { getWarehouses } from '@/actions/get-warehouses';
 import { getDocumentTypes } from '@/actions/get-document-types';
-import { searchProductsAction, type ProductSearchResult } from '@/actions/search-products';
+import { getSupplierProductIdsAction, searchProductsAction, type ProductSearchResult } from '@/actions/search-products';
 import { createDocumentAction } from '@/actions/create-document';
 import { finalizeDocumentAction } from '@/actions/finalize-document';
 import { createCustomerAction } from '@/actions/create-customer';
@@ -79,6 +80,96 @@ import {
 } from '@/lib/liquidation';
 
 type SelectOption = { value: number; label: string };
+
+type DocumentProductSearchResult = ProductSearchResult & {
+  productGroupId?: number | null;
+  productGroupName?: string | null;
+  measurementUnit?: string | null;
+  matchLabel?: string | null;
+};
+
+function normalizeLooseSearch(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function normalizeCompactSearch(value: unknown): string {
+  return normalizeLooseSearch(value).replace(/[^a-z0-9]+/g, '');
+}
+
+function tokenizeLooseSearch(value: unknown): string[] {
+  return normalizeLooseSearch(value)
+    .split(/[^a-z0-9]+/g)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+}
+
+function rankCatalogProduct(
+  product: DocumentProductSearchResult,
+  rawQuery: string
+): { score: number; matchLabel: string | null } | null {
+  const query = String(rawQuery ?? '').trim();
+  if (!query) return { score: 1, matchLabel: null };
+
+  const queryLoose = normalizeLooseSearch(query);
+  const queryCompact = normalizeCompactSearch(query);
+  const tokens = tokenizeLooseSearch(query);
+  const idText = String(product.idProduct ?? '');
+  const nameLoose = normalizeLooseSearch(product.name);
+  const codeLoose = normalizeLooseSearch(product.code);
+  const nameCompact = normalizeCompactSearch(product.name);
+  const codeCompact = normalizeCompactSearch(product.code);
+  const groupLoose = normalizeLooseSearch(product.productGroupName);
+  const haystack = [nameLoose, codeLoose, groupLoose, idText].join(' ');
+  const haystackCompact = [nameCompact, codeCompact, idText].join(' ');
+
+  let score = 0;
+  let matchLabel: string | null = null;
+
+  if (idText === query) {
+    score += 160;
+    matchLabel = 'ID exacto';
+  }
+  if (queryCompact && codeCompact === queryCompact) {
+    score += 150;
+    matchLabel = matchLabel ?? 'Referencia exacta';
+  }
+  if (queryLoose && nameLoose === queryLoose) {
+    score += 140;
+    matchLabel = matchLabel ?? 'Nombre exacto';
+  }
+  if (queryCompact && codeCompact.startsWith(queryCompact)) {
+    score += 110;
+    matchLabel = matchLabel ?? 'Referencia';
+  }
+  if (queryLoose && nameLoose.startsWith(queryLoose)) {
+    score += 95;
+    matchLabel = matchLabel ?? 'Nombre';
+  }
+  if (queryCompact && codeCompact.includes(queryCompact)) {
+    score += 80;
+    matchLabel = matchLabel ?? 'Referencia';
+  }
+  if (queryLoose && nameLoose.includes(queryLoose)) {
+    score += 65;
+    matchLabel = matchLabel ?? 'Nombre';
+  }
+  if (query.length >= 1 && idText.includes(query)) {
+    score += 55;
+    matchLabel = matchLabel ?? 'ID';
+  }
+  if (tokens.length > 0 && tokens.every((token) => haystack.includes(token) || haystackCompact.includes(token))) {
+    score += 35;
+    matchLabel = matchLabel ?? 'Coincidencia compuesta';
+  }
+
+  if (score <= 0) return null;
+  return { score, matchLabel };
+}
 
 function toUserDecimalText(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -208,6 +299,7 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
   const editDocumentId = isEditMode ? Number(documentToEdit?.id) : null;
   const isFinalizedEdit = isEditMode && Boolean(documentToEdit?.isclockedout);
   const { toast } = useToast();
+  const productsCatalog = useProductsCatalog();
   const submitLockRef = React.useRef(false);
 
   const [loading, setLoading] = React.useState(true);
@@ -341,9 +433,21 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
   // Product search dialog
   const [productDialogOpen, setProductDialogOpen] = React.useState(false);
   const [productQuery, setProductQuery] = React.useState('');
-  const [productResults, setProductResults] = React.useState<ProductSearchResult[]>([]);
+  const [productResults, setProductResults] = React.useState<DocumentProductSearchResult[]>([]);
   const [productSearching, setProductSearching] = React.useState(false);
   const [onlySupplierProducts, setOnlySupplierProducts] = React.useState(false);
+  const [supplierProductIdsByCustomer, setSupplierProductIdsByCustomer] = React.useState<Record<number, number[]>>({});
+  const [supplierProductsLoading, setSupplierProductsLoading] = React.useState(false);
+
+  const productGroupNameById = React.useMemo(() => {
+    const map = new Map<number, string>();
+    for (const group of productGroups) {
+      const id = Number(group?.id);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      map.set(id, String(group?.name ?? ''));
+    }
+    return map;
+  }, [productGroups]);
 
   const liquidationConfig: LiquidationConfig = React.useMemo(
     () => ({
@@ -462,6 +566,42 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
     boot();
   }, [toast, documentTypeId, isEditMode]);
 
+  React.useEffect(() => {
+    void productsCatalog.ensureLoaded();
+  }, [productsCatalog]);
+
+  React.useEffect(() => {
+    const supplierId = typeof customerId === 'number' ? customerId : null;
+    if (!productDialogOpen || !onlySupplierProducts || !supplierId || supplierId <= 0) return;
+    if (supplierProductIdsByCustomer[supplierId]) return;
+
+    let cancelled = false;
+
+    async function loadSupplierProducts() {
+      setSupplierProductsLoading(true);
+      try {
+        const res = await getSupplierProductIdsAction(supplierId, { maxDocs: 15, maxItems: 500 });
+        if (cancelled) return;
+        if (res.error) {
+          toast({ variant: 'destructive', title: 'Error', description: res.error });
+          return;
+        }
+        setSupplierProductIdsByCustomer((prev) => ({
+          ...prev,
+          [supplierId]: res.data ?? [],
+        }));
+      } finally {
+        if (!cancelled) setSupplierProductsLoading(false);
+      }
+    }
+
+    void loadSupplierProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productDialogOpen, onlySupplierProducts, customerId, supplierProductIdsByCustomer, toast]);
+
   async function retryFinalizeExisting(): Promise<void> {
     const documentId = resultDocumentId;
     if (!documentId) return;
@@ -498,17 +638,78 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
     const handle = setTimeout(async () => {
       const q = productQuery.trim();
       if (!productDialogOpen) return;
+
       setProductSearching(true);
+
+      const supplierId = typeof customerId === 'number' ? customerId : null;
+      const supplierProductIds = supplierId ? supplierProductIdsByCustomer[supplierId] ?? null : null;
+      const canUseCatalog =
+        productsCatalog.status === 'ready' &&
+        (!onlySupplierProducts || !!supplierProductIds);
+
+      if (canUseCatalog) {
+        const allowedSupplierProductIds = supplierProductIds ? new Set(supplierProductIds) : null;
+        const ranked = (productsCatalog.products ?? [])
+          .filter((product) => {
+            if (!allowedSupplierProductIds) return true;
+            return allowedSupplierProductIds.has(Number(product.id));
+          })
+          .map((product) => {
+            const result: DocumentProductSearchResult = {
+              idProduct: Number(product.id),
+              name: String(product.name ?? ''),
+              code: product.code ?? null,
+              cost: product.cost ?? null,
+              price: product.price ?? null,
+              productGroupId: product.productGroupId ?? null,
+              productGroupName:
+                product.productGroupId && productGroupNameById.has(Number(product.productGroupId))
+                  ? productGroupNameById.get(Number(product.productGroupId)) ?? null
+                  : null,
+              measurementUnit: product.measurementUnit ?? null,
+            };
+            const rank = rankCatalogProduct(result, q);
+            return rank ? { result: { ...result, matchLabel: rank.matchLabel }, score: rank.score } : null;
+          })
+          .filter((entry): entry is { result: DocumentProductSearchResult; score: number } => Boolean(entry))
+          .sort((left, right) => {
+            if (right.score !== left.score) return right.score - left.score;
+            return left.result.name.localeCompare(right.result.name, 'es');
+          })
+          .slice(0, q ? 50 : 30)
+          .map((entry) => entry.result);
+
+        setProductResults(ranked);
+        setProductSearching(false);
+        return;
+      }
+
       const res = await searchProductsAction(q, 30, {
         supplierId: typeof customerId === 'number' ? customerId : undefined,
         onlySupplierProducts: onlySupplierProducts && typeof customerId === 'number',
       });
-      setProductResults(res.data ?? []);
+      setProductResults(
+        (res.data ?? []).map((product) => ({
+          ...product,
+          productGroupName: null,
+          measurementUnit: null,
+          matchLabel: null,
+        }))
+      );
       setProductSearching(false);
     }, 250);
 
     return () => clearTimeout(handle);
-  }, [productQuery, productDialogOpen, customerId, onlySupplierProducts]);
+  }, [
+    productQuery,
+    productDialogOpen,
+    customerId,
+    onlySupplierProducts,
+    productsCatalog.products,
+    productsCatalog.status,
+    productGroupNameById,
+    supplierProductIdsByCustomer,
+  ]);
 
   function addProduct(p: ProductSearchResult) {
     const label = p.code ? `${p.name} (${p.code})` : p.name;
@@ -1661,9 +1862,9 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
           <CommandEmpty>
             <div className="flex flex-col gap-2">
               <div>
-                {productSearching
+                {productSearching || supplierProductsLoading
                   ? 'Buscando…'
-                  : 'No hay resultados. Prueba con referencia (código) o nombre.'}
+                  : 'No hay resultados. Prueba con referencia, nombre o ID.'}
               </div>
               {productQuery.trim().length >= 1 ? (
                 <Button
@@ -1684,18 +1885,27 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
           <CommandGroup heading="Productos">
             {productResults.map((p) => {
               const label = p.code ? `${p.name} (${p.code})` : p.name;
+              const metaParts = [
+                p.code ? `Ref. ${p.code}` : null,
+                p.productGroupName ? `Grupo ${p.productGroupName}` : null,
+                p.measurementUnit ? `Unidad ${p.measurementUnit}` : null,
+                `ID ${p.idProduct}`,
+              ].filter(Boolean);
               return (
                 <CommandItem
                   key={p.idProduct}
-                  value={label}
+                  value={[label, p.productGroupName, p.measurementUnit, p.idProduct].filter(Boolean).join(' ')}
                   onSelect={() => addProduct(p)}
                 >
                   <div className="flex w-full items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate font-medium">{label}</div>
-                      <div className="truncate text-xs text-muted-foreground">ID: {p.idProduct}</div>
+                      <div className="truncate text-xs text-muted-foreground">{metaParts.join(' · ')}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{p.price ?? 0}</div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      {p.matchLabel ? <div>{p.matchLabel}</div> : null}
+                      <div>{p.price ?? 0}</div>
+                    </div>
                   </div>
                 </CommandItem>
               );
@@ -1731,7 +1941,9 @@ export function NewDocumentForm({ mode = 'create', documentToEdit }: NewDocument
               </span>
             </div>
           </div>
-          <div className="text-[11px] text-muted-foreground">Si no escribes nada, muestra una lista base (o del proveedor).</div>
+          <div className="text-[11px] text-muted-foreground">
+            Si no escribes nada, muestra una lista base desde el catálogo precargado. Si filtras por proveedor, limita esa lista al historial de compras del proveedor.
+          </div>
         </div>
       </CommandDialog>
 
