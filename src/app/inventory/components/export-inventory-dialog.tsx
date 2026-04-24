@@ -352,8 +352,20 @@ export function ExportInventoryDialog({
     setIsExportingDb(true);
     try {
       const result = await exportAllDbAction();
-      if (result.error || !result.data) {
-        toast({ variant: "destructive", title: "No se pudo exportar la base", description: result.error ?? "Error desconocido" });
+      
+      // Validate result structure
+      if (!result || typeof result !== "object") {
+        toast({ variant: "destructive", title: "No se pudo exportar la base", description: "Respuesta inválida del servidor" });
+        return;
+      }
+
+      if (result.error) {
+        toast({ variant: "destructive", title: "No se pudo exportar la base", description: result.error });
+        return;
+      }
+
+      if (!result.data || typeof result.data !== "object" || Object.keys(result.data).length === 0) {
+        toast({ variant: "destructive", title: "No se pudo exportar la base", description: "No se obtuvieron datos del servidor" });
         return;
       }
 
@@ -365,6 +377,8 @@ export function ExportInventoryDialog({
 
       for (const [tableName, rawRows] of Object.entries(result.data)) {
         const rows = Array.isArray(rawRows) ? (rawRows as Record<string, unknown>[]) : [];
+        if (rows.length === 0) continue; // Skip empty tables
+        
         if (fullDbFormat === "json") {
           zip.file(`${tableName}.json`, JSON.stringify(rows, null, 2));
         } else if (fullDbFormat === "csv") {
@@ -378,8 +392,19 @@ export function ExportInventoryDialog({
 
       const zipped = await zip.generateAsync({ type: "blob" });
       downloadBlob(zipped, `inventorytw-db-${fullDbFormat}-${generatedAt}.zip`);
-      toast({ title: "Exportación completa generada", description: `Se exportaron ${Object.keys(result.data).length} tablas.` });
+      
+      const totalTables = Object.keys(result.data).length;
+      const failedCount = result.meta?.failedTables?.length ?? 0;
+      const successCount = totalTables - failedCount;
+      
+      toast({ 
+        title: "Exportación completa generada", 
+        description: failedCount > 0 
+          ? `Se exportaron ${successCount} tablas. ${failedCount} tablas fallaron.`
+          : `Se exportaron ${totalTables} tablas.`
+      });
     } catch (error: any) {
+      console.error("Export error:", error);
       toast({ variant: "destructive", title: "Falló la exportación completa", description: error?.message ?? "Error desconocido" });
     } finally {
       setIsExportingDb(false);

@@ -18,7 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import { deleteProduct } from "@/actions/delete-product";
 import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-dialog";
 import { RefreshCcw, ScanLine } from "lucide-react";
-import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
 import { refreshStockCache } from "@/actions/refresh-stock-cache";
 import {
@@ -107,7 +106,6 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
       const name = String((item as any)?.name ?? "").trim();
       const reference = (item as any)?.code ? String((item as any).code) : null;
       const measurementUnit = (item as any)?.measurementunit ? String((item as any).measurementunit) : null;
-      const barcodesInline = Array.isArray((item as any)?.barcodes) ? ((item as any).barcodes as any[]) : [];
 
       if (!Number.isFinite(id) || id <= 0) {
         toast({ variant: "destructive", title: "Error", description: "Producto inválido." });
@@ -116,14 +114,7 @@ export function InventoryClient({ items: initialItems, productGroups, warehouses
       const qtyClean = Number.isFinite(Number(qty)) ? Math.max(1, Math.trunc(Number(qty))) : 1;
 
       try {
-        let barcodes = barcodesInline.map((b) => String(b ?? "").trim()).filter((v) => v.length > 0);
-        if (barcodes.length === 0) {
-          const bcRes = await getBarcodesForProducts([id]);
-          if (bcRes.error) throw new Error(bcRes.error);
-          barcodes = bcRes.data?.[id] ?? [];
-        }
-
-        const primaryBarcode = String(barcodes[0] ?? reference ?? id);
+        const primaryBarcode = String(reference ?? id);
 
         const res = await createPrintLabelRequest([
           {

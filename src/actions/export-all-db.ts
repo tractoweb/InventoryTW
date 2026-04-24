@@ -56,41 +56,80 @@ export async function exportAllDbAction(): Promise<{
     generatedAt: string;
     tableCount: number;
     rowCounts: Record<string, number>;
+    failedTables?: string[];
   };
   error?: string;
 }> {
   noStore();
 
   try {
-    const entries = await Promise.all(
-      TABLE_MODELS.map(async (tableName) => {
-        const model = (amplifyClient.models as any)?.[tableName];
-        if (!model?.list) return [tableName, []] as const;
+    const data: Record<string, unknown[]> = {};
+    const failedTables: string[] = [];
+    const rowCounts: Record<string, number> = {};
 
-        const result = await listAllPages<any>((args) => model.list(args));
-        if ("error" in result) {
-          throw new Error(`No se pudo exportar ${tableName}: ${result.error}`);
+    // Process each table sequentially with individual error handling
+    for (const tableName of TABLE_MODELS) {
+      try {
+        const model = (amplifyClient.models as any)?.[tableName];
+        
+        if (!model?.list) {
+          data[tableName] = [];
+          rowCounts[tableName] = 0;
+          continue;
         }
 
-        const rows = (result.data ?? []).map((row: any) => JSON.parse(JSON.stringify(row)));
-        return [tableName, rows] as const;
-      })
-    );
+        const result = await listAllPages<any>((args) => model.list(args));
+        
+        // Check if listAllPages returned error
+        if ("error" in result && result.error) {
+          console.error(`Error exporting ${tableName}:`, result.error);
+          failedTables.push(tableName);
+          data[tableName] = [];
+          rowCounts[tableName] = 0;
+          continue;
+        }
 
-    const data = Object.fromEntries(entries) as Record<string, unknown[]>;
-    const rowCounts = Object.fromEntries(
-      Object.entries(data).map(([tableName, rows]) => [tableName, Array.isArray(rows) ? rows.length : 0])
-    );
+        const rows = Array.isArray(result.data) 
+          ? (result.data as any[]).map((row: any) => {
+              try {
+                return JSON.parse(JSON.stringify(row));
+              } catch {
+                return row;
+              }
+            })
+          : [];
+        
+        data[tableName] = rows;
+        rowCounts[tableName] = rows.length;
+      } catch (tableError) {
+        console.error(`Failed to process ${tableName}:`, tableError);
+        failedTables.push(tableName);
+        data[tableName] = [];
+        rowCounts[tableName] = 0;
+      }
+    }
+
+    const meta = {
+      generatedAt: new Date().toISOString(),
+      tableCount: TABLE_MODELS.length,
+      rowCounts,
+      ...(failedTables.length > 0 && { failedTables }),
+    };
 
     return {
       data,
-      meta: {
-        generatedAt: new Date().toISOString(),
-        tableCount: TABLE_MODELS.length,
-        rowCounts,
-      },
+      meta,
     };
   } catch (error) {
-    return { error: formatAmplifyError(error) };
+    console.error("exportAllDbAction fatal error:", error);
+    return { 
+      error: formatAmplifyError(error),
+      data: {},
+      meta: {
+        generatedAt: new Date().toISOString(),
+        tableCount: 0,
+        rowCounts: {},
+      }
+    };
   }
 }

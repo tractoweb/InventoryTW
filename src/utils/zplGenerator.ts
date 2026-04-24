@@ -39,6 +39,12 @@ function clampInt(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
+function scaleByPercent(value: number, percent: unknown, minValue: number, maxValue: number): number {
+  const p = clampInt(Number(percent ?? 100), 40, 300);
+  const scaled = Math.round(value * (p / 100));
+  return clampInt(scaled, minValue, maxValue);
+}
+
 function getZebraDarkness(explicit?: number) {
   // Zebra: typical supported range is 0-30 for ~SD.
   if (Number.isFinite(explicit)) return clampInt(Number(explicit), 0, 30);
@@ -124,17 +130,26 @@ export const generate3UpLabelsRow = (
       const barcodeX = textX;
       const layout = compute3UpStickerLayout(dpi, nombre);
       const nameY = y0 + layout.nameY;
-      const nameFont = layout.nameFont;
+      const override = data.layoutOverride ?? {};
+      const contentScale = clampInt(Number(override.contentScalePercent ?? 100), 70, 130);
+      const nameFont = scaleByPercent(layout.nameFont, (override.nameFontPercent ?? 100) * (contentScale / 100), 10, 60);
       const nameLinesMax = layout.nameLinesMax;
-      const posFont = layout.posFont;
-      const dateFont = layout.dateFont;
+      const posFont = scaleByPercent(layout.posFont, contentScale, 8, 36);
+      const dateFont = scaleByPercent(layout.dateFont, contentScale, 8, 36);
       const posY = y0 + layout.posY;
       const dateY = y0 + layout.dateY;
-      const barcodeH = layout.barcodeH;
-      const barcodeTextH = layout.barcodeTextH;
+      const barcodeH = scaleByPercent(layout.barcodeH, (override.barcodeHeightPercent ?? 100) * (contentScale / 100), 16, 80);
+      const barcodeTextH = scaleByPercent(layout.barcodeTextH, (override.barcodeTextPercent ?? 100) * (contentScale / 100), 8, 28);
       const barcodeGap = layout.barcodeGap;
       const barcodeY = y0 + layout.barcodeY;
       const barcodeTextY = y0 + layout.barcodeTextY;
+      const barcodeType = override.barcodeType === "qrcode" ? "qrcode" : "code128";
+      const qrScale = clampInt(Number(override.qrScale ?? 3), 2, 8);
+
+      const barcodeBlock =
+        barcodeType === "qrcode"
+          ? `^FO${barcodeX},${barcodeY}^BQN,2,${qrScale}^FDLA,${barcode}^FS`
+          : `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`;
 
       return [
         border,
@@ -142,7 +157,7 @@ export const generate3UpLabelsRow = (
         `^FO${textX},${nameY}^A0N,${nameFont},${nameFont}^FB${textW},${nameLinesMax},0,L,0^FD${nombre}^FS`,
         `^FO${textX},${posY}^A0N,${posFont},${posFont}^FD${lote}^FS`,
         `^FO${textX},${dateY}^A0N,${dateFont},${dateFont}^FD${fecha}^FS`,
-        `^FO${barcodeX},${barcodeY}^BY1,3,40^BCN,${barcodeH},N,N,N^FD${barcode}^FS`,
+        barcodeBlock,
         `^FO${x0 + xShift},${barcodeTextY}^FB${Math.max(10, labelW - xShift)},1,0,C,0^A0N,${barcodeTextH},${barcodeTextH}^FD${barcodeText}^FS`,
       ]
         .filter(Boolean)

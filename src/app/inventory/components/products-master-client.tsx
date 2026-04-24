@@ -33,7 +33,6 @@ import { CameraScannerDialog } from "@/components/print-labels/camera-scanner-di
 import { findProductByBarcodeAction } from "@/actions/find-product-by-barcode";
 import { Download, MoreHorizontal, ScanLine } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getBarcodesForProducts } from "@/actions/get-barcodes-for-products";
 import { createPrintLabelRequest } from "@/actions/print-label-requests";
 import { createProductGroupAction } from "@/actions/create-product-group";
 import { getProductGroups } from "@/actions/get-product-groups";
@@ -423,10 +422,7 @@ export function ProductsMasterClient({ productGroups, warehouses, taxes, current
       const qtyClean = Number.isFinite(Number(qty)) ? Math.max(1, Math.trunc(Number(qty))) : 1;
 
       try {
-        const bcRes = await getBarcodesForProducts([id]);
-        if (bcRes.error) throw new Error(bcRes.error);
-        const barcodes = bcRes.data?.[id] ?? [];
-        const primaryBarcode = String(barcodes[0] ?? reference ?? id);
+        const primaryBarcode = String(reference ?? id);
 
         const res = await createPrintLabelRequest([
           {

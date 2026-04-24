@@ -30,7 +30,7 @@ import { useBrowserPrint } from "@/hooks/use-browserprint";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generate3UpLabelsRow } from "@/utils/zplGenerator";
 import { compute3UpStickerLayout } from "@/utils/labelLayout";
-import type { LabelData } from "@/types/label.types";
+import type { LabelData, LabelLayoutOverride } from "@/types/label.types";
 import { sendZplWithRetry } from "@/lib/browserprint-client";
 import { formatDateTimeInBogota } from "@/lib/datetime";
 import { BarcodeSvg } from "@/components/print-labels/barcode-svg";
@@ -60,6 +60,25 @@ export default function ProductsBrowser() {
   const [logoSrc, setLogoSrc] = useState<string>("/labels/logo.svg");
   type LogoMode = "off" | "z64" | "compat";
   const [logoMode, setLogoMode] = useState<LogoMode>("off");
+  type ReferenceLabelConfig = {
+    contentScalePercent: number;
+    nameFontPercent: number;
+    barcodeHeightPercent: number;
+    barcodeTextPercent: number;
+    barcodeType: "code128" | "qrcode";
+    qrScale: number;
+  };
+  const DEFAULT_REFERENCE_LABEL_CONFIG: ReferenceLabelConfig = {
+    contentScalePercent: 100,
+    nameFontPercent: 100,
+    barcodeHeightPercent: 100,
+    barcodeTextPercent: 100,
+    barcodeType: "code128",
+    qrScale: 3,
+  };
+  const REFERENCE_LABEL_CONFIG_STORAGE_KEY = "print-label-reference-layout-v1";
+  const [referenceLabelConfigs, setReferenceLabelConfigs] = useState<Record<string, ReferenceLabelConfig>>({});
+  const [editorReference, setEditorReference] = useState("");
   const logoZplByModeRef = useRef<Record<Exclude<LogoMode, "off">, string | null>>({
     z64: null,
     compat: null,
@@ -133,6 +152,39 @@ export default function ProductsBrowser() {
     return String(barcodeValue ?? "").trim();
   };
 
+  const resolvePrintableBarcode = (
+    reference: string | null | undefined,
+    fallbackValue: unknown
+  ): string => {
+    const ref = String(reference ?? "").trim();
+    if (ref.length > 0) return ref;
+    return String(fallbackValue ?? "").trim();
+  };
+
+  const normalizeReferenceKey = (reference: string | null | undefined): string => String(reference ?? "").trim();
+
+  const toLayoutOverride = (cfg: ReferenceLabelConfig): LabelLayoutOverride => ({
+    contentScalePercent: cfg.contentScalePercent,
+    nameFontPercent: cfg.nameFontPercent,
+    barcodeHeightPercent: cfg.barcodeHeightPercent,
+    barcodeTextPercent: cfg.barcodeTextPercent,
+    barcodeType: cfg.barcodeType,
+    qrScale: cfg.qrScale,
+  });
+
+  const getReferenceConfig = (reference: string | null | undefined): ReferenceLabelConfig => {
+    const key = normalizeReferenceKey(reference);
+    if (!key) return DEFAULT_REFERENCE_LABEL_CONFIG;
+    return referenceLabelConfigs[key] ?? DEFAULT_REFERENCE_LABEL_CONFIG;
+  };
+
+  const getReferenceLayoutOverride = (reference: string | null | undefined): LabelLayoutOverride | undefined => {
+    const key = normalizeReferenceKey(reference);
+    if (!key) return undefined;
+    const cfg = referenceLabelConfigs[key];
+    return cfg ? toLayoutOverride(cfg) : undefined;
+  };
+
   const setDraftQty = (idProduct: number, qty: unknown) => {
     setDraftList((prev) => {
       const existing = prev[idProduct];
@@ -154,6 +206,38 @@ export default function ProductsBrowser() {
   type PreviewSource = "table" | "requests" | "draft";
   const [previewSource, setPreviewSource] = useState<PreviewSource>("table");
   const [previewRequestIds, setPreviewRequestIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(REFERENCE_LABEL_CONFIG_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, Partial<ReferenceLabelConfig>>;
+      const next: Record<string, ReferenceLabelConfig> = {};
+      for (const [ref, cfg] of Object.entries(parsed ?? {})) {
+        const key = String(ref ?? "").trim();
+        if (!key) continue;
+        next[key] = {
+          contentScalePercent: Math.max(70, Math.min(130, Number(cfg?.contentScalePercent ?? 100))),
+          nameFontPercent: Math.max(70, Math.min(140, Number(cfg?.nameFontPercent ?? 100))),
+          barcodeHeightPercent: Math.max(60, Math.min(140, Number(cfg?.barcodeHeightPercent ?? 100))),
+          barcodeTextPercent: Math.max(60, Math.min(140, Number(cfg?.barcodeTextPercent ?? 100))),
+          barcodeType: cfg?.barcodeType === "qrcode" ? "qrcode" : "code128",
+          qrScale: Math.max(2, Math.min(8, Number(cfg?.qrScale ?? 3))),
+        };
+      }
+      setReferenceLabelConfigs(next);
+    } catch {
+      // Ignore invalid persisted settings.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(REFERENCE_LABEL_CONFIG_STORAGE_KEY, JSON.stringify(referenceLabelConfigs));
+    } catch {
+      // Ignore storage errors (private mode, quota, etc.).
+    }
+  }, [referenceLabelConfigs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -458,6 +542,99 @@ export default function ProductsBrowser() {
     return { count, stickers };
   }, [requests]);
 
+  const availableReferences = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const ref = normalizeReferenceKey(r.reference);
+      if (ref) set.add(ref);
+    }
+    for (const it of Object.values(draftList)) {
+      const ref = normalizeReferenceKey(it.reference);
+      if (ref) set.add(ref);
+    }
+    for (const req of requests) {
+      for (const it of req.items ?? []) {
+        const ref = normalizeReferenceKey(it.reference);
+        if (ref) set.add(ref);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows, draftList, requests]);
+
+  useEffect(() => {
+    if (editorReference.trim()) return;
+    const hoveredRef = normalizeReferenceKey(hoveredRow?.reference);
+    if (hoveredRef) {
+      setEditorReference(hoveredRef);
+      return;
+    }
+    if (selectedIdsAll.length > 0) {
+      const selectedRef = normalizeReferenceKey((rowCache[selectedIdsAll[0]] ?? rows.find((r) => r.idProduct === selectedIdsAll[0]))?.reference);
+      if (selectedRef) {
+        setEditorReference(selectedRef);
+        return;
+      }
+    }
+    if (availableReferences.length > 0) {
+      setEditorReference(availableReferences[0]);
+    }
+  }, [editorReference, hoveredRow, selectedIdsAll, rowCache, rows, availableReferences]);
+
+  const editorReferenceKey = normalizeReferenceKey(editorReference);
+  const editorConfig = getReferenceConfig(editorReferenceKey || null);
+
+  const editorPreviewRow = useMemo(() => {
+    if (editorReferenceKey) {
+      const fromRows = rows.find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
+      if (fromRows) return fromRows;
+      const fromCache = Object.values(rowCache).find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
+      if (fromCache) return fromCache;
+    }
+    if (hoveredRow) return hoveredRow;
+    if (selectedIdsAll.length > 0) {
+      const first = rowCache[selectedIdsAll[0]] ?? rows.find((r) => r.idProduct === selectedIdsAll[0]);
+      if (first) return first;
+    }
+    return rows[0] ?? null;
+  }, [editorReferenceKey, rows, rowCache, hoveredRow, selectedIdsAll]);
+
+  const editorPreviewLabel = useMemo<LabelData | null>(() => {
+    if (!editorPreviewRow && !editorReferenceKey) return null;
+    const effectiveReference = editorReferenceKey || normalizeReferenceKey(editorPreviewRow?.reference) || "";
+    const printable = resolvePrintableBarcode(effectiveReference || editorPreviewRow?.reference, editorPreviewRow?.idProduct ?? "");
+    return {
+      nombreProducto: String(editorPreviewRow?.name ?? "Producto de ejemplo"),
+      codigoBarras: String(printable ?? ""),
+      codigoVisible: resolveVisibleCode(effectiveReference || editorPreviewRow?.reference, printable),
+      layoutOverride: toLayoutOverride(editorConfig),
+      lote: String(editorPreviewRow?.measurementUnit ?? "Posición"),
+      fecha: todayLocalIsoDate(),
+    };
+  }, [editorPreviewRow, editorReferenceKey, editorConfig]);
+
+  const upsertEditorConfig = (patch: Partial<ReferenceLabelConfig>) => {
+    const key = normalizeReferenceKey(editorReference);
+    if (!key) return;
+    setReferenceLabelConfigs((prev) => {
+      const base = prev[key] ?? DEFAULT_REFERENCE_LABEL_CONFIG;
+      const nextCfg: ReferenceLabelConfig = {
+        ...base,
+        ...patch,
+      };
+      return { ...prev, [key]: nextCfg };
+    });
+  };
+
+  const resetEditorConfig = () => {
+    const key = normalizeReferenceKey(editorReference);
+    if (!key) return;
+    setReferenceLabelConfigs((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   const renderStickerPreview = (label: LabelData, options?: { widthPx?: number }) => {
     // Preview tries to mirror the ZPL layout (see generate3UpLabelsRow in src/utils/zplGenerator.ts)
     // using the same physical measurements and DPI.
@@ -473,13 +650,20 @@ export default function ProductsBrowser() {
     const xShift = cmToDots(0.3); // 3mm right shift (matches ZPL)
 
     const layout = compute3UpStickerLayout(safeDpi, String(label.nombreProducto ?? ""));
+    const override = label.layoutOverride ?? {};
+    const contentScale = Math.max(70, Math.min(130, Number(override.contentScalePercent ?? 100))) / 100;
+    const nameScale = Math.max(70, Math.min(140, Number(override.nameFontPercent ?? 100))) / 100;
+    const barcodeHeightScale = Math.max(60, Math.min(140, Number(override.barcodeHeightPercent ?? 100))) / 100;
+    const barcodeTextScale = Math.max(60, Math.min(140, Number(override.barcodeTextPercent ?? 100))) / 100;
+    const barcodeType = override.barcodeType === "qrcode" ? "qrcode" : "code128";
+    const qrScale = Math.max(2, Math.min(8, Number(override.qrScale ?? 3)));
 
     // Positions come from the shared layout (prevents overlaps)
     const nameY = layout.nameY;
     const nameLinesMax = layout.nameLinesMax;
     const posY = layout.posY;
     const dateY = layout.dateY;
-    const barcodeH = layout.barcodeH;
+    const barcodeH = Math.max(16, Math.round(layout.barcodeH * contentScale * barcodeHeightScale));
     const barcodeY = layout.barcodeY;
     const barcodeTextY = layout.barcodeTextY;
 
@@ -500,12 +684,13 @@ export default function ProductsBrowser() {
       nameLines[nameLines.length - 1] = `${nameLines[nameLines.length - 1]}…`;
     }
 
-    const nameFont =
+    const nameFontBase =
       name.length > 45
         ? Math.max(8, Math.round(10 * scale))
         : name.length > 30
           ? Math.max(9, Math.round(11 * scale))
           : Math.max(10, Math.round(12 * scale));
+    const nameFont = Math.max(8, Math.round(nameFontBase * contentScale * nameScale));
 
     const showLogo = logoMode !== "off";
 
@@ -569,7 +754,7 @@ export default function ProductsBrowser() {
             position: "absolute",
             left: Math.round((32 + outerX + xShift) * scale),
             top: Math.round(posY * scale),
-            fontSize: Math.max(8, Math.round(10 * scale)),
+            fontSize: Math.max(8, Math.round(10 * scale * contentScale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
             overflow: "hidden",
@@ -585,7 +770,7 @@ export default function ProductsBrowser() {
             position: "absolute",
             left: Math.round((32 + outerX + xShift) * scale),
             top: Math.round(dateY * scale),
-            fontSize: Math.max(8, Math.round(10 * scale)),
+            fontSize: Math.max(8, Math.round(10 * scale * contentScale)),
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
             overflow: "hidden",
@@ -609,10 +794,19 @@ export default function ProductsBrowser() {
           }}
           title={barcodeVisible}
         >
-          <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
+          {barcodeType === "qrcode" ? (
+            <div
+              className="border border-dashed rounded-sm bg-white text-[10px] text-center text-muted-foreground flex items-center justify-center"
+              style={{ height: Math.max(18, Math.round(barcodeH * scale)), width: Math.max(18, Math.round(barcodeH * scale)) }}
+            >
+              QR x{qrScale}
+            </div>
+          ) : (
+            <BarcodeSvg value={barcode} height={Math.max(18, Math.round(barcodeH * scale))} barWidth={1} className="w-full" />
+          )}
           <div
             style={{
-              fontSize: Math.max(7, Math.round(9 * scale)),
+              fontSize: Math.max(7, Math.round(9 * scale * contentScale * barcodeTextScale)),
               lineHeight: 1.1,
               textAlign: "center",
               whiteSpace: "nowrap",
@@ -751,11 +945,12 @@ export default function ProductsBrowser() {
   };
 
   const renderZplLikePreview = (row: PrintLabelsProductRow) => {
-    const primaryBarcode = row.barcodes && row.barcodes.length ? row.barcodes[0] : row.reference ?? String(row.idProduct);
+    const primaryBarcode = resolvePrintableBarcode(row.reference, row.idProduct);
     const label: LabelData = {
       nombreProducto: String(row.name ?? ""),
       codigoBarras: String(primaryBarcode ?? ""),
       codigoVisible: resolveVisibleCode(row.reference, primaryBarcode),
+      layoutOverride: getReferenceLayoutOverride(row.reference),
       lote: String(row.measurementUnit ?? ""),
       fecha: todayLocalIsoDate(),
     };
@@ -764,16 +959,14 @@ export default function ProductsBrowser() {
 
   const buildLabelFromRow = (
     row: PrintLabelsProductRow,
-    barcodesOverlay?: Record<number, string[]>,
     options?: { printDate?: string }
   ): LabelData => {
-    const effectiveBarcodes =
-      row.barcodes === null ? (barcodesOverlay?.[row.idProduct] ?? []) : (row.barcodes ?? []);
-    const primaryBarcode = effectiveBarcodes[0] ?? row.reference ?? String(row.idProduct);
+    const primaryBarcode = resolvePrintableBarcode(row.reference, row.idProduct);
     return {
       nombreProducto: row.name,
       codigoBarras: String(primaryBarcode),
       codigoVisible: resolveVisibleCode(row.reference, primaryBarcode),
+      layoutOverride: getReferenceLayoutOverride(row.reference),
       lote: row.measurementUnit ?? "",
       fecha: options?.printDate ?? todayLocalIsoDate(),
     };
@@ -890,12 +1083,12 @@ export default function ProductsBrowser() {
         for (const it of req.items ?? []) {
           const qty = Math.max(0, Number(it.qty) || 0);
           if (qty <= 0) continue;
-          const effectiveBarcodes = it.barcodes ?? [];
-          const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+          const primaryBarcode = resolvePrintableBarcode(it.reference, it.idProduct);
           const label: LabelData = {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
             codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
+            layoutOverride: getReferenceLayoutOverride(it.reference),
             lote: String(it.measurementUnit ?? ""),
             fecha: printDate,
           };
@@ -960,12 +1153,12 @@ export default function ProductsBrowser() {
       const stickers: LabelData[] = [];
       const sorted = items.slice().sort((a, b) => a.idProduct - b.idProduct);
       for (const it of sorted) {
-        const effectiveBarcodes = it.barcodes ?? [];
-        const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+        const primaryBarcode = resolvePrintableBarcode(it.reference, it.idProduct);
         const label: LabelData = {
           nombreProducto: String(it.name ?? ""),
           codigoBarras: String(primaryBarcode ?? ""),
           codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
+          layoutOverride: getReferenceLayoutOverride(it.reference),
           lote: String(it.measurementUnit ?? ""),
           fecha: printDate,
         };
@@ -1075,7 +1268,7 @@ export default function ProductsBrowser() {
         reference: it.reference,
         measurementUnit: it.measurementUnit,
         productCreatedAt: it.createdAt,
-        primaryBarcode: (it.barcodes?.[0] ?? it.reference ?? String(it.idProduct)).toString(),
+        primaryBarcode: resolvePrintableBarcode(it.reference, it.idProduct),
       }));
 
       const created = await createPrintLabelRequest(payload);
@@ -1150,27 +1343,16 @@ export default function ProductsBrowser() {
         const req = requestsToPrint[rIndex];
         setMessage(`Imprimiendo solicitud ${rIndex + 1}/${requestsToPrint.length}…`);
 
-        // Ensure barcodes if missing
-        const missingIds = req.items
-          .filter((it) => it.barcodes === null)
-          .map((it) => it.idProduct);
-        let overlay: Record<number, string[]> = {};
-        if (missingIds.length > 0) {
-          const res = await getBarcodesForProducts(missingIds);
-          if (res.error) throw new Error(res.error);
-          overlay = res.data ?? {};
-        }
-
         const stickers: LabelData[] = [];
         for (const it of req.items) {
           const qty = Math.max(0, Number(it.qty) || 0);
           if (qty <= 0) continue;
-          const effectiveBarcodes = it.barcodes === null ? (overlay[it.idProduct] ?? []) : (it.barcodes ?? []);
-          const primaryBarcode = effectiveBarcodes[0] ?? it.reference ?? String(it.idProduct);
+          const primaryBarcode = resolvePrintableBarcode(it.reference, it.idProduct);
           const label: LabelData = {
             nombreProducto: String(it.name ?? ""),
             codigoBarras: String(primaryBarcode ?? ""),
             codigoVisible: resolveVisibleCode(it.reference, primaryBarcode),
+            layoutOverride: getReferenceLayoutOverride(it.reference),
             lote: String(it.measurementUnit ?? ""),
             fecha: printDate,
           };
@@ -1247,7 +1429,7 @@ export default function ProductsBrowser() {
     }
   };
 
-  const buildPrintPlanRows = (selectedIds: number[], barcodesOverlay: Record<number, string[]>): LabelSlot[][] => {
+  const buildPrintPlanRows = (selectedIds: number[]): LabelSlot[][] => {
     // Qty means: number of STICKERS to print for that product.
     // We pack 3 stickers per row (left-to-right). The last row may contain empty slots.
     const stickers: LabelData[] = [];
@@ -1261,7 +1443,7 @@ export default function ProductsBrowser() {
       const qtyStickers = Math.max(0, Number(selected[idProduct] ?? 0) || 0);
       if (qtyStickers <= 0) continue;
 
-      const label = buildLabelFromRow(row, barcodesOverlay, { printDate });
+      const label = buildLabelFromRow(row, { printDate });
       for (let i = 0; i < qtyStickers; i++) stickers.push(label);
     }
 
@@ -1293,41 +1475,12 @@ export default function ProductsBrowser() {
       return;
     }
 
-    const barcodesOverlay: Record<number, string[]> = {};
-
     try {
       // Load logo snippet only if enabled.
       // NOTE: Zebra GC420t (USB) often fails with :Z64: (prints “error01”), so default is OFF.
       await ensureLogoSnippet();
 
-      // Ensure barcodes for selected items
-      const missing = selectedIds.filter((id) => {
-        const r = rowCache[id] ?? rows.find((x) => x.idProduct === id);
-        return !r || r.barcodes === null;
-      });
-      if (missing.length > 0) {
-        const res = await getBarcodesForProducts(missing);
-        if (res.error) throw new Error(res.error);
-        Object.assign(barcodesOverlay, res.data ?? {});
-        setRowCache((prev) => {
-          const next = { ...prev };
-          for (const id of missing) {
-            const existing = next[id];
-            if (!existing) continue;
-            next[id] = mergeRowCache(existing, { ...existing, barcodes: (res.data ?? {})[id] ?? [] });
-          }
-          return next;
-        });
-        setRows((prev) =>
-          prev.map((r) => {
-            if (!selectedIds.includes(r.idProduct)) return r;
-            if (r.barcodes !== null) return r;
-            return { ...r, barcodes: res.data?.[r.idProduct] ?? [] };
-          })
-        );
-      }
-
-      const plan = buildPrintPlanRows(selectedIds, barcodesOverlay);
+      const plan = buildPrintPlanRows(selectedIds);
       setPreviewRows(plan);
       setPreviewSource("table");
       setPreviewRequestIds([]);
@@ -1651,6 +1804,146 @@ export default function ProductsBrowser() {
         </div>
       </div>
 
+      <div className="mb-4 rounded-lg border bg-card p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3 w-full lg:max-w-3xl">
+            <div>
+              <div className="text-sm font-medium">Editor de etiqueta por referencia</div>
+              <div className="text-xs text-muted-foreground">
+                Configuración guardada solo para la referencia elegida. No afecta las demás etiquetas.
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground" htmlFor="label-reference-editor">Referencia objetivo</label>
+                <Input
+                  id="label-reference-editor"
+                  list="label-reference-editor-list"
+                  value={editorReference}
+                  onChange={(e) => setEditorReference(e.target.value)}
+                  placeholder="Escribe o elige una referencia"
+                  disabled={printing || previewLoading}
+                />
+                <datalist id="label-reference-editor-list">
+                  {availableReferences.map((ref) => (
+                    <option key={ref} value={ref} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground" htmlFor="label-barcode-mode">Tipo de código</label>
+                <select
+                  id="label-barcode-mode"
+                  className="h-9 w-full rounded-md border px-2 text-sm"
+                  value={editorConfig.barcodeType}
+                  onChange={(e) => upsertEditorConfig({ barcodeType: e.target.value as "code128" | "qrcode" })}
+                  disabled={printing || previewLoading || !editorReferenceKey}
+                >
+                  <option value="code128">Código de barras (Code128)</option>
+                  <option value="qrcode">QR (para referencias largas)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Escala general ({editorConfig.contentScalePercent}%)</label>
+                <Input
+                  type="range"
+                  min={70}
+                  max={130}
+                  step={1}
+                  value={editorConfig.contentScalePercent}
+                  onChange={(e) => upsertEditorConfig({ contentScalePercent: Number(e.target.value) })}
+                  disabled={printing || previewLoading || !editorReferenceKey}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Nombre ({editorConfig.nameFontPercent}%)</label>
+                <Input
+                  type="range"
+                  min={70}
+                  max={140}
+                  step={1}
+                  value={editorConfig.nameFontPercent}
+                  onChange={(e) => upsertEditorConfig({ nameFontPercent: Number(e.target.value) })}
+                  disabled={printing || previewLoading || !editorReferenceKey}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Alto barras ({editorConfig.barcodeHeightPercent}%)</label>
+                <Input
+                  type="range"
+                  min={60}
+                  max={140}
+                  step={1}
+                  value={editorConfig.barcodeHeightPercent}
+                  onChange={(e) => upsertEditorConfig({ barcodeHeightPercent: Number(e.target.value) })}
+                  disabled={printing || previewLoading || !editorReferenceKey}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Texto bajo código ({editorConfig.barcodeTextPercent}%)</label>
+                <Input
+                  type="range"
+                  min={60}
+                  max={140}
+                  step={1}
+                  value={editorConfig.barcodeTextPercent}
+                  onChange={(e) => upsertEditorConfig({ barcodeTextPercent: Number(e.target.value) })}
+                  disabled={printing || previewLoading || !editorReferenceKey}
+                />
+              </div>
+
+              {editorConfig.barcodeType === "qrcode" ? (
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs text-muted-foreground">Tamaño QR ({editorConfig.qrScale})</label>
+                  <Input
+                    type="range"
+                    min={2}
+                    max={8}
+                    step={1}
+                    value={editorConfig.qrScale}
+                    onChange={(e) => upsertEditorConfig({ qrScale: Number(e.target.value) })}
+                    disabled={printing || previewLoading || !editorReferenceKey}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetEditorConfig}
+                disabled={printing || previewLoading || !editorReferenceKey}
+              >
+                Restaurar predeterminado
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                Guardado automático por referencia.
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0">
+            <div className="text-xs text-muted-foreground mb-2">Preview tiempo real</div>
+            {editorPreviewLabel ? (
+              renderStickerPreview(editorPreviewLabel, { widthPx: 260 })
+            ) : (
+              <div className="w-[260px] h-[180px] rounded border bg-muted/20 text-xs text-muted-foreground flex items-center justify-center px-3 text-center">
+                Selecciona una referencia para previsualizar.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {isSearching ? <div className="mb-4 text-sm text-muted-foreground">Mostrando resultados de búsqueda</div> : null}
 
       {loading ? (
@@ -1854,15 +2147,13 @@ export default function ProductsBrowser() {
               if (left + hoverPopoverSize.w + pad > vw) left = Math.max(pad, vw - hoverPopoverSize.w - pad);
               if (top + hoverPopoverSize.h + pad > vh) top = Math.max(pad, vh - hoverPopoverSize.h - pad);
 
-              const primaryBarcode =
-                hoveredRow.barcodes && hoveredRow.barcodes.length
-                  ? hoveredRow.barcodes[0]
-                  : (hoveredRow.reference ?? String(hoveredRow.idProduct));
+              const primaryBarcode = resolvePrintableBarcode(hoveredRow.reference, hoveredRow.idProduct);
 
               const label: LabelData = {
                 nombreProducto: String(hoveredRow.name ?? ""),
                 codigoBarras: String(primaryBarcode ?? ""),
                 codigoVisible: resolveVisibleCode(hoveredRow.reference, primaryBarcode),
+                layoutOverride: getReferenceLayoutOverride(hoveredRow.reference),
                 lote: String(hoveredRow.measurementUnit ?? ""),
                 fecha: todayLocalIsoDate(),
               };
@@ -1895,17 +2186,15 @@ export default function ProductsBrowser() {
 
                   <div className="grid gap-2">
                     <div className="bg-white border rounded-lg p-2">
-                      {hoveredRow.barcodes === null ? (
-                        <div className="text-sm text-muted-foreground">Cargando códigos…</div>
-                      ) : hoveredRow.barcodes && hoveredRow.barcodes.length ? (
+                      {primaryBarcode ? (
                         <div className="space-y-1">
-                          <BarcodeSvg value={hoveredRow.barcodes[0]} height={34} barWidth={1} className="w-full" />
-                          <div className="text-xs text-center text-muted-foreground truncate" title={hoveredRow.barcodes[0]}>
-                            {hoveredRow.barcodes[0]}
+                          <BarcodeSvg value={primaryBarcode} height={34} barWidth={1} className="w-full" />
+                          <div className="text-xs text-center text-muted-foreground truncate" title={primaryBarcode}>
+                            {primaryBarcode}
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-muted-foreground">Sin código de barras</div>
+                        <div className="text-sm text-muted-foreground">Sin referencia para código de barras</div>
                       )}
                     </div>
 
