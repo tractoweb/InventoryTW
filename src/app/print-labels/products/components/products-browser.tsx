@@ -85,6 +85,7 @@ export default function ProductsBrowser() {
   });
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   type LabelSlot = LabelData | null;
   const [previewRows, setPreviewRows] = useState<LabelSlot[][]>([]);
@@ -542,61 +543,17 @@ export default function ProductsBrowser() {
     return { count, stickers };
   }, [requests]);
 
-  const availableReferences = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of rows) {
-      const ref = normalizeReferenceKey(r.reference);
-      if (ref) set.add(ref);
-    }
-    for (const it of Object.values(draftList)) {
-      const ref = normalizeReferenceKey(it.reference);
-      if (ref) set.add(ref);
-    }
-    for (const req of requests) {
-      for (const it of req.items ?? []) {
-        const ref = normalizeReferenceKey(it.reference);
-        if (ref) set.add(ref);
-      }
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rows, draftList, requests]);
-
-  useEffect(() => {
-    if (editorReference.trim()) return;
-    const hoveredRef = normalizeReferenceKey(hoveredRow?.reference);
-    if (hoveredRef) {
-      setEditorReference(hoveredRef);
-      return;
-    }
-    if (selectedIdsAll.length > 0) {
-      const selectedRef = normalizeReferenceKey((rowCache[selectedIdsAll[0]] ?? rows.find((r) => r.idProduct === selectedIdsAll[0]))?.reference);
-      if (selectedRef) {
-        setEditorReference(selectedRef);
-        return;
-      }
-    }
-    if (availableReferences.length > 0) {
-      setEditorReference(availableReferences[0]);
-    }
-  }, [editorReference, hoveredRow, selectedIdsAll, rowCache, rows, availableReferences]);
-
   const editorReferenceKey = normalizeReferenceKey(editorReference);
   const editorConfig = getReferenceConfig(editorReferenceKey || null);
 
   const editorPreviewRow = useMemo(() => {
-    if (editorReferenceKey) {
-      const fromRows = rows.find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
-      if (fromRows) return fromRows;
-      const fromCache = Object.values(rowCache).find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
-      if (fromCache) return fromCache;
-    }
-    if (hoveredRow) return hoveredRow;
-    if (selectedIdsAll.length > 0) {
-      const first = rowCache[selectedIdsAll[0]] ?? rows.find((r) => r.idProduct === selectedIdsAll[0]);
-      if (first) return first;
-    }
-    return rows[0] ?? null;
-  }, [editorReferenceKey, rows, rowCache, hoveredRow, selectedIdsAll]);
+    if (!editorReferenceKey) return null;
+    const fromRows = rows.find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
+    if (fromRows) return fromRows;
+    const fromCache = Object.values(rowCache).find((r) => normalizeReferenceKey(r.reference) === editorReferenceKey);
+    if (fromCache) return fromCache;
+    return null;
+  }, [editorReferenceKey, rows, rowCache]);
 
   const editorPreviewLabel = useMemo<LabelData | null>(() => {
     if (!editorPreviewRow && !editorReferenceKey) return null;
@@ -633,6 +590,17 @@ export default function ProductsBrowser() {
       delete next[key];
       return next;
     });
+  };
+
+  const openEditorForReference = (reference: string | null | undefined) => {
+    const key = normalizeReferenceKey(reference);
+    if (!key) {
+      setMessage("Este producto no tiene referencia para configurar etiqueta.");
+      return;
+    }
+    setEditorReference(key);
+    if (requestsOpen) setRequestsOpen(false);
+    setEditorOpen(true);
   };
 
   const renderStickerPreview = (label: LabelData, options?: { widthPx?: number }) => {
@@ -1804,14 +1772,19 @@ export default function ProductsBrowser() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg border bg-card p-4">
+      {editorOpen ? <div className="mb-4 rounded-lg border bg-card p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3 w-full lg:max-w-3xl">
-            <div>
+            <div className="flex items-start justify-between gap-2">
+              <div>
               <div className="text-sm font-medium">Editor de etiqueta por referencia</div>
               <div className="text-xs text-muted-foreground">
                 Configuración guardada solo para la referencia elegida. No afecta las demás etiquetas.
               </div>
+              </div>
+              <Button type="button" variant="ghost" className="h-8 px-2 text-xs" onClick={() => setEditorOpen(false)}>
+                Cerrar
+              </Button>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1819,17 +1792,10 @@ export default function ProductsBrowser() {
                 <label className="text-xs text-muted-foreground" htmlFor="label-reference-editor">Referencia objetivo</label>
                 <Input
                   id="label-reference-editor"
-                  list="label-reference-editor-list"
                   value={editorReference}
-                  onChange={(e) => setEditorReference(e.target.value)}
-                  placeholder="Escribe o elige una referencia"
-                  disabled={printing || previewLoading}
+                  readOnly
+                  disabled
                 />
-                <datalist id="label-reference-editor-list">
-                  {availableReferences.map((ref) => (
-                    <option key={ref} value={ref} />
-                  ))}
-                </datalist>
               </div>
 
               <div className="space-y-1">
@@ -1942,7 +1908,7 @@ export default function ProductsBrowser() {
             )}
           </div>
         </div>
-      </div>
+      </div> : null}
 
       {isSearching ? <div className="mb-4 text-sm text-muted-foreground">Mostrando resultados de búsqueda</div> : null}
 
@@ -2026,6 +1992,15 @@ export default function ProductsBrowser() {
                                   >
                                     <Plus className="h-4 w-4" />
                                   </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-9 px-2 text-xs"
+                                    onClick={() => openEditorForReference(r.reference)}
+                                    disabled={printing || previewLoading}
+                                  >
+                                    Editar
+                                  </Button>
                                 </div>
                               </div>
                             ) : null}
@@ -2105,13 +2080,24 @@ export default function ProductsBrowser() {
                     <td className="p-2 align-top whitespace-nowrap">{toIsoDate(r.createdAt)}</td>
                     <td className="p-2 align-top">
                       {checked ? (
-                        <Input
-                          type="number"
-                          min={0}
-                          value={String(qty)}
-                          onChange={(e) => handleQtyChange(r.idProduct, Number(e.target.value))}
-                          className="w-20"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            value={String(qty)}
+                            onChange={(e) => handleQtyChange(r.idProduct, Number(e.target.value))}
+                            className="w-20"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 px-2 text-xs"
+                            onClick={() => openEditorForReference(r.reference)}
+                            disabled={printing || previewLoading}
+                          >
+                            Editar
+                          </Button>
+                        </div>
                       ) : null}
                     </td>
                   </tr>
@@ -2398,6 +2384,15 @@ export default function ProductsBrowser() {
                                   aria-label="Eliminar"
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => openEditorForReference(it.reference)}
+                                  disabled={printing || previewLoading}
+                                >
+                                  Editar
                                 </Button>
                               </div>
                             </td>
