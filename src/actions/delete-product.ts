@@ -6,12 +6,18 @@ import { ACCESS_LEVELS } from "@/lib/amplify-config";
 import { requireSession } from "@/lib/session";
 import { writeAuditLog } from "@/services/audit-log-service";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { randomUUID } from "crypto";
 
 /**
- * Elimina un producto de la base de datos si no tiene dependencias en documentos.
+ * Deshabilita un producto (soft-delete) con trazabilidad completa.
+ * 
  * @param productId El ID del producto a eliminar.
+ * @param reason Razón de deshabilitación: "Accidental", "Duplicate", "Obsolete", "Temporary", etc.
  */
-export async function deleteProduct(productId: number): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function deleteProduct(
+  productId: number,
+  reason?: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
   if (!productId) {
     return { success: false, error: "ID de producto no proporcionado." };
   }
@@ -24,9 +30,14 @@ export async function deleteProduct(productId: number): Promise<{ success: boole
     if (!product) return { success: false, error: "Producto no encontrado." };
 
     // Safe-delete: keep traceability by disabling the product.
+    const disabledReason = reason || "MANUAL_DISABLE";
+    
     const updated: any = await amplifyClient.models.Product.update({
       idProduct: Number(productId),
       isEnabled: false,
+      disabledReason,
+      disabledAt: new Date().toISOString(),
+      lastEnabledAt: product.lastEnabledAt || (product.createdAt ? new Date().toISOString() : null),
     } as any);
 
     if (!updated?.data && Array.isArray(updated?.errors) && updated.errors.length) {
@@ -44,11 +55,29 @@ export async function deleteProduct(productId: number): Promise<{ success: boole
       return { success: false, error: "No se pudo confirmar la desactivación del producto." };
     }
 
+    // Crear registro en DisabledEntityHistory
+    try {
+      await amplifyClient.models.DisabledEntityHistory.create({
+        historyId: randomUUID(),
+        entityType: "Product",
+        entityId: Number(productId),
+        reason: disabledReason,
+        disabledBy: session.userId,
+        disabledAt: new Date().toISOString(),
+        tags: disabledReason === "Accidental" ? ["accidental"] : [],
+        notes: `Product "${product?.name}" disabled by user ${session.userId}`,
+      } as any);
+    } catch (e) {
+      console.error("Error creating DisabledEntityHistory:", e);
+      // No bloquees la operación si falla la auditoría
+    }
+
     writeAuditLog({
       userId: session.userId,
       action: "SOFT_DELETE",
       tableName: "Product",
       recordId: Number(productId),
+      reason: disabledReason,
       oldValues: {
         idProduct: Number(productId),
         name: product?.name ?? null,
@@ -58,6 +87,8 @@ export async function deleteProduct(productId: number): Promise<{ success: boole
       newValues: {
         idProduct: Number(productId),
         isEnabled: false,
+        disabledReason,
+        disabledAt: new Date().toISOString(),
       },
     }).catch(() => {});
 
